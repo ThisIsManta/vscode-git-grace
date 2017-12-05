@@ -37,6 +37,9 @@
                 "command": "gitGrace.pull"
             },
             {
+                "command": "gitGrace.push"
+            },
+            {
                 "command": "gitGrace.branch"
             }
         ]
