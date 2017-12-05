@@ -31,8 +31,10 @@
     "contributes": {
         "keybindings": [
             {
-                "command": "gitGrace.fetch",
-                "key": "alt+g z"
+                "command": "gitGrace.fetch"
+            },
+            {
+                "command": "gitGrace.pull"
             }
         ]
     },

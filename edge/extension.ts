@@ -60,6 +60,28 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
         })
     }))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
+        const rootList = getTotalRootFolders()
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async (progress) => {
+            for (const root of rootList) {
+                if (rootList.length > 1) {
+                    progress.report({ message: `Pulling "${root.name}"...` })
+                }
+
+                try {
+                    await retry(1, () => git(root.uri, 'pull', '--ff-only', 'origin'))
+
+                } catch (ex) {
+                    vscode.window.showErrorMessage(`Git Grace: Pulling "${root.name}" failed.`)
+                    return null
+                }
+            }
+
+            vscode.window.setStatusBarMessage(`Pulling completed`, 5000)
+        })
+    }))
 }
 
 export function deactivate() {
