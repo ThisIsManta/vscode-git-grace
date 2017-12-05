@@ -82,6 +82,32 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.setStatusBarMessage(`Pulling completed`, 5000)
         })
     }))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
+        const root = getCurrentRootFolder()
+        if (!root) {
+            return null
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Branching...' }, async (progress) => {
+            try {
+                progress.report({ message: `Fetching "${root.name}"...` })
+                await retry(1, () => git(root.uri, 'fetch', '--prune', 'origin'))
+
+                progress.report({ message: `Waiting for the branch name...` })
+                const branch = await vscode.window.showInputBox({ placeHolder: 'Create new branch', ignoreFocusOut: true })
+                if (!branch) {
+                    return null
+                }
+
+                await git(root.uri, 'checkout', '-B', branch.replace(/\\/g, '/').split('/').map(_.kebabCase).join('/'), '--track', 'origin/master')
+
+            } catch (ex) {
+                vscode.window.showErrorMessage(`Git Grace: Branching failed.`)
+                return null
+            }
+        })
+    }))
 }
 
 export function deactivate() {
@@ -91,20 +117,25 @@ export function deactivate() {
 }
 
 function getCurrentRootFolder() {
+    if (vscode.workspace.workspaceFolders.length === 0) {
+        return null
+    }
+
     if (!vscode.window.activeTextEditor) {
         return null
     }
 
     const rootLink = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
-    if (!rootLink) {
-        return null
+    if (rootLink) {
+        return rootLink
     }
 
-    return rootLink
+    // TODO: show quick pick to select the target root folder
+    return getTotalRootFolders()[0] || null
 }
 
 function getTotalRootFolders() {
-    return vscode.workspace.workspaceFolders
+    return vscode.workspace.workspaceFolders || []
 }
 
 async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
