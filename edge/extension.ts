@@ -12,38 +12,56 @@ let chan: vscode.OutputChannel
 export function activate(context: vscode.ExtensionContext) {
     chan = vscode.window.createOutputChannel('Git Grace')
 
-    const gitPath = vscode.workspace.getConfiguration('git').get<string>('path', os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
-    const git = (rootLink: vscode.Uri, ...parameters: Array<string>) => {
+    const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
+    const git = (rootLink: vscode.Uri, ...parameters: Array<string>) => new Promise((resolve, reject) => {
         chan.appendLine('git ' + parameters.join(' '))
 
-        console.log(new Date());
-        
-        const result = cp.spawnSync(gitPath, parameters, {
+        const pipe = cp.spawn(gitPath, parameters, {
             cwd: rootLink.fsPath.replace(new RegExp(_.escapeRegExp(fp.win32.sep), 'g'), fp.posix.sep),
-            encoding: 'utf-8',
         })
-        
-        console.log(new Date());
 
-        const output = String(result.stdout || '').trim()
-        if (output) {
-            chan.appendLine(output)
-        }
+        pipe.stderr.on('data', text => {
+            chan.append(String(text))
+        })
 
-        const error = String(result.stderr || '').trim()
-        if (error) {
-            chan.appendLine(error)
-        }
+        pipe.stdout.on('data', text => {
+            chan.append(String(text))
+        })
 
-        return { error, output }
-    }
+        pipe.on('close', exit => {
+            chan.appendLine('')
+
+            if (exit === 0) {
+                resolve()
+            } else {
+                reject()
+            }
+        })
+    })
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching' }, async () => {
-            getTotalRootFolders().forEach(link => {
-                const { error, output } = git(link.uri, 'fetch', '--prune', 'origin')
-                
-            })
+        const rootList = getTotalRootFolders()
+        if (rootList.length === 0) {
+            return null
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
+            for (const root of rootList) {
+                if (rootList.length > 1) {
+                    progress.report({ message: `Fetching "${root.name}"...` })
+                }
+
+                try {
+                    await git(root.uri, 'fetch', '--prune', 'origin')
+
+                } catch {
+                    // TODO: retry with delay
+                    vscode.window.showErrorMessage(`Git Grace: Fetching "${root.name}" failed.`)
+                    return null
+                }
+            }
+
+            vscode.window.setStatusBarMessage(`Fetching ${rootList.length > 1 ? (rootList.length + ' repositories ') : ''}completes`, 5000)
         })
     }))
 }
