@@ -1,0 +1,57 @@
+{
+    "name": "git-grace",
+    "displayName": "Manta's Git Grace",
+    "description": ".",
+    "version": "0.0.0",
+    "publisher": "thisismanta",
+    "categories": [
+        "Other"
+    ],
+    "keywords": [
+        "git"
+    ],
+    "repository": {
+        "url": "https://github.com/ThisIsManta/vscode-git-grace"
+    },
+    "bugs": {
+        "url": "https://github.com/ThisIsManta/vscode-git-grace/issues"
+    },
+    "icon": "docs/logo.png",
+    "galleryBanner": {
+        "color": "#ff3d00",
+        "theme": "light"
+    },
+    "engines": {
+        "vscode": "^1.18.0"
+    },
+    "activationEvents": [
+        "*"
+    ],
+    "main": "./dist/extension",
+    "contributes": {
+        "keybindings": [
+            {
+                "command": "gitGrace.fetch",
+                "key": "alt+g z"
+            }
+        ]
+    },
+    "scripts": {
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "compile": "tsc --watch --project ./",
+        "vscode:prepublish": "tsc --skipLibCheck --project ./",
+        "version": "vsce publish",
+        "postversion": "git push --tags --quiet origin master:master"
+    },
+    "devDependencies": {
+        "@types/lodash": "^4.14.73",
+        "@types/node": "^6.0.86",
+        "@types/typescript": "^2.0.0",
+        "vscode": "^1.1.6"
+    },
+    "dependencies": {
+        "lodash": "^4.17.4",
+        "simple-git": "*",
+        "typescript": "~2.6.1"
+    }
+}
