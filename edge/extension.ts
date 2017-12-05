@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
     chan = vscode.window.createOutputChannel('Git Grace')
 
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
-    const git = (rootLink: vscode.Uri, ...parameters: Array<string>) => new Promise((resolve, reject) => {
+    const git = (rootLink: vscode.Uri, ...parameters: Array<string>): Promise<void> => new Promise((resolve, reject) => {
         chan.appendLine('git ' + parameters.join(' '))
 
         const pipe = cp.spawn(gitPath, parameters, {
@@ -41,9 +41,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
         const rootList = getTotalRootFolders()
-        if (rootList.length === 0) {
-            return null
-        }
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
             for (const root of rootList) {
@@ -52,16 +49,15 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    await git(root.uri, 'fetch', '--prune', 'origin')
+                    await retry(1, () => git(root.uri, 'fetch', '--prune', 'origin'))
 
-                } catch {
-                    // TODO: retry with delay
+                } catch (ex) {
                     vscode.window.showErrorMessage(`Git Grace: Fetching "${root.name}" failed.`)
                     return null
                 }
             }
 
-            vscode.window.setStatusBarMessage(`Fetching ${rootList.length > 1 ? (rootList.length + ' repositories ') : ''}completes`, 5000)
+            vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
         })
     }))
 }
@@ -87,4 +83,29 @@ function getCurrentRootFolder() {
 
 function getTotalRootFolders() {
     return vscode.workspace.workspaceFolders
+}
+
+async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
+    while (true) {
+        try {
+            return await action()
+
+        } catch (ex) {
+            if (count > 0) {
+                count -= 1
+                await sleep(1500)
+                continue
+            }
+
+            throw ex
+        }
+    }
+}
+
+async function sleep(time: number) {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve()
+        }, time)
+    })
 }
