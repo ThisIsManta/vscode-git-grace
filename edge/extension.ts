@@ -84,18 +84,18 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
-        const root = getCurrentRootFolder()
+        const root = await getSingleRootFolder()
         if (!root) {
             return null
         }
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Branching...' }, async (progress) => {
             try {
-                progress.report({ message: `Fetching "${root.name}"...` })
-                await retry(1, () => git(root.uri, 'fetch', '--prune', 'origin'))
+                const [noUse, branch] = await Promise.all([
+                    retry(1, () => git(root.uri, 'fetch', '--prune', 'origin')),
+                    vscode.window.showInputBox({ placeHolder: 'Create new branch', ignoreFocusOut: true }),
+                ])
 
-                progress.report({ message: `Waiting for the branch name...` })
-                const branch = await vscode.window.showInputBox({ placeHolder: 'Create new branch', ignoreFocusOut: true })
                 if (!branch) {
                     return null
                 }
@@ -116,26 +116,27 @@ export function deactivate() {
     }
 }
 
-function getCurrentRootFolder() {
-    if (vscode.workspace.workspaceFolders.length === 0) {
+async function getSingleRootFolder() {
+    const rootList = getTotalRootFolders()
+    if (rootList.length === 0) {
         return null
     }
 
-    if (!vscode.window.activeTextEditor) {
+    if (rootList.length === 1) {
+        return rootList[0]
+    }
+
+    const pickItem = await vscode.window.showQuickPick(rootList.map(item => item.name))
+    if (!pickItem) {
         return null
     }
 
-    const rootLink = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
-    if (rootLink) {
-        return rootLink
-    }
-
-    // TODO: show quick pick to select the target root folder
-    return getTotalRootFolders()[0] || null
+    return rootList.find(item => pickItem === item.name)
 }
 
 function getTotalRootFolders() {
-    return vscode.workspace.workspaceFolders || []
+    return (vscode.workspace.workspaceFolders || [])
+        .filter(root => fs.existsSync(fp.join(root.uri.fsPath, '.git')))
 }
 
 async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
