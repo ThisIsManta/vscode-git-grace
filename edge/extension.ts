@@ -159,7 +159,8 @@ export function activate(context: vscode.ExtensionContext) {
                     return null
                 }
 
-                await git(root.uri, 'checkout', '-B', branch.replace(/\\/g, '/').split('/').map(_.kebabCase).join('/'), '--track', 'origin/master')
+                const sanitizedBranchName = branch.replace(/\\/g, '/').split('/').map(_.kebabCase).join('/')
+                await git(root.uri, 'checkout', '-b', sanitizedBranchName, '--no-track', 'origin/master')
 
             } catch (ex) {
                 await showError(`Git Grace: Branching failed.`)
