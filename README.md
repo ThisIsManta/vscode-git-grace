@@ -1,6 +1,6 @@
 # Git Grace
 
-**Git Grace** is a **VS Code** extension that prodives.
+**Git Grace** is a **VS Code** extension that provides.
 
 ## Basic usage
 

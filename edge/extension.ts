@@ -6,6 +6,8 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 import * as process from 'process'
 
+import TortoiseGit from './TortoiseGit'
+
 let chan: vscode.OutputChannel
 
 export function activate(context: vscode.ExtensionContext) {
@@ -146,7 +148,11 @@ export function activate(context: vscode.ExtensionContext) {
             try {
                 const [noUse, branch] = await Promise.all([
                     retry(1, () => git(root.uri, 'fetch', '--prune', 'origin')),
-                    vscode.window.showInputBox({ placeHolder: 'Create new branch', ignoreFocusOut: true }),
+                    vscode.window.showInputBox({
+                        placeHolder: 'Branch name',
+                        prompt: 'Please provide a branch name (Press \'Enter\' to confirm or \'Escape\' to cancel)',
+                        ignoreFocusOut: true
+                    }),
                 ])
 
                 if (!branch) {
@@ -161,6 +167,12 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     }))
+
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', TortoiseGit.showLog))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', TortoiseGit.showFileLog))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', TortoiseGit.commit))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', TortoiseGit.blame))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.stashList', TortoiseGit.blame))
 }
 
 export function deactivate() {

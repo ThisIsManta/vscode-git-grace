@@ -1,7 +1,7 @@
 {
     "name": "git-grace",
     "displayName": "Manta's Git Grace",
-    "description": ".",
+    "description": "Add handy and persistent Git commands.",
     "version": "0.0.0",
     "publisher": "thisismanta",
     "categories": [
@@ -16,11 +16,6 @@
     "bugs": {
         "url": "https://github.com/ThisIsManta/vscode-git-grace/issues"
     },
-    "icon": "docs/logo.png",
-    "galleryBanner": {
-        "color": "#ff3d00",
-        "theme": "light"
-    },
     "engines": {
         "vscode": "^1.18.0"
     },
@@ -29,6 +24,64 @@
     ],
     "main": "./dist/extension",
     "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "TortoiseGit",
+            "properties": {
+                "gitGrace.tortoiseGitPath": {
+                    "type": "string",
+                    "default": "C:\\Program Files\\TortoiseGit\\bin\\TortoiseGitProc.exe",
+                    "description": "Path to TortoiseGit executable (TortoiseGitProc.exe)."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "gitGrace.fetch",
+                "title": "Fetch",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.pull",
+                "title": "Pull (Persistent)",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.push",
+                "title": "Push (Persistent)",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.branch",
+                "title": "Create Branch on 'origin/master'...",
+                "category": "Git"
+            },
+            {
+                "command": "tortoiseGit.showLog",
+                "title": "Show Log...",
+                "category": "TortoiseGit"
+            },
+            {
+                "command": "tortoiseGit.showFileLog",
+                "title": "Show File Log...",
+                "category": "TortoiseGit"
+            },
+            {
+                "command": "tortoiseGit.commit",
+                "title": "Commit...",
+                "category": "TortoiseGit"
+            },
+            {
+                "command": "tortoiseGit.blame",
+                "title": "Blame...",
+                "category": "TortoiseGit"
+            },
+            {
+                "command": "tortoiseGit.stashList",
+                "title": "Show Stash...",
+                "category": "TortoiseGit"
+            }
+        ],
         "keybindings": [
             {
                 "command": "gitGrace.fetch"
@@ -41,6 +94,21 @@
             },
             {
                 "command": "gitGrace.branch"
+            },
+            {
+                "command": "tortoiseGit.showLog"
+            },
+            {
+                "command": "tortoiseGit.showFileLog"
+            },
+            {
+                "command": "tortoiseGit.commit"
+            },
+            {
+                "command": "tortoiseGit.blame"
+            },
+            {
+                "command": "tortoiseGit.stashList"
             }
         ]
     },
