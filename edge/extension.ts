@@ -46,6 +46,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
         const rootList = getTotalRootFolders()
+        if (rootList.length === 0) {
+            return null
+        }
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
             for (const root of rootList) {
@@ -61,9 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
                     return null
                 }
             }
-
-            vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
         })
+
+        vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
@@ -83,13 +86,16 @@ export function activate(context: vscode.ExtensionContext) {
                     return null
                 }
             }
-
-            vscode.window.setStatusBarMessage(`Pulling completed`, 5000)
         })
+
+        vscode.window.setStatusBarMessage(`Pulling completed`, 5000)
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', async () => {
         const rootList = getTotalRootFolders()
+        if (rootList.length === 0) {
+            return null
+        }
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
             for (const root of rootList) {
@@ -133,9 +139,9 @@ export function activate(context: vscode.ExtensionContext) {
                     return null
                 }
             }
-
-            vscode.window.setStatusBarMessage(`Pushing completed`, 5000)
         })
+
+        vscode.window.setStatusBarMessage(`Pushing completed`, 5000)
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
@@ -201,8 +207,15 @@ async function getSingleRootFolder() {
 }
 
 function getTotalRootFolders() {
-    return (vscode.workspace.workspaceFolders || [])
-        .filter(root => fs.existsSync(fp.join(root.uri.fsPath, '.git')))
+    return (vscode.workspace.workspaceFolders || []).filter(root => {
+        const pathList = root.uri.fsPath.split(/\\|\//)
+        for (let rank = pathList.length - 1; rank > 0; rank--) {
+            if (fs.existsSync(fp.join(...pathList.slice(0, rank), '.git'))) {
+                return true
+            }
+        }
+        return false
+    })
 }
 
 async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
