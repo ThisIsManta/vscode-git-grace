@@ -6,7 +6,6 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 import * as process from 'process'
 
-// const Git = require('simple-git')
 let chan: vscode.OutputChannel
 
 export function activate(context: vscode.ExtensionContext) {
@@ -56,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
                     await retry(2, () => git(root.uri, 'fetch', '--prune', 'origin'))
 
                 } catch (ex) {
-                    vscode.window.showErrorMessage(`Git Grace: Fetching "${root.name}" failed.`)
+                    await showError(`Git Grace: Fetching "${root.name}" failed.`)
                     return null
                 }
             }
@@ -78,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
                     await retry(2, () => git(root.uri, 'pull', '--ff-only', 'origin'))
 
                 } catch (ex) {
-                    vscode.window.showErrorMessage(`Git Grace: Pulling "${root.name}" failed.`)
+                    await showError(`Git Grace: Pulling "${root.name}" failed.`)
                     return null
                 }
             }
@@ -100,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
                     const status = await git(root.uri, 'status', '--short', '--branch')
                     const lines = status.trim().split('\n')
                     if (lines.length > 1) {
-                        vscode.window.showErrorMessage(`Git Grace: Pushing "${root.name}" failed because the repository was dirty.`)
+                        await showError(`Git Grace: Pushing "${root.name}" failed because the repository was dirty.`)
                         return null
                     }
 
@@ -115,8 +114,8 @@ export function activate(context: vscode.ExtensionContext) {
                     } catch (ex) {
                         if (String(ex).includes('hint: Updates were rejected because the tip of your current branch is behind')) {
                             const pickButton = await vscode.window.showWarningMessage(`Git Grace: The branch on repository "${root.name}" could not be pushed because it was out-dated.`,
-                                ...([{ title: 'Force' }, { title: 'Cancel', isCloseAffordance: true }] as Array<vscode.MessageItem>))
-                            if (pickButton && pickButton.title === 'Force') {
+                                ...([{ title: 'Force Pushing' }, { title: 'Cancel', isCloseAffordance: true }] as Array<vscode.MessageItem>))
+                            if (pickButton && pickButton.title === 'Force Pushing') {
                                 await git(root.uri, 'push', '--verbose', '--tags', '--force-with-lease', 'origin', branch)
                             }
 
@@ -128,7 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
                     }
 
                 } catch (ex) {
-                    vscode.window.showErrorMessage(`Git Grace: Pushing "${root.name}" failed.`)
+                    await showError(`Git Grace: Pushing "${root.name}" failed.`)
                     return null
                 }
             }
@@ -157,7 +156,7 @@ export function activate(context: vscode.ExtensionContext) {
                 await git(root.uri, 'checkout', '-B', branch.replace(/\\/g, '/').split('/').map(_.kebabCase).join('/'), '--track', 'origin/master')
 
             } catch (ex) {
-                vscode.window.showErrorMessage(`Git Grace: Branching failed.`)
+                await showError(`Git Grace: Branching failed.`)
                 return null
             }
         })
@@ -216,4 +215,10 @@ async function sleep(time: number) {
             resolve()
         }, time)
     })
+}
+
+async function showError(message: string) {
+    if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
+        chan.show()
+    }
 }
