@@ -118,7 +118,10 @@ export function activate(context: vscode.ExtensionContext) {
                     if (lines[0].startsWith('## ') === false) {
                         throw 'Could not retrieve the current branch name.'
                     }
-                    const branch = lines[0].substring(3).trim()
+                    let branch = lines[0].substring(3).trim()
+                    if (branch.includes('...')) {
+                        branch = branch.substring(0, branch.indexOf('...'))
+                    }
 
                     try {
                         await git(root.uri, 'push', '--verbose', '--tags', 'origin', branch)
