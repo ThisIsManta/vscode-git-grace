@@ -217,7 +217,7 @@ async function getSingleRootFolder() {
 function getTotalRootFolders() {
     return (vscode.workspace.workspaceFolders || []).filter(root => {
         const pathList = root.uri.fsPath.split(/\\|\//)
-        for (let rank = pathList.length - 1; rank > 0; rank--) {
+        for (let rank = pathList.length; rank > 0; rank--) {
             if (fs.existsSync(fp.join(...pathList.slice(0, rank), '.git'))) {
                 return true
             }
