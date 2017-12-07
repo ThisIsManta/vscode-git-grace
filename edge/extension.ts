@@ -67,6 +67,8 @@ export function activate(context: vscode.ExtensionContext) {
         })
 
         vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
+
+        vscode.commands.executeCommand('git.refresh')
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
@@ -89,6 +91,8 @@ export function activate(context: vscode.ExtensionContext) {
         })
 
         vscode.window.setStatusBarMessage(`Pulling completed`, 5000)
+
+        vscode.commands.executeCommand('git.refresh')
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', async () => {
@@ -142,6 +146,8 @@ export function activate(context: vscode.ExtensionContext) {
         })
 
         vscode.window.setStatusBarMessage(`Pushing completed`, 5000)
+
+        vscode.commands.executeCommand('git.refresh')
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
@@ -173,6 +179,8 @@ export function activate(context: vscode.ExtensionContext) {
                 return null
             }
         })
+
+        vscode.commands.executeCommand('git.refresh')
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', TortoiseGit.showLog))
