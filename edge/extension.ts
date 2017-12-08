@@ -45,6 +45,32 @@ export function activate(context: vscode.ExtensionContext) {
         })
     })
 
+    const getCurrentBranchName = async (link: vscode.Uri) => {
+        const status = await git(link, 'status', '--short', '--branch')
+
+        let branch = status.split('\n')[0].substring(3).trim()
+        if (branch.includes('...')) {
+            branch = branch.substring(0, branch.indexOf('...'))
+        }
+
+        if (branch.includes('(no branch)')) {
+            return null
+        }
+
+        return branch
+    }
+
+    const getRemoteBranchNames = async (link: vscode.Uri) => {
+        const content = await git(link, 'branch', '--list', '--remotes')
+        return _.chain(content.split('\n'))
+            .map(line => line.trim())
+            .map(line => line.split(' -> '))
+            .flatten()
+            .filter(name => name.startsWith('origin/'))
+            .map(name => name.substring('origin/'.length))
+            .value()
+    }
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
         const rootList = getTotalFolders()
         if (rootList.length === 0) {
@@ -109,13 +135,8 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    const status = await git(root.uri, 'status', '--short', '--branch')
-                    let branch = status.split('\n')[0].substring(3).trim()
-                    if (branch.includes('...')) {
-                        branch = branch.substring(0, branch.indexOf('...'))
-                    }
-
-                    if (branch.includes('(no branch)')) {
+                    const branch = await getCurrentBranchName(root.uri)
+                    if (branch === null) {
                         return vscode.window.showErrorMessage(`Git Grace: No branch was found.`)
                     }
 
@@ -185,47 +206,87 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.open', async () => {
         const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
         const urlPattern = /^\turl\s*=\s*(.+)\.git$/
-        const list = getTotalFolders()
-            .map(root => {
-                const path = fp.join(getGitPath(root.uri), '.git', 'config')
-                if (!fs.existsSync(path)) {
-                    return null
+        const rootList = getTotalFolders()
+        const httpList: Array<string> = []
+        for (const root of rootList) {
+            const gitxPath = getGitPath(root.uri)
+            const confPath = fp.join(gitxPath, '.git', 'config')
+            if (!fs.existsSync(confPath)) {
+                continue
+            }
+
+            const confFile = fs.readFileSync(confPath, 'utf-8')
+            const confLine = _.compact(confFile.split('\n'))
+            let head = ''
+            const dict = new Map<string, string>()
+            for (const line of confLine) {
+                if (line.startsWith('[')) {
+                    head = line
+                } else if (gitPattern.test(line)) {
+                    dict.set(head, 'https://' + line.match(gitPattern)[1].replace(':', '/'))
+                } else if (urlPattern.test(line)) {
+                    dict.set(head, line.match(urlPattern)[1])
+                }
+            }
+
+            let http = dict.get('[remote "origin"]')
+            if (http === undefined) {
+                continue
+            }
+
+            httpList.push(http)
+
+            if (http.startsWith('https://github.com/') === false) {
+                continue
+            }
+
+            const rootPath = root.uri.fsPath
+            let workPath = _.get(vscode.window.activeTextEditor, 'document.fileName', '') as string
+            if (getGitPath(workPath) === null) {
+                workPath = null
+            }
+
+            const remoteBranches = await getRemoteBranchNames(root.uri)
+            if (remoteBranches.indexOf('master') >= 0) {
+                if (rootPath !== gitxPath) {
+                    httpList.push(http + '/tree/master/' + getHttpPart(rootPath.substring(gitxPath.length)))
                 }
 
-                const file = fs.readFileSync(path, 'utf-8')
-                const lines = _.compact(file.split('\n'))
-                let head = ''
-                const dict = new Map<string, string>()
-                for (const line of lines) {
-                    if (line.startsWith('[')) {
-                        head = line
-                    } else if (gitPattern.test(line)) {
-                        dict.set(head, 'https://' + line.match(gitPattern)[1].replace(':', '/'))
-                    } else if (urlPattern.test(line)) {
-                        dict.set(head, line.match(urlPattern)[1])
-                    }
+                if (workPath) {
+                    httpList.push(http + '/tree/master/' + getHttpPart(workPath.substring(gitxPath.length)))
                 }
+            }
 
-                if (dict.has('[remote "origin"]') === false) {
-                    return null
+            const localBranch = await getCurrentBranchName(root.uri)
+            if (localBranch && localBranch !== 'master' && remoteBranches.indexOf(localBranch) >= 0) {
+                httpList.push(http + `/tree/${localBranch}/` + getHttpPart(rootPath.substring(gitxPath.length)))
+
+                if (workPath) {
+                    httpList.push(http + `/tree/${localBranch}/` + getHttpPart(workPath.substring(gitxPath.length)))
                 }
+            }
+        }
 
-                return dict.get('[remote "origin"]')
-            })
-            .filter(url => url !== null)
-
-        if (list.length === 0) {
+        if (httpList.length === 0) {
             return null
         }
 
-        if (list.length === 1) {
-            open(list[0])
+        if (httpList.length === 1) {
+            open(httpList[0])
             return null
         }
 
-        const pick = await vscode.window.showQuickPick(list)
+        const pickList = httpList.map(http => {
+            const host = http.match(/^https?:\/\/[\w.]+\//)[0]
+            return {
+                label: _.trimEnd(http.substring(host.length), '/'),
+                description: _.trimEnd(host, '/'),
+            }
+        })
+
+        const pick = await vscode.window.showQuickPick(pickList)
         if (pick) {
-            open(pick)
+            open(pick.description + '/' + pick.label)
             return null
         }
     }))
@@ -245,12 +306,12 @@ export function deactivate() {
 
 function getWorkingFile() {
     if (!vscode.window.activeTextEditor) {
-        vscode.window.showErrorMessage(`This command requires a file to be opened.`)
+        vscode.window.showErrorMessage(`There are no files opened.`)
         return null
     }
 
     if (getGitPath(vscode.window.activeTextEditor.document.uri) === null) {
-        vscode.window.showErrorMessage(`This command requires the current file to be in Git repository.`)
+        vscode.window.showErrorMessage(`The current file was not in Git repository.`)
         return null
     }
 
@@ -261,11 +322,11 @@ async function getSingleFolder() {
     const rootList = getTotalFolders()
     if (rootList.length === 0) {
         if (!vscode.workspace.workspaceFolders) {
-            vscode.window.showErrorMessage(`This command requires a folder to be opened.`)
+            vscode.window.showErrorMessage(`There are no folders opened.`)
             return null
 
         } else {
-            vscode.window.showErrorMessage(`This command requires the current folder to be in Git repository.`)
+            vscode.window.showErrorMessage(`The current folder was not in Git repository.`)
             return null
         }
     }
@@ -293,12 +354,12 @@ function getTotalFolders() {
     return (vscode.workspace.workspaceFolders || []).filter(root => !!getGitPath(root.uri))
 }
 
-function getGitPath(link: vscode.Uri) {
+function getGitPath(link: vscode.Uri | string) {
     if (!link) {
         return null
     }
 
-    const pathList = link.fsPath.split(/\\|\//)
+    const pathList = (typeof link === 'string' ? link : link.fsPath).split(/\\|\//)
     for (let rank = pathList.length; rank > 0; rank--) {
         const path = fp.join(...pathList.slice(0, rank), '.git')
         if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
@@ -307,6 +368,10 @@ function getGitPath(link: vscode.Uri) {
     }
 
     return null
+}
+
+function getHttpPart(path: string) {
+    return _.trim(path.replace(/\\|\//g, '/'), '/')
 }
 
 async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
