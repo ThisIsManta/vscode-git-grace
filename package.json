@@ -57,6 +57,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.open",
+                "title": "Open Repository/Pull-Request",
+                "category": "Git"
+            },
+            {
                 "command": "tortoiseGit.showLog",
                 "title": "Show Log...",
                 "category": "TortoiseGit"
@@ -96,6 +101,9 @@
                 "command": "gitGrace.branch"
             },
             {
+                "command": "gitGrace.open"
+            },
+            {
                 "command": "tortoiseGit.showLog"
             },
             {
@@ -127,6 +135,7 @@
     },
     "dependencies": {
         "lodash": "^4.17.4",
+        "open": "^0.0.5",
         "simple-git": "*",
         "typescript": "~2.6.1"
     }

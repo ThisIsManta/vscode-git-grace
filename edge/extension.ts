@@ -5,6 +5,7 @@ import * as os from 'os'
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 import * as process from 'process'
+import * as open from 'open'
 
 import TortoiseGit from './TortoiseGit'
 
@@ -177,6 +178,54 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     }))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.open', async () => {
+        const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
+        const urlPattern = /^\turl\s*=\s*(.+)\.git$/
+        const list = getTotalRootFolders()
+            .map(root => {
+                const path = fp.join(getGitPath(root.uri), 'config')
+                if (!fs.existsSync(path)) {
+                    return null
+                }
+
+                const file = fs.readFileSync(path, 'utf-8')
+                const lines = _.compact(file.split('\n'))
+                let head = ''
+                const dict = new Map<string, string>()
+                for (const line of lines) {
+                    if (line.startsWith('[')) {
+                        head = line
+                    } else if (gitPattern.test(line)) {
+                        dict.set(head, 'https://' + line.match(gitPattern)[1].replace(':', '/'))
+                    } else if (urlPattern.test(line)) {
+                        dict.set(head, line.match(urlPattern)[1])
+                    }
+                }
+
+                if (dict.has('[remote "origin"]') === false) {
+                    return null
+                }
+
+                return dict.get('[remote "origin"]')
+            })
+            .filter(url => url !== null)
+
+        if (list.length === 0) {
+            return null
+        }
+
+        if (list.length === 1) {
+            open(list[0])
+            return null
+        }
+
+        const pick = await vscode.window.showQuickPick(list)
+        if (pick) {
+            open(pick)
+            return null
+        }
+    }))
+
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', TortoiseGit.showLog))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', TortoiseGit.showFileLog))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', TortoiseGit.commit))
@@ -209,15 +258,18 @@ async function getSingleRootFolder() {
 }
 
 function getTotalRootFolders() {
-    return (vscode.workspace.workspaceFolders || []).filter(root => {
-        const pathList = root.uri.fsPath.split(/\\|\//)
-        for (let rank = pathList.length; rank > 0; rank--) {
-            if (fs.existsSync(fp.join(...pathList.slice(0, rank), '.git'))) {
-                return true
-            }
+    return (vscode.workspace.workspaceFolders || []).filter(root => !!getGitPath(root.uri))
+}
+
+function getGitPath(link: vscode.Uri) {
+    const pathList = link.fsPath.split(/\\|\//)
+    for (let rank = pathList.length; rank > 0; rank--) {
+        const workPath = fp.join(...pathList.slice(0, rank), '.git')
+        if (fs.existsSync(workPath)) {
+            return workPath
         }
-        return false
-    })
+    }
+    return null
 }
 
 async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
