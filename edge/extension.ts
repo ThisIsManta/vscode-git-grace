@@ -109,16 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 try {
                     const status = await git(root.uri, 'status', '--short', '--branch')
-                    const lines = status.trim().split('\n')
-                    if (lines.length > 1) {
-                        await showError(`Git Grace: Pushing "${root.name}" failed because the repository was dirty.`)
-                        return null
-                    }
-
-                    if (lines[0].startsWith('## ') === false) {
-                        throw 'Could not retrieve the current branch name.'
-                    }
-                    let branch = lines[0].substring(3).trim()
+                    let branch = status.split('\n')[0].substring(3).trim()
                     if (branch.includes('...')) {
                         branch = branch.substring(0, branch.indexOf('...'))
                     }
