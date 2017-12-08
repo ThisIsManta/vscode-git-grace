@@ -46,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
-        const rootList = getTotalRootFolders()
+        const rootList = getTotalFolders()
         if (rootList.length === 0) {
             return null
         }
@@ -73,7 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
-        const rootList = getTotalRootFolders()
+        const rootList = getTotalFolders()
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async (progress) => {
             for (const root of rootList) {
@@ -97,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', async () => {
-        const rootList = getTotalRootFolders()
+        const rootList = getTotalFolders()
         if (rootList.length === 0) {
             return null
         }
@@ -113,6 +113,10 @@ export function activate(context: vscode.ExtensionContext) {
                     let branch = status.split('\n')[0].substring(3).trim()
                     if (branch.includes('...')) {
                         branch = branch.substring(0, branch.indexOf('...'))
+                    }
+
+                    if (branch.includes('(no branch)')) {
+                        return vscode.window.showErrorMessage(`Git Grace: No branch was found.`)
                     }
 
                     try {
@@ -146,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
-        const root = await getSingleRootFolder()
+        const root = await getSingleFolder()
         if (!root) {
             return null
         }
@@ -181,9 +185,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.open', async () => {
         const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
         const urlPattern = /^\turl\s*=\s*(.+)\.git$/
-        const list = getTotalRootFolders()
+        const list = getTotalFolders()
             .map(root => {
-                const path = fp.join(getGitPath(root.uri), 'config')
+                const path = fp.join(getGitPath(root.uri), '.git', 'config')
                 if (!fs.existsSync(path)) {
                     return null
                 }
@@ -226,11 +230,11 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }))
 
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', TortoiseGit.showLog))
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', TortoiseGit.showFileLog))
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', TortoiseGit.commit))
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', TortoiseGit.blame))
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.stashList', TortoiseGit.blame))
+    const tortoiseGit = new TortoiseGit(getWorkingFile, getSingleFolder, getGitPath)
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', () => tortoiseGit.showLog()))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', () => tortoiseGit.showFileLog()))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', () => tortoiseGit.commit()))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
 }
 
 export function deactivate() {
@@ -239,14 +243,42 @@ export function deactivate() {
     }
 }
 
-async function getSingleRootFolder() {
-    const rootList = getTotalRootFolders()
-    if (rootList.length === 0) {
+function getWorkingFile() {
+    if (!vscode.window.activeTextEditor) {
+        vscode.window.showErrorMessage(`This command requires a file to be opened.`)
         return null
     }
 
-    if (rootList.length === 1) {
+    if (getGitPath(vscode.window.activeTextEditor.document.uri) === null) {
+        vscode.window.showErrorMessage(`This command requires the current file to be in Git repository.`)
+        return null
+    }
+
+    return vscode.window.activeTextEditor.document.uri
+}
+
+async function getSingleFolder() {
+    const rootList = getTotalFolders()
+    if (rootList.length === 0) {
+        if (!vscode.workspace.workspaceFolders) {
+            vscode.window.showErrorMessage(`This command requires a folder to be opened.`)
+            return null
+
+        } else {
+            vscode.window.showErrorMessage(`This command requires the current folder to be in Git repository.`)
+            return null
+        }
+    }
+
+    if (vscode.workspace.workspaceFolders.length === 1 && rootList.length === 1) {
         return rootList[0]
+    }
+
+    if (vscode.window.activeTextEditor) {
+        const workFolder = rootList.find(root => root.uri.fsPath === vscode.window.activeTextEditor.document.uri.fsPath)
+        if (workFolder) {
+            return workFolder
+        }
     }
 
     const pickItem = await vscode.window.showQuickPick(rootList.map(item => item.name))
@@ -257,18 +289,23 @@ async function getSingleRootFolder() {
     return rootList.find(item => pickItem === item.name)
 }
 
-function getTotalRootFolders() {
+function getTotalFolders() {
     return (vscode.workspace.workspaceFolders || []).filter(root => !!getGitPath(root.uri))
 }
 
 function getGitPath(link: vscode.Uri) {
+    if (!link) {
+        return null
+    }
+
     const pathList = link.fsPath.split(/\\|\//)
     for (let rank = pathList.length; rank > 0; rank--) {
-        const workPath = fp.join(...pathList.slice(0, rank), '.git')
-        if (fs.existsSync(workPath)) {
-            return workPath
+        const path = fp.join(...pathList.slice(0, rank), '.git')
+        if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
+            return fp.dirname(path)
         }
     }
+
     return null
 }
 

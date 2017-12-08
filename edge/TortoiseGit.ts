@@ -1,141 +1,125 @@
 import * as fs from 'fs'
 import * as fp from 'path'
+import * as cp from 'child_process'
 import * as vscode from 'vscode'
 
 // Slightly modified from https://github.com/mbinic/vscode-tgit/blob/master/src/TGit.ts
+
 export default class TortoiseGit {
-    public static fetch() {
-        TortoiseGit.run('fetch', false)
+    private getWorkingFile: () => vscode.Uri
+    private getRootFolder: () => Promise<vscode.WorkspaceFolder>
+    private getGitPath: (link: vscode.Uri) => string
+    private launcherPath: string
+
+    constructor(getWorkingFile: () => vscode.Uri, getRootFolder: () => Promise<vscode.WorkspaceFolder>, getGitPath: (link: vscode.Uri) => string) {
+        this.getWorkingFile = getWorkingFile
+        this.getRootFolder = getRootFolder
+        this.getGitPath = getGitPath
+
+        this.updateConfiguration()
+
+        vscode.workspace.onDidChangeConfiguration(() => {
+            this.updateConfiguration()
+        })
     }
 
-    public static showLog() {
-        TortoiseGit.run('log')
+    private updateConfiguration() {
+        this.launcherPath = vscode.workspace.getConfiguration('gitGrace').get('tortoiseGitPath')
     }
 
-    public static showFileLog() {
-        TortoiseGit.run('log', true)
+    public fetch() {
+        return this.run('fetch')
     }
 
-    public static commit() {
-        TortoiseGit.run('commit')
+    public showLog() {
+        return this.run('log')
     }
 
-    public static revert() {
-        TortoiseGit.run('revert')
+    public showFileLog() {
+        return this.run('log', true)
     }
 
-    public static cleanup() {
-        TortoiseGit.run('cleanup')
+    public commit() {
+        return this.run('commit')
     }
 
-    public static resolve() {
-        TortoiseGit.run('resolve', true)
+    public revert() {
+        return this.run('revert')
     }
 
-    public static switch() {
-        TortoiseGit.run('switch')
+    public cleanup() {
+        return this.run('cleanup')
     }
 
-    public static merge() {
-        TortoiseGit.run('merge')
+    public resolve() {
+        return this.run('resolve', true)
     }
 
-    public static diff() {
-        TortoiseGit.run('diff', true)
+    public switch() {
+        return this.run('switch')
     }
 
-    public static blame() {
+    public merge() {
+        return this.run('merge')
+    }
+
+    public diff() {
+        return this.run('diff', true)
+    }
+
+    public blame() {
         let line = 1
         if (vscode.window.activeTextEditor) {
             line = vscode.window.activeTextEditor.selection.active.line + 1
         }
-        TortoiseGit.run('blame', true, `/line:${line}`)
+        return this.run('blame', true, `/line:${line}`)
     }
 
-    public static pull() {
-        TortoiseGit.run('pull')
+    public pull() {
+        return this.run('pull')
     }
 
-    public static push() {
-        TortoiseGit.run('push')
+    public push() {
+        return this.run('push')
     }
 
-    public static rebase() {
-        TortoiseGit.run('rebase')
+    public rebase() {
+        return this.run('rebase')
     }
 
-    public static stashSave() {
-        TortoiseGit.run('stashsave')
+    public stashSave() {
+        return this.run('stashsave')
     }
 
-    public static stashPop() {
-        TortoiseGit.run('stashpop')
+    public stashPop() {
+        return this.run('stashpop')
     }
 
-    public static stashList() {
-        TortoiseGit.run('reflog', false, '/ref:"refs/stash"')
+    public stashList() {
+        return this.run('reflog', false, '/ref:"refs/stash"')
     }
 
-    public static sync() {
-        TortoiseGit.run('sync')
+    public sync() {
+        return this.run('sync')
     }
 
-    private static run(command: string, withFilePath: boolean = false, additionalParams: string = null) {
-        let workingDir = this.getRootGitFolder()
-        let targetPath = withFilePath ? this.getWorkingFile() : workingDir
-        if (!workingDir || workingDir == '.' || !targetPath || targetPath == '.') {
-            vscode.window.showErrorMessage(`This command requires an existing file ${withFilePath ? '' : 'or folder'} to be opened.`)
-            return
-        }
-
-        let launcherPath = vscode.workspace.getConfiguration('gitGrace').get('tortoiseGitPath')
-        let cmd = `"${launcherPath}" /command:${command}`
-        if (withFilePath) {
-            cmd += ` /path:"${targetPath}"`
-        }
-        if (additionalParams) {
-            cmd += ' ' + additionalParams
-        }
-        require('child_process').exec(cmd, { cwd: workingDir })
-    }
-
-    private static getRootGitFolder() {
-        let workingDir = this.getWorkingDirectory()
-        let rootDir = workingDir
-        while (!fs.existsSync(rootDir + fp.sep + '.git')) {
-            let parentDir = fp.dirname(rootDir)
-            if (rootDir == parentDir) {
-                rootDir = null
-                break
-            }
-            else {
-                rootDir = parentDir
-            }
-        }
-        return rootDir || workingDir
-    }
-
-    private static getWorkingDirectory() {
-        let currentFile = this.getWorkingFile()
-        if (!currentFile) {
-            if (vscode.workspace.workspaceFolders.length > 0) {
-                return vscode.workspace.workspaceFolders[0].uri.fsPath
-            }
+    private async run(command: string, withFilePath: boolean = false, additionalParams: string = null) {
+        if (withFilePath && !this.getWorkingFile()) {
             return null
         }
 
-        const rootPath = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(currentFile))
-        if (rootPath) {
-            return rootPath.uri.fsPath
+        let folderPath = await this.getRootFolder()
+        if (!folderPath) {
+            return null
         }
 
-        return fp.dirname(currentFile)
-    }
-
-    private static getWorkingFile() {
-        if (vscode.window.activeTextEditor) {
-            return vscode.window.activeTextEditor.document.fileName
+        let executable = `"${this.launcherPath}" /command:${command}`
+        if (withFilePath) {
+            executable += ` /path:"${this.getGitPath(this.getWorkingFile())}"`
         }
-        return null
+        if (additionalParams) {
+            executable += ' ' + additionalParams
+        }
+        cp.exec(executable, { cwd: this.getGitPath(folderPath.uri) })
     }
 }

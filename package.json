@@ -80,11 +80,6 @@
                 "command": "tortoiseGit.blame",
                 "title": "Blame...",
                 "category": "TortoiseGit"
-            },
-            {
-                "command": "tortoiseGit.stashList",
-                "title": "Show Stash...",
-                "category": "TortoiseGit"
             }
         ],
         "keybindings": [
@@ -114,9 +109,6 @@
             },
             {
                 "command": "tortoiseGit.blame"
-            },
-            {
-                "command": "tortoiseGit.stashList"
             }
         ]
     },
