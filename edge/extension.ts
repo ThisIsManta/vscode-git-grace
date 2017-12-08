@@ -170,6 +170,30 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     }))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', async () => {
+        await vscode.commands.executeCommand('git.undoCommit')
+        await vscode.commands.executeCommand('workbench.view.scm')
+    }))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitEmpty', async () => {
+        const root = await getSingleFolder()
+        if (!root) {
+            return null
+        }
+
+        try {
+            await git(root.uri, 'commit', '--allow-empty', '--message="(empty commit)"')
+
+        } catch (ex) {
+            await showError(`Git Grace: Committing failed.`)
+            return null
+        }
+
+        vscode.window.setStatusBarMessage(`Committing completed`, 5000)
+
+        vscode.commands.executeCommand('git.refresh')
+    }))
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
         const root = await getSingleFolder()
         if (!root) {
