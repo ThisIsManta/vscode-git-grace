@@ -126,6 +126,8 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
+        let repoGotUpdated = false
+
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
             for (const root of rootList) {
                 if (rootList.length > 1) {
@@ -133,7 +135,10 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    await retry(2, () => git(root.uri, 'fetch', '--prune', 'origin'))
+                    const result = await retry(2, () => git(root.uri, 'fetch', '--prune', 'origin'))
+                    if (result.trim().length > 0) {
+                        repoGotUpdated = true
+                    }
 
                 } catch (ex) {
                     await showError(`Git Grace: Fetching "${root.name}" failed.`)
@@ -142,9 +147,15 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
 
+        if (repoGotUpdated === false) {
+            vscode.window.showInformationMessage(`Git Grace: There was no updates.`)
+        }
+
         vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
 
-        vscode.commands.executeCommand('git.refresh')
+        if (repoGotUpdated) {
+            vscode.commands.executeCommand('git.refresh')
+        }
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
@@ -183,34 +194,32 @@ export function activate(context: vscode.ExtensionContext) {
                     progress.report({ message: `Pushing "${root.name}"...` })
                 }
 
+                const status = await getCurrentBranchStatus(root.uri)
+                if (status === null) {
+                    return vscode.window.showErrorMessage(`Git Grace: No branch was found.`)
+                }
+
+                const branch = status.local
                 try {
-                    const status = await getCurrentBranchStatus(root.uri)
-                    if (status === null) {
-                        return vscode.window.showErrorMessage(`Git Grace: No branch was found.`)
-                    }
-
-                    const branch = status.local
-                    try {
-                        await git(root.uri, 'push', '--verbose', '--tags', 'origin', branch)
-
-                    } catch (ex) {
-                        if (String(ex).includes('hint: Updates were rejected because the tip of your current branch is behind')) {
-                            const pickButton = await vscode.window.showWarningMessage(`Git Grace: The branch on repository "${root.name}" could not be pushed because it was out-dated.`,
-                                ...([{ title: 'Force Pushing' }, { title: 'Cancel', isCloseAffordance: true }] as Array<vscode.MessageItem>))
-                            if (pickButton && pickButton.title === 'Force Pushing') {
-                                await git(root.uri, 'push', '--verbose', '--tags', '--force-with-lease', 'origin', branch)
-                            }
-
-                            return null
-
-                        } else {
-                            throw ex
-                        }
-                    }
+                    await git(root.uri, 'push', '--verbose', '--tags', 'origin', branch)
 
                 } catch (ex) {
-                    await showError(`Git Grace: Pushing "${root.name}" failed.`)
-                    return null
+                    if (String(ex).includes('hint: Updates were rejected because the tip of your current branch is behind')) {
+                        const pickButton = await vscode.window.showWarningMessage(
+                            `Git Grace: The branch on repository "${root.name}" could not be pushed because its remote branch was out-of-sync.`,
+                            { modal: true },
+                            { title: 'Force Pushing' }, { title: 'Cancel', isCloseAffordance: true } as vscode.MessageItem
+                        )
+                        if (pickButton && pickButton.title === 'Force Pushing') {
+                            await git(root.uri, 'push', '--verbose', '--tags', '--force-with-lease', 'origin', branch)
+                        }
+
+                        return null
+
+                    } else {
+                        await showError(`Git Grace: Pushing "${root.name}" failed.`)
+                        return null
+                    }
                 }
             }
         })
@@ -370,7 +379,7 @@ export function activate(context: vscode.ExtensionContext) {
         const repo = repoList[0]
 
         const status = await getCurrentBranchStatus(repo.root.uri)
-        if(status === null)         {
+        if (status === null) {
             return vscode.window.showErrorMessage(`Git Grace: There was no branch attached.`)
         }
         if (status.local === 'master') {
@@ -379,6 +388,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (status.distance < 0) {
             return vscode.window.showErrorMessage(`Git Grace: The current branch was behind its remote branch.`)
         }
+
         if (status.remote === '' || status.distance > 0) {
             const result = await vscode.commands.executeCommand('gitGrace.push')
             if (result !== undefined) {
@@ -404,7 +414,7 @@ export function deactivate() {
 
 function getWorkingFile() {
     if (!vscode.window.activeTextEditor) {
-        vscode.window.showErrorMessage(`There are no files opened.`)
+        vscode.window.showErrorMessage(`There were no files opened.`)
         return null
     }
 
@@ -420,7 +430,7 @@ async function getSingleFolder() {
     const rootList = getTotalFolders()
     if (rootList.length === 0) {
         if (!vscode.workspace.workspaceFolders) {
-            vscode.window.showErrorMessage(`There are no folders opened.`)
+            vscode.window.showErrorMessage(`There were no folders opened.`)
             return null
 
         } else {
