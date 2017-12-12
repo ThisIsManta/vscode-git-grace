@@ -147,15 +147,14 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
 
-        if (repoGotUpdated === false) {
-            vscode.window.showInformationMessage(`Git Grace: There was no updates.`)
+        if (repoGotUpdated) {
+            vscode.commands.executeCommand('git.refresh')
+            
+        } else {
+            vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
         }
 
         vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
-
-        if (repoGotUpdated) {
-            vscode.commands.executeCommand('git.refresh')
-        }
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
@@ -188,6 +187,8 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
+        let repoGotUpdated = false
+
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
             for (const root of rootList) {
                 if (rootList.length > 1) {
@@ -196,12 +197,15 @@ export function activate(context: vscode.ExtensionContext) {
 
                 const status = await getCurrentBranchStatus(root.uri)
                 if (status === null) {
-                    return vscode.window.showErrorMessage(`Git Grace: No branch was found.`)
+                    return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
                 }
 
                 const branch = status.local
                 try {
-                    await git(root.uri, 'push', '--verbose', '--tags', 'origin', branch)
+                    const result = await git(root.uri, 'push', '--verbose', '--tags', 'origin', branch)
+                    if (result.trim() !== 'Everything up-to-date') {
+                        repoGotUpdated = true
+                    }
 
                 } catch (ex) {
                     if (String(ex).includes('hint: Updates were rejected because the tip of your current branch is behind')) {
@@ -224,9 +228,14 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
 
-        vscode.window.setStatusBarMessage(`Pushing completed`, 5000)
+        if (repoGotUpdated) {
+            vscode.commands.executeCommand('git.refresh')
+            
+        } else {
+            vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
+        }
 
-        vscode.commands.executeCommand('git.refresh')
+        vscode.window.setStatusBarMessage(`Pushing completed`, 5000)
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', async () => {
@@ -380,7 +389,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const status = await getCurrentBranchStatus(repo.root.uri)
         if (status === null) {
-            return vscode.window.showErrorMessage(`Git Grace: There was no branch attached.`)
+            return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
         }
         if (status.local === 'master') {
             return vscode.window.showErrorMessage(`Git Grace: The current branch was "master" branch.`)
