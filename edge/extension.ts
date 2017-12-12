@@ -45,19 +45,32 @@ export function activate(context: vscode.ExtensionContext) {
         })
     })
 
-    const getCurrentBranchName = async (link: vscode.Uri) => {
+    const getCurrentBranchStatus = async (link: vscode.Uri) => {
         const status = await git(link, 'status', '--short', '--branch')
-
-        let branch = status.split('\n')[0].substring(3).trim()
-        if (branch.includes('...')) {
-            branch = branch.substring(0, branch.indexOf('...'))
-        }
+        const branch = status.split('\n')[0].substring(3).trim()
 
         if (branch.includes('(no branch)')) {
             return null
         }
 
-        return branch
+        let local = branch
+        let remote = ''
+        let distance = 0
+        if (branch.includes('...')) {
+            const separator = branch.indexOf('...')
+            local = branch.substring(0, separator)
+            remote = branch.substring(separator + 3).trim()
+
+            if (/\[(ahead|behind)\s\d+\]/.test(remote)) {
+                distance = parseInt(branch.match(/\[(ahead|behind)\s(\d+)\]/)[2])
+                if (/\[behind\s\d+\]/.test(remote)) {
+                    distance *= -1
+                }
+                remote = remote.substring(0, remote.indexOf('[')).trim()
+            }
+        }
+
+        return { local, remote, distance }
     }
 
     const getRemoteBranchNames = async (link: vscode.Uri) => {
@@ -66,9 +79,45 @@ export function activate(context: vscode.ExtensionContext) {
             .map(line => line.trim())
             .map(line => line.split(' -> '))
             .flatten()
-            .filter(name => name.startsWith('origin/'))
-            .map(name => name.substring('origin/'.length))
+            .compact()
             .value()
+    }
+
+    const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
+    const urlPattern = /^\turl\s*=\s*(.+)\.git$/
+
+    const getRepositoryList = async () => {
+        const rootList = getTotalFolders()
+        const repoList: Array<{ root: vscode.WorkspaceFolder, http: string, path: string }> = []
+        for (const root of rootList) {
+            const gitfPath = getGitFolder(root.uri)
+            const confPath = fp.join(gitfPath, '.git', 'config')
+            if (!fs.existsSync(confPath)) {
+                continue
+            }
+
+            const confFile = fs.readFileSync(confPath, 'utf-8')
+            const confLine = _.compact(confFile.split('\n'))
+            let head = ''
+            const dict = new Map<string, string>()
+            for (const line of confLine) {
+                if (line.startsWith('[')) {
+                    head = line
+                } else if (gitPattern.test(line)) {
+                    dict.set(head, 'https://' + line.match(gitPattern)[1].replace(':', '/'))
+                } else if (urlPattern.test(line)) {
+                    dict.set(head, line.match(urlPattern)[1])
+                }
+            }
+
+            let http = dict.get('[remote "origin"]')
+            if (http === undefined) {
+                continue
+            }
+
+            repoList.push({ root, http, path: gitfPath })
+        }
+        return repoList
     }
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
@@ -135,11 +184,12 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    const branch = await getCurrentBranchName(root.uri)
-                    if (branch === null) {
+                    const status = await getCurrentBranchStatus(root.uri)
+                    if (status === null) {
                         return vscode.window.showErrorMessage(`Git Grace: No branch was found.`)
                     }
 
+                    const branch = status.local
                     try {
                         await git(root.uri, 'push', '--verbose', '--tags', 'origin', branch)
 
@@ -228,65 +278,38 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.open', async () => {
-        const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
-        const urlPattern = /^\turl\s*=\s*(.+)\.git$/
-        const rootList = getTotalFolders()
+        const repoList = await getRepositoryList()
+
         const httpList: Array<string> = []
-        for (const root of rootList) {
-            const gitxPath = getGitPath(root.uri)
-            const confPath = fp.join(gitxPath, '.git', 'config')
-            if (!fs.existsSync(confPath)) {
+        for (const repo of repoList) {
+            if (repo.http.startsWith('https://github.com/') === false) {
                 continue
             }
 
-            const confFile = fs.readFileSync(confPath, 'utf-8')
-            const confLine = _.compact(confFile.split('\n'))
-            let head = ''
-            const dict = new Map<string, string>()
-            for (const line of confLine) {
-                if (line.startsWith('[')) {
-                    head = line
-                } else if (gitPattern.test(line)) {
-                    dict.set(head, 'https://' + line.match(gitPattern)[1].replace(':', '/'))
-                } else if (urlPattern.test(line)) {
-                    dict.set(head, line.match(urlPattern)[1])
-                }
-            }
-
-            let http = dict.get('[remote "origin"]')
-            if (http === undefined) {
-                continue
-            }
-
-            httpList.push(http)
-
-            if (http.startsWith('https://github.com/') === false) {
-                continue
-            }
-
-            const rootPath = root.uri.fsPath
+            const rootPath = repo.root.uri.fsPath
             let workPath = _.get(vscode.window.activeTextEditor, 'document.fileName', '') as string
-            if (getGitPath(workPath) === null) {
+            if (getGitFolder(workPath) === null) {
                 workPath = null
             }
 
-            const remoteBranches = await getRemoteBranchNames(root.uri)
-            if (remoteBranches.indexOf('master') >= 0) {
-                if (rootPath !== gitxPath) {
-                    httpList.push(http + '/tree/master/' + getHttpPart(rootPath.substring(gitxPath.length)))
+
+            const remoteBranches = await getRemoteBranchNames(repo.root.uri)
+            if (remoteBranches.indexOf('origin/master') >= 0) {
+                if (rootPath !== repo.path) {
+                    httpList.push(repo.http + '/tree/master/' + getHttpPart(rootPath.substring(repo.path.length)))
                 }
 
                 if (workPath) {
-                    httpList.push(http + '/tree/master/' + getHttpPart(workPath.substring(gitxPath.length)))
+                    httpList.push(repo.http + '/tree/master/' + getHttpPart(workPath.substring(repo.path.length)))
                 }
             }
 
-            const localBranch = await getCurrentBranchName(root.uri)
-            if (localBranch && localBranch !== 'master' && remoteBranches.indexOf(localBranch) >= 0) {
-                httpList.push(http + `/tree/${localBranch}/` + getHttpPart(rootPath.substring(gitxPath.length)))
+            const status = await getCurrentBranchStatus(repo.root.uri)
+            if (status !== null && status.local !== 'master' && remoteBranches.indexOf(status.remote || ('origin/' + status.local)) >= 0) {
+                httpList.push(repo.http + `/tree/${status.local}/` + getHttpPart(rootPath.substring(repo.path.length)))
 
                 if (workPath) {
-                    httpList.push(http + `/tree/${localBranch}/` + getHttpPart(workPath.substring(gitxPath.length)))
+                    httpList.push(repo.http + `/tree/${status.local}/` + getHttpPart(workPath.substring(repo.path.length)))
                 }
             }
         }
@@ -315,7 +338,58 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }))
 
-    const tortoiseGit = new TortoiseGit(getWorkingFile, getSingleFolder, getGitPath)
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', async () => {
+        let repoList = await getRepositoryList()
+
+        if (repoList.length === 0) {
+            return null
+        }
+
+        if (repoList.length > 1 && vscode.window.activeTextEditor) {
+            const workRoot = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
+            const workRepo = repoList.find(repo => repo.root.uri.toString() === workRoot.uri.toString())
+            if (workRepo !== undefined) {
+                repoList = [workRepo]
+            }
+        }
+
+        if (repoList.length > 1) {
+            const root = await vscode.window.showWorkspaceFolderPick()
+            if (root === undefined) {
+                return null
+            }
+
+            const workRepo = repoList.find(repo => repo.root.uri.toString() === root.uri.toString())
+            if (workRepo === undefined) {
+                return vscode.window.showErrorMessage(`Git Grace: The selected workspace was not a GitHub repository.`)
+            }
+
+            repoList = [workRepo]
+        }
+
+        const repo = repoList[0]
+
+        const status = await getCurrentBranchStatus(repo.root.uri)
+        if(status === null)         {
+            return vscode.window.showErrorMessage(`Git Grace: There was no branch attached.`)
+        }
+        if (status.local === 'master') {
+            return vscode.window.showErrorMessage(`Git Grace: The current branch was "master" branch.`)
+        }
+        if (status.distance < 0) {
+            return vscode.window.showErrorMessage(`Git Grace: The current branch was behind its remote branch.`)
+        }
+        if (status.remote === '' || status.distance > 0) {
+            const result = await vscode.commands.executeCommand('gitGrace.push')
+            if (result !== undefined) {
+                return null
+            }
+        }
+
+        open(repo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+    }))
+
+    const tortoiseGit = new TortoiseGit(getWorkingFile, getSingleFolder, getGitFolder)
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', () => tortoiseGit.showLog()))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', () => tortoiseGit.showFileLog()))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', () => tortoiseGit.commit()))
@@ -334,7 +408,7 @@ function getWorkingFile() {
         return null
     }
 
-    if (getGitPath(vscode.window.activeTextEditor.document.uri) === null) {
+    if (getGitFolder(vscode.window.activeTextEditor.document.uri) === null) {
         vscode.window.showErrorMessage(`The current file was not in Git repository.`)
         return null
     }
@@ -375,10 +449,10 @@ async function getSingleFolder() {
 }
 
 function getTotalFolders() {
-    return (vscode.workspace.workspaceFolders || []).filter(root => !!getGitPath(root.uri))
+    return (vscode.workspace.workspaceFolders || []).filter(root => !!getGitFolder(root.uri))
 }
 
-function getGitPath(link: vscode.Uri | string) {
+function getGitFolder(link: vscode.Uri | string) {
     if (!link) {
         return null
     }

@@ -68,7 +68,12 @@
             },
             {
                 "command": "gitGrace.open",
-                "title": "Open Repository/Pull-Request",
+                "title": "Open Repository",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.pullRequest",
+                "title": "Create Pull-Request",
                 "category": "Git"
             },
             {
@@ -113,6 +118,9 @@
             },
             {
                 "command": "gitGrace.open"
+            },
+            {
+                "command": "gitGrace.pullRequest"
             },
             {
                 "command": "tortoiseGit.showLog"
