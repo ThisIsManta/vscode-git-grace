@@ -83,6 +83,14 @@ export function activate(context: vscode.ExtensionContext) {
             .value()
     }
 
+    const getLastCommit = async (link: vscode.Uri) => {
+        const result = await git(link, 'log', '--max-count', '1', '--format=oneline')
+        return {
+            sha1: result.substring(0, result.indexOf(' ')).trim(),
+            message: result.substring(result.indexOf(' ') + 1).trim().split('\n')[0],
+        }
+    }
+
     const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
     const urlPattern = /^\turl\s*=\s*(.+)\.git$/
 
@@ -149,7 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (repoGotUpdated) {
             vscode.commands.executeCommand('git.refresh')
-            
+
         } else {
             vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
         }
@@ -209,12 +217,11 @@ export function activate(context: vscode.ExtensionContext) {
 
                 } catch (ex) {
                     if (String(ex).includes('hint: Updates were rejected because the tip of your current branch is behind')) {
-                        const pickButton = await vscode.window.showWarningMessage(
-                            `Git Grace: The branch on repository "${root.name}" could not be pushed because its remote branch was out-of-sync.`,
-                            { modal: true },
-                            { title: 'Force Pushing' }, { title: 'Cancel', isCloseAffordance: true } as vscode.MessageItem
-                        )
-                        if (pickButton && pickButton.title === 'Force Pushing') {
+                        const options: Array<vscode.MessageItem> = [{ title: 'Force Pushing' }, { title: 'Cancel', isCloseAffordance: true }]
+                        const select = await vscode.window.showWarningMessage(
+                            `Your branch on repository "${root.name}" could not be pushed because its remote branch was out-of-sync.`,
+                            { modal: true }, ...options)
+                        if (select === options[0]) {
                             await git(root.uri, 'push', '--verbose', '--tags', '--force-with-lease', 'origin', branch)
                         }
 
@@ -230,7 +237,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (repoGotUpdated) {
             vscode.commands.executeCommand('git.refresh')
-            
+
         } else {
             vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
         }
@@ -239,6 +246,21 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', async () => {
+        const root = await getSingleFolder()
+        if (!root) {
+            return null
+        }
+
+        const commit = await getLastCommit(root.uri)
+
+        const options: Array<vscode.MessageItem> = [{ title: 'Amend Last Commit' }, { title: 'Cancel', isCloseAffordance: true }]
+        const select = await vscode.window.showWarningMessage(
+            `Are you sure you want to amend last commit "${_.truncate(commit.message, { length: 60 })}"?`,
+            { modal: true }, ...options)
+        if (select !== options[0]) {
+            return null
+        }
+
         await vscode.commands.executeCommand('git.undoCommit')
         await vscode.commands.executeCommand('workbench.view.scm')
     }))
@@ -246,6 +268,14 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitEmpty', async () => {
         const root = await getSingleFolder()
         if (!root) {
+            return null
+        }
+
+        const options: Array<vscode.MessageItem> = [{ title: 'Create an Empty Commit' }, { title: 'Cancel', isCloseAffordance: true }]
+        const select = await vscode.window.showWarningMessage(
+            `Are you sure you want to create an empty commit?`,
+            { modal: true }, ...options)
+        if (select !== options[0]) {
             return null
         }
 
