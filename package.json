@@ -62,6 +62,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.commitGrace",
+                "title": "Commit (Gracefully)",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.branch",
                 "title": "Create Branch on 'origin/master'...",
                 "category": "Git"
@@ -112,6 +117,9 @@
             },
             {
                 "command": "gitGrace.commitEmpty"
+            },
+            {
+                "command": "gitGrace.commitGrace"
             },
             {
                 "command": "gitGrace.branch"

@@ -70,7 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        return { local, remote, distance }
+        const dirty = status.trim().split('\n').length > 1
+
+        return { local, remote, distance, dirty }
     }
 
     const getRemoteBranchNames = async (link: vscode.Uri) => {
@@ -175,7 +177,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    await retry(2, () => git(root.uri, 'pull', '--ff-only', 'origin'))
+                    await retry(2, () => git(root.uri, 'pull', '--ff-only', '--all'))
 
                 } catch (ex) {
                     await showError(`Git Grace: Pulling "${root.name}" failed.`)
@@ -292,16 +294,59 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     }))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitGrace', async () => {
+        const root = await getSingleFolder()
+        if (!root) {
+            return null
+        }
+
+        await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        await vscode.commands.executeCommand('git.refresh')
+
+        const status = await getCurrentBranchStatus(root.uri)
+        if (status.dirty) {
+            await vscode.commands.executeCommand('git.commit')
+
+            const statusAfterCommitCommand = await getCurrentBranchStatus(root.uri)
+            if (statusAfterCommitCommand.dirty) {
+                return null
+            }
+        }
+
+        const error = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing...' }, async () => {
+            try {
+                if (status.remote === '') {
+                    await git(root.uri, 'push', 'origin', status.local)
+                    await git(root.uri, 'branch', `--set-upstream-to=origin/${status.local}`, status.local)
+                }
+
+                await git(root.uri, 'pull', '--rebase=true', '--all')
+                await git(root.uri, 'push', '--all')
+
+            } catch (ex) {
+                await showError(`Git Grace: Syncing failed.`)
+                return null
+            }
+        })
+        if (error !== undefined) {
+            return null
+        }
+
+        vscode.window.setStatusBarMessage(`Syncing completed`, 5000)
+
+        vscode.commands.executeCommand('git.refresh')
+    }))
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
         const root = await getSingleFolder()
         if (!root) {
             return null
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Branching...' }, async (progress) => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Branching...' }, async () => {
             try {
                 const [noUse, branch] = await Promise.all([
-                    retry(1, () => git(root.uri, 'fetch', '--prune', 'origin')),
+                    retry(1, () => git(root.uri, 'fetch', '--prune', '--all')),
                     vscode.window.showInputBox({
                         placeHolder: 'Branch name',
                         prompt: 'Please provide a branch name (Press \'Enter\' to confirm or \'Escape\' to cancel)',
@@ -313,8 +358,16 @@ export function activate(context: vscode.ExtensionContext) {
                     return null
                 }
 
-                const sanitizedBranchName = branch.replace(/\\/g, '/').split('/').map(_.kebabCase).join('/')
-                await git(root.uri, 'checkout', '-b', sanitizedBranchName, '--no-track', 'origin/master')
+                const sanitizedBranch = branch.replace(/\\/g, '/').split('/').map(_.kebabCase).join('/')
+
+                const remoteBranches = await getRemoteBranchNames(root.uri)
+                const duplicateBranch = remoteBranches.find(branch => branch.endsWith('/' + sanitizedBranch))
+                if (duplicateBranch) {
+                    vscode.window.showErrorMessage(`Git Grace: The given branch name "${sanitizedBranch}" should not be duplicate with "${duplicateBranch}".`)
+                    return null
+                }
+
+                await git(root.uri, 'checkout', '-b', sanitizedBranch, '--no-track', 'origin/master')
 
             } catch (ex) {
                 await showError(`Git Grace: Branching failed.`)
@@ -429,8 +482,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (status.remote === '' || status.distance > 0) {
-            const result = await vscode.commands.executeCommand('gitGrace.push')
-            if (result !== undefined) {
+            const error = await vscode.commands.executeCommand('gitGrace.push')
+            if (error !== undefined) {
                 return null
             }
         }
