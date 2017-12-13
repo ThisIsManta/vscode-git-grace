@@ -47,10 +47,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     const getCurrentBranchStatus = async (link: vscode.Uri) => {
         const status = await git(link, 'status', '--short', '--branch')
+
         const branch = status.split('\n')[0].substring(3).trim()
+        const dirty = status.trim().split('\n').length > 1
 
         if (branch.includes('(no branch)')) {
-            return null
+            return { local: '', remote: '', distance: 0, dirty }
         }
 
         let local = branch
@@ -69,8 +71,6 @@ export function activate(context: vscode.ExtensionContext) {
                 remote = remote.substring(0, remote.indexOf('[')).trim()
             }
         }
-
-        const dirty = status.trim().split('\n').length > 1
 
         return { local, remote, distance, dirty }
     }
@@ -137,6 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         let repoGotUpdated = false
+        let result: string
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
             for (const root of rootList) {
@@ -145,17 +146,41 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    const result = await retry(2, () => git(root.uri, 'fetch', '--prune', 'origin'))
+                    result = await retry(2, () => git(root.uri, 'fetch', '--prune', 'origin'))
                     if (result.trim().length > 0) {
                         repoGotUpdated = true
                     }
 
                 } catch (ex) {
-                    await showError(`Git Grace: Fetching "${root.name}" failed.`)
+                    showError(`Git Grace: Fetching "${root.name}" failed.`)
                     return null
                 }
             }
         })
+
+        let workRoot: vscode.WorkspaceFolder
+        if (
+            repoGotUpdated &&
+            vscode.window.activeTextEditor &&
+            vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri) &&
+            (workRoot = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
+        ) {
+            const status = await getCurrentBranchStatus(workRoot.uri)
+            if (status.local !== '' && status.remote !== '' && status.distance < 0) {
+                const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }, { title: 'Skip', isCloseAffordance: true }]
+                const select = await vscode.window.showInformationMessage('',
+                    { modal: true }, ...options)
+                if (select === options[0]) {
+                    try {
+                        await git(workRoot.uri, 'rebase', '--autostash', status.remote)
+
+                    } catch (ex) {
+                        showError(`Git Grace: Fast Forwarding failed.`)
+                        return null
+                    }
+                }
+            }
+        }
 
         if (repoGotUpdated) {
             vscode.commands.executeCommand('git.refresh')
@@ -180,7 +205,7 @@ export function activate(context: vscode.ExtensionContext) {
                     await retry(2, () => git(root.uri, 'pull', '--ff-only', '--all'))
 
                 } catch (ex) {
-                    await showError(`Git Grace: Pulling "${root.name}" failed.`)
+                    showError(`Git Grace: Pulling "${root.name}" failed.`)
                     return null
                 }
             }
@@ -206,7 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 const status = await getCurrentBranchStatus(root.uri)
-                if (status === null) {
+                if (status.local === '') {
                     return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
                 }
 
@@ -230,7 +255,7 @@ export function activate(context: vscode.ExtensionContext) {
                         return null
 
                     } else {
-                        await showError(`Git Grace: Pushing "${root.name}" failed.`)
+                        showError(`Git Grace: Pushing "${root.name}" failed.`)
                         return null
                     }
                 }
@@ -285,7 +310,7 @@ export function activate(context: vscode.ExtensionContext) {
             await git(root.uri, 'commit', '--allow-empty', '--message="(empty commit)"')
 
         } catch (ex) {
-            await showError(`Git Grace: Committing failed.`)
+            showError(`Git Grace: Committing failed.`)
             return null
         }
 
@@ -324,7 +349,7 @@ export function activate(context: vscode.ExtensionContext) {
                 await git(root.uri, 'push', '--all')
 
             } catch (ex) {
-                await showError(`Git Grace: Syncing failed.`)
+                showError(`Git Grace: Syncing failed.`)
                 return null
             }
         })
@@ -370,7 +395,7 @@ export function activate(context: vscode.ExtensionContext) {
                 await git(root.uri, 'checkout', '-b', sanitizedBranch, '--no-track', 'origin/master')
 
             } catch (ex) {
-                await showError(`Git Grace: Branching failed.`)
+                showError(`Git Grace: Branching failed.`)
                 return null
             }
         })
@@ -406,7 +431,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const status = await getCurrentBranchStatus(repo.root.uri)
-            if (status !== null && status.local !== 'master' && remoteBranches.indexOf(status.remote || ('origin/' + status.local)) >= 0) {
+            if (status.local !== '' && status.local !== 'master' && remoteBranches.indexOf(status.remote || ('origin/' + status.local)) >= 0) {
                 httpList.push(repo.http + `/tree/${status.local}/` + getHttpPart(rootPath.substring(repo.path.length)))
 
                 if (workPath) {
@@ -471,7 +496,7 @@ export function activate(context: vscode.ExtensionContext) {
         const repo = repoList[0]
 
         const status = await getCurrentBranchStatus(repo.root.uri)
-        if (status === null) {
+        if (status.local === '') {
             return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
         }
         if (status.local === 'master') {
