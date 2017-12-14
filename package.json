@@ -82,6 +82,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.stashNow",
+                "title": "Stash Now",
+                "category": "Git"
+            },
+            {
                 "command": "tortoiseGit.showLog",
                 "title": "Show Log...",
                 "category": "TortoiseGit"
@@ -129,6 +134,9 @@
             },
             {
                 "command": "gitGrace.pullRequest"
+            },
+            {
+                "command": "gitGrace.stashNow"
             },
             {
                 "command": "tortoiseGit.showLog"

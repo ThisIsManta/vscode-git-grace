@@ -516,6 +516,25 @@ export function activate(context: vscode.ExtensionContext) {
         open(repo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
     }))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashNow', async () => {
+        const root = await getSingleFolder()
+        if (!root) {
+            return null
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Stashing...' }, async () => {
+            try {
+                await git(root.uri, 'stash', 'save', '--include-untracked')
+
+            } catch (ex) {
+                showError(`Git Grace: Stashing failed.`)
+                return null
+            }
+        })
+
+        vscode.commands.executeCommand('git.refresh')
+    }))
+
     const tortoiseGit = new TortoiseGit(getWorkingFile, getSingleFolder, getGitFolder)
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', () => tortoiseGit.showLog()))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', () => tortoiseGit.showFileLog()))
