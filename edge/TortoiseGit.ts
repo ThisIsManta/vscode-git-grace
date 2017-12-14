@@ -115,7 +115,7 @@ export default class TortoiseGit {
 
         let executable = `"${this.launcherPath}" /command:${command}`
         if (withFilePath) {
-            executable += ` /path:"${this.getGitPath(this.getWorkingFile())}"`
+            executable += ` /path:"${this.getWorkingFile().fsPath}"`
         }
         if (additionalParams) {
             executable += ' ' + additionalParams
