@@ -48,27 +48,41 @@ export function activate(context: vscode.ExtensionContext) {
     const getCurrentBranchStatus = async (link: vscode.Uri) => {
         const status = await git(link, 'status', '--short', '--branch')
 
-        const branch = status.split('\n')[0].substring(3).trim()
+        const chunk = status.split('\n')[0].substring(3).trim()
         const dirty = status.trim().split('\n').length > 1
 
-        if (branch.includes('(no branch)')) {
+        if (chunk.includes('(no branch)')) {
             return { local: '', remote: '', distance: 0, dirty }
         }
 
-        let local = branch
+        let local = chunk
         let remote = ''
         let distance = 0
-        if (branch.includes('...')) {
-            const separator = branch.indexOf('...')
-            local = branch.substring(0, separator)
-            remote = branch.substring(separator + 3).trim()
+        if (chunk.includes('...')) {
+            const separator = chunk.indexOf('...')
+            local = chunk.substring(0, separator)
+            remote = chunk.substring(separator + 3).trim()
 
             if (/\[(ahead|behind)\s\d+\]/.test(remote)) {
-                distance = parseInt(branch.match(/\[(ahead|behind)\s(\d+)\]/)[2])
+                distance = parseInt(chunk.match(/\[(ahead|behind)\s(\d+)\]/)[2])
                 if (/\[behind\s\d+\]/.test(remote)) {
                     distance *= -1
                 }
-                remote = remote.substring(0, remote.indexOf('[')).trim()
+
+            } else if (/\[ahead\s\d+, behind\s\d+\]/.test(remote)) {
+                distance = NaN
+            }
+
+            if (remote.indexOf(' [') > 0) {
+                remote = remote.substring(0, remote.indexOf(' ['))
+            }
+
+        } else {
+            const remoteBranches = await getRemoteBranchNames(link)
+            const counterpartBranch = remoteBranches.find(branch => branch === `origin/${local}`) || ''
+            if (counterpartBranch) {
+                await git(link, 'branch', `--set-upstream-to=${counterpartBranch}`, local)
+                return getCurrentBranchStatus(link)
             }
         }
 
@@ -431,7 +445,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const status = await getCurrentBranchStatus(repo.root.uri)
-            if (status.local !== '' && status.local !== 'master' && remoteBranches.indexOf(status.remote || ('origin/' + status.local)) >= 0) {
+            if (status.local !== '' && status.local !== 'master' && status.remote !== '') {
                 httpList.push(repo.http + `/tree/${status.local}/` + getHttpPart(rootPath.substring(repo.path.length)))
 
                 if (workPath) {
@@ -493,9 +507,9 @@ export function activate(context: vscode.ExtensionContext) {
             repoList = [workRepo]
         }
 
-        const repo = repoList[0]
+        const workRepo = repoList[0]
 
-        const status = await getCurrentBranchStatus(repo.root.uri)
+        const status = await getCurrentBranchStatus(workRepo.root.uri)
         if (status.local === '') {
             return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
         }
@@ -505,7 +519,9 @@ export function activate(context: vscode.ExtensionContext) {
         if (status.distance < 0) {
             return vscode.window.showErrorMessage(`Git Grace: The current branch was behind its remote branch.`)
         }
-
+        if (isNaN(status.distance)) {
+            return vscode.window.showErrorMessage(`Git Grace: The current branch was out-of-sync with its remote branch.`)
+        }
         if (status.remote === '' || status.distance > 0) {
             const error = await vscode.commands.executeCommand('gitGrace.push')
             if (error !== undefined) {
@@ -513,7 +529,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        open(repo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+        open(workRepo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashNow', async () => {
