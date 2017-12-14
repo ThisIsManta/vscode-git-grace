@@ -321,7 +321,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
-            await git(root.uri, 'commit', '--allow-empty', '--message="(empty commit)"')
+            await git(root.uri, 'commit', '--allow-empty', '--message=(empty commit)')
 
         } catch (ex) {
             showError(`Git Grace: Committing failed.`)
