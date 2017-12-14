@@ -81,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
             const remoteBranches = await getRemoteBranchNames(link)
             const counterpartBranch = remoteBranches.find(branch => branch === `origin/${local}`) || ''
             if (counterpartBranch) {
-                await git(link, 'branch', `--set-upstream-to=${counterpartBranch}`, local)
+                await setRemoteBranch(link, local)
                 return getCurrentBranchStatus(link)
             }
         }
@@ -99,8 +99,12 @@ export function activate(context: vscode.ExtensionContext) {
             .value()
     }
 
+    const setRemoteBranch = (link: vscode.Uri, branch: string) => {
+        return git(link, 'branch', `--set-upstream-to=origin/${branch}`, branch)
+    }
+
     const getLastCommit = async (link: vscode.Uri) => {
-        const result = await git(link, 'log', '--max-count', '1', '--format=oneline')
+        const result = await git(link, 'log', '--max-count', '1', '--oneline')
         return {
             sha1: result.substring(0, result.indexOf(' ')).trim(),
             message: result.substring(result.indexOf(' ') + 1).trim().split('\n')[0],
@@ -333,7 +337,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     }))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitGrace', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', async () => {
         const root = await getSingleFolder()
         if (!root) {
             return null
@@ -356,7 +360,7 @@ export function activate(context: vscode.ExtensionContext) {
             try {
                 if (status.remote === '') {
                     await git(root.uri, 'push', 'origin', status.local)
-                    await git(root.uri, 'branch', `--set-upstream-to=origin/${status.local}`, status.local)
+                    await setRemoteBranch(root.uri, status.local)
                 }
 
                 await git(root.uri, 'pull', '--rebase=true', '--all')

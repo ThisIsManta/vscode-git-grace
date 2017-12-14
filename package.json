@@ -62,11 +62,6 @@
                 "category": "Git"
             },
             {
-                "command": "gitGrace.commitGrace",
-                "title": "Commit (Gracefully)",
-                "category": "Git"
-            },
-            {
                 "command": "gitGrace.branch",
                 "title": "Create Branch on 'origin/master'...",
                 "category": "Git"
@@ -79,6 +74,11 @@
             {
                 "command": "gitGrace.pullRequest",
                 "title": "Create Pull-Request",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.sync",
+                "title": "Sync (Gracefully)",
                 "category": "Git"
             },
             {
@@ -124,9 +124,6 @@
                 "command": "gitGrace.commitEmpty"
             },
             {
-                "command": "gitGrace.commitGrace"
-            },
-            {
                 "command": "gitGrace.branch"
             },
             {
@@ -134,6 +131,9 @@
             },
             {
                 "command": "gitGrace.pullRequest"
+            },
+            {
+                "command": "gitGrace.sync"
             },
             {
                 "command": "gitGrace.stashNow"
