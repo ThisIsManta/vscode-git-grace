@@ -276,6 +276,7 @@ export function activate(context: vscode.ExtensionContext) {
                             { modal: true }, ...options)
                         if (select === options[0]) {
                             await git(root.uri, 'push', '--verbose', '--tags', '--force-with-lease', 'origin', branch)
+                            repoGotUpdated = true
                         }
 
                         return null
