@@ -44,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
         })
     })
 
-    const getCurrentBranchStatus = async (link: vscode.Uri) => {
+    async function getCurrentBranchStatus(link: vscode.Uri) {
         const status = await git(link, 'status', '--short', '--branch')
 
         const chunk = status.split('\n')[0].substring(3).trim()
@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
         return { local, remote, distance, dirty }
     }
 
-    const getLocalBranchNames = async (link: vscode.Uri) => {
+    async function getLocalBranchNames(link: vscode.Uri) {
         const content = await git(link, 'branch', '--list')
         return _.chain(content.split('\n'))
             .map(line => line.startsWith('*') ? line.substring(1) : line)
@@ -97,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
             .value()
     }
 
-    const getRemoteBranchNames = async (link: vscode.Uri) => {
+    async function getRemoteBranchNames(link: vscode.Uri) {
         const content = await git(link, 'branch', '--list', '--remotes')
         return _.chain(content.split('\n'))
             .map(line => line.trim())
@@ -107,11 +107,11 @@ export function activate(context: vscode.ExtensionContext) {
             .value()
     }
 
-    const setRemoteBranch = (link: vscode.Uri, branch: string) => {
+    function setRemoteBranch(link: vscode.Uri, branch: string) {
         return git(link, 'branch', `--set-upstream-to=origin/${branch}`, branch)
     }
 
-    const getLastCommit = async (link: vscode.Uri) => {
+    async function getLastCommit(link: vscode.Uri) {
         const result = await git(link, 'log', '--max-count', '1', '--oneline')
         return {
             sha1: result.substring(0, result.indexOf(' ')).trim(),
@@ -119,11 +119,24 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
+    let rootList: Array<vscode.WorkspaceFolder> = []
+    if (vscode.workspace.workspaceFolders) {
+        rootList = vscode.workspace.workspaceFolders.filter(root => !!getGitFolder(root.uri))
+    }
+
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(e => {
+        rootList.push(...e.added.filter(root => !!getGitFolder(root.uri)))
+        _.pull(rootList, ...e.removed)
+    }))
+
+    function setRootAsFailure(root: vscode.WorkspaceFolder) {
+        rootList = _.sortBy(rootList, item => item === root ? 0 : 1)
+    }
+
     const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
     const urlPattern = /^\turl\s*=\s*(.+)\.git$/
 
-    const getRepositoryList = async () => {
-        const rootList = getTotalFolders()
+    async function getRepositoryList() {
         const repoList: Array<{ root: vscode.WorkspaceFolder, http: string, path: string }> = []
         for (const root of rootList) {
             const gitfPath = getGitFolder(root.uri)
@@ -156,8 +169,103 @@ export function activate(context: vscode.ExtensionContext) {
         return repoList
     }
 
+    function getWorkingFile() {
+        if (!vscode.window.activeTextEditor) {
+            vscode.window.showErrorMessage(`There were no files opened.`)
+            return null
+        }
+
+        if (getGitFolder(vscode.window.activeTextEditor.document.uri) === null) {
+            vscode.window.showErrorMessage(`The current file was not in Git repository.`)
+            return null
+        }
+
+        return vscode.window.activeTextEditor.document.uri
+    }
+
+    async function getCurrentRoot() {
+        if (rootList.length === 0) {
+            if (!vscode.workspace.workspaceFolders) {
+                vscode.window.showErrorMessage(`There were no folders opened.`)
+                return null
+
+            } else {
+                vscode.window.showErrorMessage(`The current folder was not in Git repository.`)
+                return null
+            }
+        }
+
+        if (vscode.workspace.workspaceFolders.length === 1 && rootList.length === 1) {
+            return rootList[0]
+        }
+
+        if (vscode.window.activeTextEditor) {
+            const workFolder = rootList.find(root => root.uri.fsPath === vscode.window.activeTextEditor.document.uri.fsPath)
+            if (workFolder) {
+                return workFolder
+            }
+        }
+
+        const pickItem = await vscode.window.showQuickPick(rootList.map(item => item.name))
+        if (!pickItem) {
+            return null
+        }
+
+        return rootList.find(item => pickItem === item.name)
+    }
+
+    function getGitFolder(link: vscode.Uri | string) {
+        if (!link) {
+            return null
+        }
+
+        const pathList = (typeof link === 'string' ? link : link.fsPath).split(/\\|\//)
+        for (let rank = pathList.length; rank > 0; rank--) {
+            const path = fp.join(...pathList.slice(0, rank), '.git')
+            if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
+                return fp.dirname(path)
+            }
+        }
+
+        return null
+    }
+
+    function getHttpPart(path: string) {
+        return _.trim(path.replace(/\\|\//g, '/'), '/')
+    }
+
+    async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
+        while (true) {
+            try {
+                return await action()
+
+            } catch (ex) {
+                if (count > 0) {
+                    count -= 1
+                    await sleep(1500)
+                    continue
+                }
+
+                throw ex
+            }
+        }
+    }
+
+    async function sleep(time: number) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve()
+            }, time)
+        })
+    }
+
+    async function showError(message: string) {
+        if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
+            outputChannel.show()
+        }
+    }
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
-        const rootList = getTotalFolders()
         if (rootList.length === 0) {
             return null
         }
@@ -178,29 +286,38 @@ export function activate(context: vscode.ExtensionContext) {
                     }
 
                 } catch (ex) {
-                    showError(`Git Grace: Fetching "${root.name}" failed.`)
+                    setRootAsFailure(root)
+
+                    if (rootList.length > 1) {
+                        showError(`Git Grace: Fetching "${root.name}" failed.`)
+                    } else {
+                        showError(`Git Grace: Fetching failed.`)
+                    }
                     return null
                 }
             }
         })
 
-        let workRoot: vscode.WorkspaceFolder
+        let root: vscode.WorkspaceFolder
         if (
             repoGotUpdated &&
             vscode.window.activeTextEditor &&
             vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri) &&
-            (workRoot = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
+            (root = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
         ) {
-            const status = await getCurrentBranchStatus(workRoot.uri)
+            const status = await getCurrentBranchStatus(root.uri)
             if (status.local !== '' && status.remote !== '' && status.distance < 0) {
-                const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }, { title: 'Skip', isCloseAffordance: true }]
-                const select = await vscode.window.showInformationMessage('',
-                    { modal: true }, ...options)
+                const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }, { title: 'Do Nothing', isCloseAffordance: true }]
+                const select = await vscode.window.showInformationMessage(
+                    `The branch "${status.local}" is behind its remote branch.`,
+                    ...options)
                 if (select === options[0]) {
                     try {
-                        await git(workRoot.uri, 'rebase', '--autostash', status.remote)
+                        await git(root.uri, 'rebase', '--autostash', status.remote)
 
                     } catch (ex) {
+                        setRootAsFailure(root)
+
                         showError(`Git Grace: Fast Forwarding failed.`)
                         return null
                     }
@@ -219,21 +336,24 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
-        const rootList = getTotalFolders()
+        const root = await getCurrentRoot()
+        if (!root) {
+            return null
+        }
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async (progress) => {
-            for (const root of rootList) {
-                if (rootList.length > 1) {
-                    progress.report({ message: `Pulling "${root.name}"...` })
-                }
+            if (rootList.length > 1) {
+                progress.report({ message: `Pulling...` })
+            }
 
-                try {
-                    await retry(2, () => git(root.uri, 'pull', '--ff-only', '--all'))
+            try {
+                await retry(2, () => git(root.uri, 'pull', '--ff-only', 'origin'))
 
-                } catch (ex) {
-                    showError(`Git Grace: Pulling "${root.name}" failed.`)
-                    return null
-                }
+            } catch (ex) {
+                setRootAsFailure(root)
+
+                showError(`Git Grace: Pulling failed.`)
+                return null
             }
         })
 
@@ -243,7 +363,6 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', async () => {
-        const rootList = getTotalFolders()
         if (rootList.length === 0) {
             return null
         }
@@ -274,15 +393,21 @@ export function activate(context: vscode.ExtensionContext) {
                         const select = await vscode.window.showWarningMessage(
                             `Your branch on repository "${root.name}" could not be pushed because its remote branch was out-of-sync.`,
                             { modal: true }, ...options)
-                        if (select === options[0]) {
-                            await git(root.uri, 'push', '--verbose', '--tags', '--force-with-lease', 'origin', branch)
-                            repoGotUpdated = true
+                        if (select !== options[0]) {
+                            return null
                         }
 
-                        return null
+                        await git(root.uri, 'push', '--verbose', '--tags', '--force-with-lease', 'origin', branch)
+                        repoGotUpdated = true
 
                     } else {
-                        showError(`Git Grace: Pushing "${root.name}" failed.`)
+                        setRootAsFailure(root)
+
+                        if (rootList.length > 1) {
+                            showError(`Git Grace: Pushing "${root.name}" failed.`)
+                        } else {
+                            showError(`Git Grace: Pushing failed.`)
+                        }
                         return null
                     }
                 }
@@ -300,7 +425,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', async () => {
-        const root = await getSingleFolder()
+        const root = await getCurrentRoot()
         if (!root) {
             return null
         }
@@ -320,7 +445,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitEmpty', async () => {
-        const root = await getSingleFolder()
+        const root = await getCurrentRoot()
         if (!root) {
             return null
         }
@@ -337,6 +462,8 @@ export function activate(context: vscode.ExtensionContext) {
             await git(root.uri, 'commit', '--allow-empty', '--message=(empty commit)')
 
         } catch (ex) {
+            setRootAsFailure(root)
+
             showError(`Git Grace: Committing failed.`)
             return null
         }
@@ -347,7 +474,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', async () => {
-        const root = await getSingleFolder()
+        const root = await getCurrentRoot()
         if (!root) {
             return null
         }
@@ -376,6 +503,8 @@ export function activate(context: vscode.ExtensionContext) {
                 await git(root.uri, 'push', '--all')
 
             } catch (ex) {
+                setRootAsFailure(root)
+
                 showError(`Git Grace: Syncing failed.`)
                 return null
             }
@@ -390,7 +519,6 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches', async () => {
-        const rootList = getTotalFolders()
         if (rootList.length === 0) {
             return null
         }
@@ -453,6 +581,8 @@ export function activate(context: vscode.ExtensionContext) {
                     try {
                         await retry(1, () => git(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
                     } catch (ex) {
+                        setRootAsFailure(branch.root)
+
                         if (typeof ex !== 'string' || ex.includes(`error: unable to delete '${branchNameWithoutOrigin}': remote ref does not exist`) === false) {
                             throw ex
                         }
@@ -484,7 +614,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
-        const root = await getSingleFolder()
+        const root = await getCurrentRoot()
         if (!root) {
             return null
         }
@@ -516,6 +646,8 @@ export function activate(context: vscode.ExtensionContext) {
                 await git(root.uri, 'checkout', '-b', sanitizedBranch, '--no-track', 'origin/master')
 
             } catch (ex) {
+                setRootAsFailure(root)
+
                 showError(`Git Grace: Branching failed.`)
                 return null
             }
@@ -638,7 +770,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashNow', async () => {
-        const root = await getSingleFolder()
+        const root = await getCurrentRoot()
         if (!root) {
             return null
         }
@@ -648,6 +780,8 @@ export function activate(context: vscode.ExtensionContext) {
                 await git(root.uri, 'stash', 'save', '--include-untracked')
 
             } catch (ex) {
+                setRootAsFailure(root)
+
                 showError(`Git Grace: Stashing failed.`)
                 return null
             }
@@ -656,7 +790,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     }))
 
-    const tortoiseGit = new TortoiseGit(getWorkingFile, getSingleFolder, getGitFolder)
+    const tortoiseGit = new TortoiseGit(getWorkingFile, getCurrentRoot, getGitFolder)
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', () => tortoiseGit.showLog()))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', () => tortoiseGit.showFileLog()))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', () => tortoiseGit.commit()))
@@ -666,106 +800,5 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
     if (outputChannel) {
         outputChannel.dispose()
-    }
-}
-
-function getWorkingFile() {
-    if (!vscode.window.activeTextEditor) {
-        vscode.window.showErrorMessage(`There were no files opened.`)
-        return null
-    }
-
-    if (getGitFolder(vscode.window.activeTextEditor.document.uri) === null) {
-        vscode.window.showErrorMessage(`The current file was not in Git repository.`)
-        return null
-    }
-
-    return vscode.window.activeTextEditor.document.uri
-}
-
-async function getSingleFolder() {
-    const rootList = getTotalFolders()
-    if (rootList.length === 0) {
-        if (!vscode.workspace.workspaceFolders) {
-            vscode.window.showErrorMessage(`There were no folders opened.`)
-            return null
-
-        } else {
-            vscode.window.showErrorMessage(`The current folder was not in Git repository.`)
-            return null
-        }
-    }
-
-    if (vscode.workspace.workspaceFolders.length === 1 && rootList.length === 1) {
-        return rootList[0]
-    }
-
-    if (vscode.window.activeTextEditor) {
-        const workFolder = rootList.find(root => root.uri.fsPath === vscode.window.activeTextEditor.document.uri.fsPath)
-        if (workFolder) {
-            return workFolder
-        }
-    }
-
-    const pickItem = await vscode.window.showQuickPick(rootList.map(item => item.name))
-    if (!pickItem) {
-        return null
-    }
-
-    return rootList.find(item => pickItem === item.name)
-}
-
-function getTotalFolders() {
-    return (vscode.workspace.workspaceFolders || []).filter(root => !!getGitFolder(root.uri))
-}
-
-function getGitFolder(link: vscode.Uri | string) {
-    if (!link) {
-        return null
-    }
-
-    const pathList = (typeof link === 'string' ? link : link.fsPath).split(/\\|\//)
-    for (let rank = pathList.length; rank > 0; rank--) {
-        const path = fp.join(...pathList.slice(0, rank), '.git')
-        if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
-            return fp.dirname(path)
-        }
-    }
-
-    return null
-}
-
-function getHttpPart(path: string) {
-    return _.trim(path.replace(/\\|\//g, '/'), '/')
-}
-
-async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
-    while (true) {
-        try {
-            return await action()
-
-        } catch (ex) {
-            if (count > 0) {
-                count -= 1
-                await sleep(1500)
-                continue
-            }
-
-            throw ex
-        }
-    }
-}
-
-async function sleep(time: number) {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve()
-        }, time)
-    })
-}
-
-async function showError(message: string) {
-    if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
-        outputChannel.show()
     }
 }
