@@ -339,29 +339,28 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
-        const root = await getCurrentRoot()
-        if (!root) {
+        if (rootList.length === 0) {
             return null
         }
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async (progress) => {
-            const status = await getCurrentBranchStatus(root.uri)
-            if (status.local === '') {
-                vscode.window.showErrorMessage(`Git Grace: You were not on any branches.`)
-                return null
-            } else if (status.remote === '') {
-                vscode.window.showErrorMessage(`Git Grace: The current branch "${status.local}" did not have its remote branch.`)
-                return null
-            }
+            for (const root of rootList) {
+                try {
+                    await retry(2, () => git(root.uri, 'fetch', '--prune', 'origin'))
 
-            try {
-                await retry(2, () => git(root.uri, 'pull', '--ff-only', 'origin'))
+                    const status = await getCurrentBranchStatus(root.uri)
+                    if (status.local === '' || status.remote === '') {
+                        continue
+                    }
 
-            } catch (ex) {
-                setRootAsFailure(root)
+                    await git(root.uri, 'rebase', status.local)
 
-                showError(`Git Grace: Pulling failed.`)
-                return null
+                } catch (ex) {
+                    setRootAsFailure(root)
+
+                    showError(`Git Grace: Pulling failed.`)
+                    return null
+                }
             }
 
             vscode.window.setStatusBarMessage(`Pulling completed`, 5000)
@@ -507,7 +506,7 @@ export function activate(context: vscode.ExtensionContext) {
                     await setRemoteBranch(root.uri, status.local)
                 }
 
-                await git(root.uri, 'pull', '--all', '--rebase=true')
+                await git(root.uri, 'pull', '--all', '--rebase')
                 await git(root.uri, 'push', '--all')
                 await git(root.uri, 'push', '--tags')
 
@@ -628,7 +627,7 @@ export function activate(context: vscode.ExtensionContext) {
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Branching...' }, async () => {
             try {
                 const [noUse, branch] = await Promise.all([
-                    retry(1, () => git(root.uri, 'fetch', '--prune', '--all')),
+                    retry(1, () => git(root.uri, 'fetch', '--prune', 'origin')),
                     vscode.window.showInputBox({
                         placeHolder: 'Branch name',
                         prompt: 'Please provide a branch name (Press \'Enter\' to confirm or \'Escape\' to cancel)',
