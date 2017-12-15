@@ -18,27 +18,9 @@ export function activate(context: vscode.ExtensionContext) {
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
     const queue: Array<{ path: string, args: Array<string>, resolve: (string) => void, reject: (any) => void }> = []
     const git = (link: vscode.Uri, ...parameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
-        queue.unshift({
-            path: link.fsPath.replace(/\\/g, fp.posix.sep),
-            args: parameters,
-            resolve,
-            reject,
-        })
+        outputChannel.appendLine('git ' + parameters.join(' '))
 
-        if (queue.length === 1) {
-            processNextTaskInQueue()
-        }
-    })
-    const processNextTaskInQueue = () => {
-        if (queue.length === 0) {
-            return undefined
-        }
-
-        const task = queue[queue.length - 1]
-
-        outputChannel.appendLine('git ' + task.args.join(' '))
-
-        const pipe = cp.spawn(gitPath, task.args, { cwd: task.path })
+        const pipe = cp.spawn(gitPath, parameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
 
         let errorBuffer = ''
         pipe.stderr.on('data', text => {
@@ -56,15 +38,12 @@ export function activate(context: vscode.ExtensionContext) {
             outputChannel.appendLine('')
 
             if (exit === 0) {
-                task.resolve(outputBuffer)
+                resolve(outputBuffer)
             } else {
-                task.reject(errorBuffer)
+                reject(errorBuffer)
             }
-
-            queue.pop()
-            processNextTaskInQueue()
         })
-    }
+    })
 
     const getCurrentBranchStatus = async (link: vscode.Uri) => {
         const status = await git(link, 'status', '--short', '--branch')
