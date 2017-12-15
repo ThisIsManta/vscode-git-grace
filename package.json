@@ -82,6 +82,16 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.deleteMergedBranches",
+                "title": "Delete Merged Branches",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.deleteMergedBranches.cancel",
+                "title": "Delete Merged Branches (Cancel)",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.stashNow",
                 "title": "Stash Now",
                 "category": "Git"
