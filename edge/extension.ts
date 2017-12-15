@@ -9,34 +9,32 @@ import * as open from 'open'
 
 import TortoiseGit from './TortoiseGit'
 
-let chan: vscode.OutputChannel
-let sync: vscode.StatusBarItem
+let outputChannel: vscode.OutputChannel
+let syncingStatusBar: vscode.StatusBarItem
 
 export function activate(context: vscode.ExtensionContext) {
-    chan = vscode.window.createOutputChannel('Git Grace')
+    outputChannel = vscode.window.createOutputChannel('Git Grace')
 
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
-    const git = (rootLink: vscode.Uri, ...parameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
-        chan.appendLine('git ' + parameters.join(' '))
+    const git = (link: vscode.Uri, ...parameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
+        outputChannel.appendLine('git ' + parameters.join(' '))
 
-        const pipe = cp.spawn(gitPath, parameters, {
-            cwd: rootLink.fsPath.replace(new RegExp(_.escapeRegExp(fp.win32.sep), 'g'), fp.posix.sep),
-        })
+        const pipe = cp.spawn(gitPath, parameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
 
         let errorBuffer = ''
         pipe.stderr.on('data', text => {
             errorBuffer += String(text)
-            chan.append(String(text))
+            outputChannel.append(String(text))
         })
 
         let outputBuffer = ''
         pipe.stdout.on('data', text => {
             outputBuffer += String(text)
-            chan.append(String(text))
+            outputChannel.append(String(text))
         })
 
         pipe.on('close', exit => {
-            chan.appendLine('')
+            outputChannel.appendLine('')
 
             if (exit === 0) {
                 resolve(outputBuffer)
@@ -396,15 +394,15 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        if (sync !== undefined) {
+        if (syncingStatusBar !== undefined) {
             return undefined
         }
 
-        sync = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
-        sync.text = `$(zap) Retrieving merged branches...`
-        sync.tooltip = 'Click to cancel the operation'
-        sync.command = 'gitGrace.deleteMergedBranches.cancel'
-        sync.show()
+        syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
+        syncingStatusBar.text = `$(zap) Retrieving merged branches...`
+        syncingStatusBar.tooltip = 'Click to cancel the operation'
+        syncingStatusBar.command = 'gitGrace.deleteMergedBranches.cancel'
+        syncingStatusBar.show()
 
         let mergedBranches: Array<{ root: vscode.WorkspaceFolder, name: string }> = []
         for (const root of rootList) {
@@ -444,12 +442,12 @@ export function activate(context: vscode.ExtensionContext) {
             await vscode.window.withProgress({ location: vscode.ProgressLocation.SourceControl }, async () => {
                 const [remotes, locals] = _.partition(mergedBranches, branch => branch.name.startsWith('origin/'))
                 for (const branch of locals) {
-                    sync.text = `$(zap) Deleting merged branches... (${count} of ${mergedBranches.length})`
+                    syncingStatusBar.text = `$(zap) Deleting merged branches... (${count} of ${mergedBranches.length})`
                     await retry(1, () => git(branch.root.uri, 'branch', '--delete', branch.name))
                     count += 1
                 }
                 for (const branch of remotes) {
-                    sync.text = `$(zap) Deleting merged branches... (${count} of ${mergedBranches.length})`
+                    syncingStatusBar.text = `$(zap) Deleting merged branches... (${count} of ${mergedBranches.length})`
                     const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
                     try {
                         await retry(1, () => git(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
@@ -467,7 +465,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         } catch (ex) {
             if (ex instanceof Error) {
-                chan.appendLine(ex.message)
+                outputChannel.appendLine(ex.message)
             }
 
             showError(`Git Grace: Deleting merged branches failed - only ${count === 1 ? `branch "${mergedBranches[0]}" has` : `${count} branches have`} been deleted.`)
@@ -477,10 +475,10 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', async () => {
-        if (sync) {
-            sync.hide()
-            sync.dispose()
-            sync = undefined
+        if (syncingStatusBar) {
+            syncingStatusBar.hide()
+            syncingStatusBar.dispose()
+            syncingStatusBar = undefined
         }
     }))
 
@@ -540,7 +538,6 @@ export function activate(context: vscode.ExtensionContext) {
                 workPath = null
             }
 
-
             const remoteBranches = await getRemoteBranchNames(repo.root.uri)
             if (remoteBranches.indexOf('origin/master') >= 0) {
                 if (rootPath !== repo.path) {
@@ -588,7 +585,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', async () => {
         let repoList = await getRepositoryList()
-
         if (repoList.length === 0) {
             return null
         }
@@ -667,8 +663,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    if (chan) {
-        chan.dispose()
+    if (outputChannel) {
+        outputChannel.dispose()
     }
 }
 
@@ -769,6 +765,6 @@ async function sleep(time: number) {
 
 async function showError(message: string) {
     if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
-        chan.show()
+        outputChannel.show()
     }
 }
