@@ -30,6 +30,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
     })
     const processNextTaskInQueue = () => {
+        if (queue.length === 0) {
+            return undefined
+        }
+
         const task = queue[queue.length - 1]
 
         outputChannel.appendLine('git ' + task.args.join(' '))
@@ -99,7 +103,9 @@ export function activate(context: vscode.ExtensionContext) {
             const counterpartBranch = remoteBranches.find(branch => branch === `origin/${local}`) || ''
             if (counterpartBranch) {
                 await setRemoteBranch(link, local)
-                return getCurrentBranchStatus(link)
+                const newStatus = await getCurrentBranchStatus(link)
+                remote = newStatus.remote
+                distance = newStatus.distance
             }
         }
 
@@ -246,10 +252,20 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    await retry(2, () => git(root.uri, 'pull', '--ff-only', '--all'))
+                    const status = await getCurrentBranchStatus(root.uri)
+                    if (status.local === '' || status.remote === '') {
+                        await retry(2, () => git(root.uri, 'fetch', 'origin'))
+
+                    } else {
+                        await retry(2, () => git(root.uri, 'pull', '--ff-only', '--all'))
+                    }
 
                 } catch (ex) {
-                    showError(`Git Grace: Pulling "${root.name}" failed.`)
+                    if (rootList.length > 1) {
+                        showError(`Git Grace: Pulling "${root.name}" failed.`)
+                    } else {
+                        showError(`Git Grace: Pulling failed.`)
+                    }
                     return null
                 }
             }
