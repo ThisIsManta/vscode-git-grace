@@ -12,6 +12,24 @@ import TortoiseGit from './TortoiseGit'
 let outputChannel: vscode.OutputChannel
 let syncingStatusBar: vscode.StatusBarItem
 
+const processingActionList: Array<() => Promise<any>> = []
+function queue(action: () => Promise<any>) {
+    return async () => {
+        processingActionList.unshift(action)
+
+        if (processingActionList.length === 1) {
+            await action()
+            processingActionList.pop()
+
+            while (processingActionList.length > 0) {
+                const nextAction = _.last(processingActionList)
+                await nextAction()
+                processingActionList.pop()
+            }
+        }
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel('Git Grace')
 
@@ -267,7 +285,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
         if (rootList.length === 0) {
             return null
         }
@@ -336,9 +354,9 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
         }
-    }))
+    })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', queue(async () => {
         if (rootList.length === 0) {
             return null
         }
@@ -367,9 +385,9 @@ export function activate(context: vscode.ExtensionContext) {
 
             vscode.commands.executeCommand('git.refresh')
         })
-    }))
+    })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', queue(async () => {
         if (rootList.length === 0) {
             return null
         }
@@ -429,7 +447,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             vscode.window.setStatusBarMessage(`Pushing completed`, 5000)
         })
-    }))
+    })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', async () => {
         const root = await getCurrentRoot()
@@ -480,7 +498,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     }))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', queue(async () => {
         const root = await getCurrentRoot()
         if (!root) {
             return null
@@ -521,9 +539,9 @@ export function activate(context: vscode.ExtensionContext) {
 
             vscode.commands.executeCommand('git.refresh')
         })
-    }))
+    })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches', queue(async () => {
         if (rootList.length === 0) {
             return null
         }
@@ -608,9 +626,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
-    }))
+    })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', () => {
         if (syncingStatusBar) {
             syncingStatusBar.hide()
             syncingStatusBar.dispose()
@@ -618,7 +636,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', queue(async () => {
         const root = await getCurrentRoot()
         if (!root) {
             return null
@@ -659,9 +677,9 @@ export function activate(context: vscode.ExtensionContext) {
         })
 
         vscode.commands.executeCommand('git.refresh')
-    }))
+    })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.open', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.open', queue(async () => {
         const repoList = await getRepositoryList()
 
         const httpList: Array<string> = []
@@ -719,9 +737,9 @@ export function activate(context: vscode.ExtensionContext) {
             open(pick.description + '/' + pick.label)
             return null
         }
-    }))
+    })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', queue(async () => {
         let repoList = await getRepositoryList()
         if (repoList.length === 0) {
             return null
@@ -772,9 +790,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         open(workRepo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
-    }))
+    })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashNow', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashNow', queue(async () => {
         const root = await getCurrentRoot()
         if (!root) {
             return null
@@ -793,12 +811,12 @@ export function activate(context: vscode.ExtensionContext) {
         })
 
         vscode.commands.executeCommand('git.refresh')
-    }))
+    })))
 
     const tortoiseGit = new TortoiseGit(getWorkingFile, getCurrentRoot, getGitFolder)
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', () => tortoiseGit.showLog()))
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', () => tortoiseGit.showFileLog()))
-    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', () => tortoiseGit.commit()))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', queue(() => tortoiseGit.showLog())))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', queue(() => tortoiseGit.showFileLog())))
+    context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', queue(() => tortoiseGit.commit())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
 }
 
