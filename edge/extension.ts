@@ -798,6 +798,8 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
+        await vscode.commands.executeCommand('workbench.action.files.saveAll')
+
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Stashing...' }, async () => {
             try {
                 await git(root.uri, 'stash', 'save', '--include-untracked')
