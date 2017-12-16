@@ -289,6 +289,11 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
+    let lastFetchStamp: number = undefined
+    function checkIfRecentlyFetched() {
+        return lastFetchStamp !== undefined && Date.now() - lastFetchStamp < 15000
+    }
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
         if (rootList.length === 0) {
             return null
@@ -332,6 +337,8 @@ export function activate(context: vscode.ExtensionContext) {
         if (error !== undefined) {
             return null
         }
+
+        lastFetchStamp = Date.now()
 
         let root: vscode.WorkspaceFolder
         if (
@@ -649,7 +656,7 @@ export function activate(context: vscode.ExtensionContext) {
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Branching...' }, async () => {
             try {
                 const [noUse, branch] = await Promise.all([
-                    retry(1, () => git(root.uri, 'fetch', '--prune', 'origin')),
+                    checkIfRecentlyFetched() ? undefined : retry(1, () => git(root.uri, 'fetch', '--prune', 'origin')),
                     vscode.window.showInputBox({
                         placeHolder: 'Branch name',
                         prompt: 'Please provide a branch name (Press \'Enter\' to confirm or \'Escape\' to cancel)',
@@ -704,7 +711,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (status.dirty) {
             const options: Array<vscode.MessageItem> = [{ title: 'Stash Now' }, { title: 'Discard All Files' }, { title: 'Cancel', isCloseAffordance: true }]
             const select = await vscode.window.showWarningMessage(
-                `Git Grace: The current repository was dirty.`,
+                `The current repository was dirty.`,
                 { modal: true }, ...options)
             if (select === options[0]) {
                 const error = await vscode.commands.executeCommand('gitGrace.stashNow', true)
@@ -726,7 +733,9 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        await vscode.commands.executeCommand('gitGrace.fetch', true)
+        if (checkIfRecentlyFetched() === false) {
+            await vscode.commands.executeCommand('gitGrace.fetch', true)
+        }
 
         try {
             await git(root.uri, 'checkout', '--detach', 'origin/master')
@@ -886,4 +895,10 @@ export function deactivate() {
     if (outputChannel) {
         outputChannel.dispose()
     }
+
+    if (syncingStatusBar) {
+        syncingStatusBar.dispose()
+    }
+
+    processingActionList.splice(0, processingActionList.length)
 }
