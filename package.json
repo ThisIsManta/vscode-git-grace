@@ -63,7 +63,12 @@
             },
             {
                 "command": "gitGrace.branch",
-                "title": "Create Branch on 'origin/master'...",
+                "title": "Create Branch on \"origin/master\"...",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.checkoutMaster",
+                "title": "Checkout to \"origin/master\"",
                 "category": "Git"
             },
             {
@@ -135,6 +140,9 @@
             },
             {
                 "command": "gitGrace.branch"
+            },
+            {
+                "command": "gitGrace.checkoutMaster"
             },
             {
                 "command": "gitGrace.open"

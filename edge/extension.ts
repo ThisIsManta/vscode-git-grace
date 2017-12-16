@@ -14,7 +14,11 @@ let syncingStatusBar: vscode.StatusBarItem
 
 const processingActionList: Array<() => Promise<any>> = []
 function queue(action: () => Promise<any>) {
-    return async () => {
+    return async (bypass: boolean) => {
+        if (bypass) {
+            return await action()
+        }
+
         processingActionList.unshift(action)
 
         if (processingActionList.length === 1) {
@@ -348,7 +352,7 @@ export function activate(context: vscode.ExtensionContext) {
                     } catch (ex) {
                         setRootAsFailure(root)
 
-                        showError(`Git Grace: Fast Forwarding failed.`)
+                        showError(`Git Grace: Fast forwarding failed.`)
                         return null
                     }
                 }
@@ -679,6 +683,62 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     })))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkoutMaster', queue(async () => {
+        const root = await getCurrentRoot()
+        if (!root) {
+            return null
+        }
+
+        await vscode.commands.executeCommand('workbench.action.files.saveAll')
+
+        const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
+        const masterHash = masterInfo.trim()
+        const commitInfo = await git(root.uri, 'status', '--branch', '--porcelain=2')
+        const commitHash = commitInfo.split('\n').find(line => line.startsWith('# branch.oid ')).substring('# branch.oid '.length).trim()
+        if (masterHash === commitInfo) {
+            vscode.window.showInformationMessage(`Git Grace: You are on "origin/master" already.`)
+            return null
+        }
+
+        const status = await getCurrentBranchStatus(root.uri)
+        if (status.dirty) {
+            const options: Array<vscode.MessageItem> = [{ title: 'Stash Now' }, { title: 'Discard All Files' }, { title: 'Cancel', isCloseAffordance: true }]
+            const select = await vscode.window.showWarningMessage(
+                `Git Grace: The current repository was dirty.`,
+                { modal: true }, ...options)
+            if (select === options[0]) {
+                const error = await vscode.commands.executeCommand('gitGrace.stashNow', true)
+                if (error !== undefined) {
+                    return null
+                }
+
+            } else if (select === options[1]) {
+                try {
+                    await git(root.uri, 'reset', '--hard')
+
+                } catch (ex) {
+                    showError(`Git Grace: Cleaning up files failed.`)
+                    return null
+                }
+
+            } else {
+                return null
+            }
+        }
+
+        await vscode.commands.executeCommand('gitGrace.fetch', true)
+
+        try {
+            await git(root.uri, 'checkout', '--detach', 'origin/master')
+
+        } catch (ex) {
+            showError(`Git Grace: Checking out "origin/master" failed.`)
+            return null
+        }
+
+        vscode.commands.executeCommand('git.refresh')
+    })))
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.open', queue(async () => {
         const repoList = await getRepositoryList()
 
@@ -783,7 +843,7 @@ export function activate(context: vscode.ExtensionContext) {
             return vscode.window.showErrorMessage(`Git Grace: The current branch was out-of-sync with its remote branch.`)
         }
         if (status.remote === '' || status.distance > 0) {
-            const error = await vscode.commands.executeCommand('gitGrace.push')
+            const error = await vscode.commands.executeCommand('gitGrace.push', true)
             if (error !== undefined) {
                 return null
             }
