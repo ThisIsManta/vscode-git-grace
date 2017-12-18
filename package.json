@@ -62,18 +62,23 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.stash",
+                "title": "Stash (Unnamed, Include Untracked)",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.branch",
                 "title": "Create Branch on \"origin/master\"...",
                 "category": "Git"
             },
             {
-                "command": "gitGrace.checkoutMaster",
+                "command": "gitGrace.master",
                 "title": "Checkout to \"origin/master\"",
                 "category": "Git"
             },
             {
-                "command": "gitGrace.open",
-                "title": "Open Repository",
+                "command": "gitGrace.openWeb",
+                "title": "Open on Web...",
                 "category": "Git"
             },
             {
@@ -88,17 +93,12 @@
             },
             {
                 "command": "gitGrace.deleteMergedBranches",
-                "title": "Delete Merged Branches",
+                "title": "Delete Merged Branches...",
                 "category": "Git"
             },
             {
                 "command": "gitGrace.deleteMergedBranches.cancel",
                 "title": "Delete Merged Branches (Cancel)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.stashNow",
-                "title": "Stash Now",
                 "category": "Git"
             },
             {
@@ -139,10 +139,13 @@
                 "command": "gitGrace.commitEmpty"
             },
             {
+                "command": "gitGrace.stash"
+            },
+            {
                 "command": "gitGrace.branch"
             },
             {
-                "command": "gitGrace.checkoutMaster"
+                "command": "gitGrace.master"
             },
             {
                 "command": "gitGrace.open"
@@ -152,9 +155,6 @@
             },
             {
                 "command": "gitGrace.sync"
-            },
-            {
-                "command": "gitGrace.stashNow"
             },
             {
                 "command": "tortoiseGit.showLog"
