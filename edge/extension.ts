@@ -382,7 +382,7 @@ export function activate(context: vscode.ExtensionContext) {
                         continue
                     }
 
-                    await git(root.uri, 'rebase', status.local)
+                    await git(root.uri, 'rebase')
 
                 } catch (ex) {
                     setRootAsFailure(root)
