@@ -418,7 +418,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 const branch = status.local
                 try {
-                    const result = await git(root.uri, 'push', 'origin', branch)
+                    const result = await git(root.uri, 'push', '--tags', 'origin', branch)
                     if (result.trim() !== 'Everything up-to-date') {
                         repoGotUpdated = true
                     }
