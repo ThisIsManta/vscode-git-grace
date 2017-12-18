@@ -1,26 +1,23 @@
 # Git Grace
 
-**Git Grace** is a **VS Code** extension that provides.
+**Git Grace** is a Visual Studio Code extension that provides handy and persistent Git commands.
+
+## Introductory
+
+The problems with Visual Studio Code built-in Git commands is:
+1. Error messages are hidden in the Git output channel.
+2. Progress bar is hidden in the SCM panel.
+3. Retrying **fetch** and **pull** should be done automatically.
+
+For example, if you fails running **fetch** for whatever reasons, it does not does not show any error feedback, unless you open its Git output channel manually. And it should retry the operation automatically for user's convenience since it is safe to do so.
+
+Here are the solutions to the problems above:
+1. Error messages are shown at the top with _Show Log_ button to open **Git Grace** output channel (do not confuse this with the built-in **Git** output channel.)
+2. Progress is shown at the status bar.
+3. Retrying **fetch** and **pull** will be done twice.
 
 ## Basic usage
 
-As soon as **Git Grace** is installed, the extension overrides the following keybindings:
+As soon as **Git Grace** is installed, the extension provides the following commands and also keybindings:
 
-- `ctrl+up` and `ctrl+down` - move cursor up/down by 3 character-containing lines. This skips empty lines and lines that contain only [non-word characters](https://www.w3schools.com/Jsref/jsref_regexp_wordchar_non.asp).
-
-	![ctrl+up](docs/ctrl+up.gif)
-
-- `ctrl+shift+up` - select like the built-in `editor.action.smartSelect.grow` command, but better with JavaScript/TypeScript/JSON/React files. For example, the selection makes in React `<div>...</div>` expand gradually.
-- `ctrl+shift+down` - reduce the selection made by `ctrl+shift+up`.
-
-	![ctrl+shift+up](docs/ctrl+shift+up.gif)
-
-- `ctrl+left` and `ctrl+right` - move cursor left/right by one word. This is different from the built-in `cursorWordStartLeft` and `cursorWordEndRight` commands because this considers _camelCase_ as two words and skips non-word characters.
-
-	![ctrl+right](docs/ctrl+right.gif)
-
-- `ctrl+shift+left` and `ctrl+shift+right` - similar to `ctrl+left`/`ctrl+right`, but this expands the selection instead of moving the cursor.
-
-- _(no keybindings)_ - delete the whole text on the left of the cursor.
-
-	![shift+backspace](docs/shift+backspace.gif)
+- **Fetch (Persistent)** (`gitGrace.fetch`) - do something.

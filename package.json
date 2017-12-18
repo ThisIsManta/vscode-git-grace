@@ -43,7 +43,7 @@
         "commands": [
             {
                 "command": "gitGrace.fetch",
-                "title": "Fetch",
+                "title": "Fetch (Persistent)",
                 "category": "Git"
             },
             {
