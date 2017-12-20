@@ -245,7 +245,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const pathList = (typeof link === 'string' ? link : link.fsPath).split(/\\|\//)
         for (let rank = pathList.length; rank > 0; rank--) {
-            const path = fp.join(...pathList.slice(0, rank), '.git')
+            const path = [...pathList.slice(0, rank), '.git'].join(fp.sep)
             if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
                 return fp.dirname(path)
             }
