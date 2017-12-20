@@ -694,36 +694,22 @@ export function activate(context: vscode.ExtensionContext) {
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', queue(async () => {
+        const root = await getCurrentRoot()
+        if (!root) {
+            return null
+        }
+
         let repoList = await getRepositoryList()
         if (repoList.length === 0) {
             return null
         }
 
-        if (repoList.length > 1 && vscode.window.activeTextEditor) {
-            const workRoot = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
-            const workRepo = repoList.find(repo => repo.root.uri.toString() === workRoot.uri.toString())
-            if (workRepo !== undefined) {
-                repoList = [workRepo]
-            }
+        const repo = repoList.find(repo => repo.root.uri.fsPath === root.uri.fsPath)
+        if (repo === undefined) {
+            return vscode.window.showErrorMessage(`Git Grace: The selected workspace was not a GitHub repository.`)
         }
 
-        if (repoList.length > 1) {
-            const root = await vscode.window.showWorkspaceFolderPick()
-            if (root === undefined) {
-                return null
-            }
-
-            const workRepo = repoList.find(repo => repo.root.uri.toString() === root.uri.toString())
-            if (workRepo === undefined) {
-                return vscode.window.showErrorMessage(`Git Grace: The selected workspace was not a GitHub repository.`)
-            }
-
-            repoList = [workRepo]
-        }
-
-        const workRepo = repoList[0]
-
-        const status = await getCurrentBranchStatus(workRepo.root.uri)
+        const status = await getCurrentBranchStatus(root.uri)
         if (status.local === '') {
             return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
         }
@@ -743,7 +729,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        open(workRepo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+        open(repo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', queue(async () => {
