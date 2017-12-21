@@ -28,10 +28,9 @@ As soon as **Git Grace** is installed, the extension provides the following comm
 - **Commit (Amend)** (`gitGrace.commitAmend`) – is similar to `git.undoCommit` but prompts a confirmation dialog beforehand.
 - **Commit Empty** (`gitGrace.commitEmpty`) – does commit with `--allow-empty` and the message of `(empty commit)`.
 - **Stash (Unnamed, Include Untracked)** (`gitGrace.stash`) – does unnamed stash with `--include-untracked`.
-- **Create Branch on "origin/master"...** (`gitGrace.branch`) – does `gitGrace.fetch` then prompts a branch name and finally creates a branch on _origin/master_.
 - **Checkout to "origin/master"** (`gitGrace.master`) – does checkout _origin/master_ without creating a branch. You will be asked if you want to stash or discard the dirty files beforehand.
 - **Open on Web...** (`gitGrace.openWeb`) – does populate the link to the repository and the current active file so you can open them in your web browser.
-- **Create Pull-Request** (`gitGrace.pullRequest`) – does push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.
+- **Create Pull-Request...** (`gitGrace.pullRequest`) – does push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.
 - **Sync (Gracefully)** (`gitGrace.sync`) – does push to _origin_ then pulls with `-all`, `--rebase` and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.
 - **Delete Merged Branches...** (`gitGrace.deleteMergedBranches`) – does search and deletes all the merged branches. You will be asked if you want to proceed once all the merged branches have been counted.
 

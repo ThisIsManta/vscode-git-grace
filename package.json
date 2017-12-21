@@ -78,7 +78,7 @@
             },
             {
                 "command": "gitGrace.pullRequest",
-                "title": "Create Pull-Request",
+                "title": "Create Pull-Request...",
                 "category": "Git"
             },
             {
