@@ -532,49 +532,6 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', queue(async () => {
-        const root = await getCurrentRoot()
-        if (!root) {
-            return null
-        }
-
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Branching...' }, async () => {
-            try {
-                const [noUse, branch] = await Promise.all([
-                    checkIfRecentlyFetched() ? undefined : retry(1, () => git(root.uri, 'fetch', '--prune', 'origin')),
-                    vscode.window.showInputBox({
-                        placeHolder: 'Branch name',
-                        prompt: 'Please provide a branch name (Press \'Enter\' to confirm or \'Escape\' to cancel)',
-                        ignoreFocusOut: true
-                    }),
-                ])
-
-                if (!branch) {
-                    return null
-                }
-
-                const sanitizedBranch = branch.replace(/\\/g, '/').split('/').map(_.kebabCase).join('/')
-
-                const remoteBranches = await getRemoteBranchNames(root.uri)
-                const duplicateBranch = remoteBranches.find(branch => branch.endsWith('/' + sanitizedBranch))
-                if (duplicateBranch) {
-                    vscode.window.showErrorMessage(`Git Grace: The given branch name "${sanitizedBranch}" should not be duplicate with "${duplicateBranch}".`)
-                    return null
-                }
-
-                await git(root.uri, 'checkout', '-b', sanitizedBranch, '--no-track', 'origin/master')
-
-            } catch (ex) {
-                setRootAsFailure(root)
-
-                showError(`Git Grace: Branching failed.`)
-                return null
-            }
-        })
-
-        vscode.commands.executeCommand('git.refresh')
-    })))
-
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.master', queue(async () => {
         const root = await getCurrentRoot()
         if (!root) {
@@ -582,15 +539,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         await vscode.commands.executeCommand('workbench.action.files.saveAll')
-
-        const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
-        const masterHash = masterInfo.trim()
-        const commitInfo = await git(root.uri, 'status', '--branch', '--porcelain=2')
-        const commitHash = commitInfo.split('\n').find(line => line.startsWith('# branch.oid ')).substring('# branch.oid '.length).trim()
-        if (masterHash === commitInfo) {
-            vscode.window.showInformationMessage(`Git Grace: You are on "origin/master" already.`)
-            return null
-        }
 
         const status = await getCurrentBranchStatus(root.uri)
         if (status.dirty) {
@@ -620,6 +568,15 @@ export function activate(context: vscode.ExtensionContext) {
 
         if (checkIfRecentlyFetched() === false) {
             await vscode.commands.executeCommand('gitGrace.fetch', true)
+        }
+
+        const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
+        const masterHash = masterInfo.trim()
+        const commitInfo = await git(root.uri, 'status', '--branch', '--porcelain=2')
+        const commitHash = commitInfo.split('\n').find(line => line.startsWith('# branch.oid ')).substring('# branch.oid '.length).trim()
+        if (masterHash === commitInfo) {
+            vscode.window.showInformationMessage(`Git Grace: You are on "origin/master" already.`)
+            return null
         }
 
         try {

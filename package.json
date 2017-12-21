@@ -67,11 +67,6 @@
                 "category": "Git"
             },
             {
-                "command": "gitGrace.branch",
-                "title": "Create Branch on \"origin/master\"...",
-                "category": "Git"
-            },
-            {
                 "command": "gitGrace.master",
                 "title": "Checkout to \"origin/master\"",
                 "category": "Git"
@@ -140,9 +135,6 @@
             },
             {
                 "command": "gitGrace.stash"
-            },
-            {
-                "command": "gitGrace.branch"
             },
             {
                 "command": "gitGrace.master"
