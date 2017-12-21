@@ -14,8 +14,8 @@ let syncingStatusBar: vscode.StatusBarItem
 
 const processingActionList: Array<() => Promise<any>> = []
 function queue(action: () => Promise<any>) {
-    return async (bypass: boolean) => {
-        if (bypass) {
+    return async (bypass) => {
+        if (bypass === true) {
             return await action()
         }
 
@@ -304,9 +304,9 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        const error = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
-            let repoGotUpdated = false
+        let repoGotUpdated = false
 
+        const error = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
             for (const root of rootList) {
                 if (rootList.length > 1) {
                     progress.report({ message: `Fetching "${root.name}"...` })
@@ -330,13 +330,6 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            if (repoGotUpdated) {
-                vscode.commands.executeCommand('git.refresh')
-
-            } else {
-                vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
-            }
-
             vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
         })
         if (error !== undefined) {
@@ -355,7 +348,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (status.local !== '' && status.remote !== '' && status.distance < 0) {
                 const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }, { title: 'Do Nothing', isCloseAffordance: true }]
                 const select = await vscode.window.showInformationMessage(
-                    `The branch "${status.local}" is behind its remote branch.`,
+                    `Git Grace: The branch "${status.local}" is behind its remote branch.`,
                     ...options)
                 if (select === options[0]) {
                     try {
@@ -367,9 +360,17 @@ export function activate(context: vscode.ExtensionContext) {
                         showError(`Git Grace: Fast forwarding failed.`)
                         return null
                     }
+
+                    repoGotUpdated = true
                 }
             }
         }
+
+        if (repoGotUpdated === false) {
+            vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
+        }
+
+        vscode.commands.executeCommand('git.refresh')
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', queue(async () => {

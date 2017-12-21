@@ -1,4 +1,5 @@
 ### 1.0.0
+- Amended "gitGrace.fetch" command so it will not show no updates message while asking to fast forward.
 - Amended "gitGrace.master" command so that it it fetches before checking if the current branch is on origin/master already.
 - Removed "gitGrace.branch" command in favor of "git.branch" and "gitGrace.master" commands combined.
 - Amended some commands so they save all files only if "file.AutoSave" setting is "afterDelay" or "onFocusChange".
