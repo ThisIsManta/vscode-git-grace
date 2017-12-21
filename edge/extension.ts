@@ -37,6 +37,11 @@ function queue(action: () => Promise<any>) {
 export function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel('Git Grace')
 
+    function checkIfAutoSaveIsOn() {
+        const autoSave = vscode.workspace.getConfiguration('files').get<string>('autoSave')
+        return autoSave === 'afterDelay' || autoSave === 'onFocusChange'
+    }
+
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
     const git = (link: vscode.Uri, ...parameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
         outputChannel.appendLine('git ' + parameters.join(' '))
@@ -403,6 +408,10 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
+        if (checkIfAutoSaveIsOn()) {
+            await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        }
+
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
             let repoGotUpdated = false
 
@@ -515,7 +524,9 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        if (checkIfAutoSaveIsOn()) {
+            await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        }
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Stashing...' }, async () => {
             try {
@@ -538,7 +549,9 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        if (checkIfAutoSaveIsOn()) {
+            await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        }
 
         const status = await getCurrentBranchStatus(root.uri)
         if (status.dirty) {
@@ -695,7 +708,10 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        if (checkIfAutoSaveIsOn()) {
+            await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        }
+
         await vscode.commands.executeCommand('git.refresh')
 
         const status = await getCurrentBranchStatus(root.uri)

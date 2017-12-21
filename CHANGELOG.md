@@ -1,6 +1,7 @@
-### 0.0.3
+### 1.0.0
 - Amended "gitGrace.master" command so that it it fetches before checking if the current branch is on origin/master already.
 - Removed "gitGrace.branch" command in favor of "git.branch" and "gitGrace.master" commands combined.
+- Amended some commands so they save all files only if "file.AutoSave" setting is "afterDelay" or "onFocusChange".
 
 ### 0.0.2
 - Fixed wrong path that caused "gitGrace.openWeb" and "gitGrace.pullRequest" commands unusable in macOS.
