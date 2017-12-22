@@ -803,7 +803,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const [remotes, locals] = _.partition(mergedBranches, branch => branch.name.startsWith('origin/'))
                 for (const branch of locals) {
                     syncingStatusBar.text = `$(zap) Deleting merged branches... (${count} of ${mergedBranches.length})`
-                    await retry(1, () => git(branch.root.uri, 'branch', '--delete', branch.name))
+                    await retry(1, () => git(branch.root.uri, 'branch', '--delete', '--force', branch.name))
                     count += 1
                 }
                 for (const branch of remotes) {
@@ -830,7 +830,7 @@ export function activate(context: vscode.ExtensionContext) {
                 outputChannel.appendLine(ex.message)
             }
 
-            showError(`Git Grace: Deleting merged branches failed - only ${count === 1 ? `branch "${mergedBranches[0]}" has` : `${count} branches have`} been deleted.`)
+            showError(`Git Grace: Deleting merged branches failed - only ${count === 1 ? `branch "${mergedBranches[0].name}" has` : `${count} branches have`} been deleted.`)
         }
 
         vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')

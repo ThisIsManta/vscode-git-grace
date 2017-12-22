@@ -1,3 +1,6 @@
+### 1.0.1
+- Fixed "gitGrace.deleteMergedBranches" command so that it can delete local branches which their remote counterparts have merged.
+
 ### 1.0.0
 - Amended "gitGrace.fetch" command so it will not show no updates message while asking to fast forward.
 - Amended "gitGrace.master" command so that it it fetches before checking if the current branch is on origin/master already.
