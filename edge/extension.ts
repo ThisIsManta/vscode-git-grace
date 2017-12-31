@@ -752,7 +752,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
-        syncingStatusBar.text = `$(zap) Querying merged branches...`
+        syncingStatusBar.text = `$(clock) Querying merged branches...`
         syncingStatusBar.tooltip = 'Click to cancel the operation'
         syncingStatusBar.command = 'gitGrace.deleteMergedBranches.cancel'
         syncingStatusBar.show()
@@ -795,12 +795,12 @@ export function activate(context: vscode.ExtensionContext) {
             await vscode.window.withProgress({ location: vscode.ProgressLocation.SourceControl }, async () => {
                 const [remotes, locals] = _.partition(mergedBranches, branch => branch.name.startsWith('origin/'))
                 for (const branch of locals) {
-                    syncingStatusBar.text = `$(zap) Deleting merged branches... (${count} of ${mergedBranches.length})`
+                    syncingStatusBar.text = `$(clock) Deleting merged branches... (${count} of ${mergedBranches.length})`
                     await retry(1, () => git(branch.root.uri, 'branch', '--delete', '--force', branch.name))
                     count += 1
                 }
                 for (const branch of remotes) {
-                    syncingStatusBar.text = `$(zap) Deleting merged branches... (${count} of ${mergedBranches.length})`
+                    syncingStatusBar.text = `$(clock) Deleting merged branches... (${count} of ${mergedBranches.length})`
                     const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
                     try {
                         await retry(1, () => git(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
@@ -846,6 +846,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', queue(() => tortoiseGit.showFileLog())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', queue(() => tortoiseGit.commit())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
+
+    // Fetch automatically
+    vscode.commands.executeCommand('gitGrace.fetch')
 }
 
 export function deactivate() {
