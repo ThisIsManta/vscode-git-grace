@@ -97,6 +97,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.showOutput",
+                "title": "Show Output (Git Grace)",
+                "category": "Git"
+            },
+            {
                 "command": "tortoiseGit.showLog",
                 "title": "Show Log...",
                 "category": "TortoiseGit"
@@ -147,6 +152,9 @@
             },
             {
                 "command": "gitGrace.sync"
+            },
+            {
+                "command": "gitGrace.showOutput"
             },
             {
                 "command": "tortoiseGit.showLog"

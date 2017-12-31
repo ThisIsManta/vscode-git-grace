@@ -290,7 +290,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     async function showError(message: string) {
         if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
-            outputChannel.show()
+            vscode.commands.executeCommand('gitGrace.showOutput')
         }
     }
 
@@ -831,6 +831,10 @@ export function activate(context: vscode.ExtensionContext) {
             syncingStatusBar.dispose()
             syncingStatusBar = undefined
         }
+    }))
+    
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.showOutput', () => {
+        outputChannel.show()
     }))
 
     const tortoiseGit = new TortoiseGit(getWorkingFile, getCurrentRoot, getGitFolder)
