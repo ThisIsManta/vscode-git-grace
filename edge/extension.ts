@@ -342,7 +342,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 5000)
+            vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
         })
         if (error !== undefined) {
             return null
@@ -404,7 +404,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            vscode.window.setStatusBarMessage(`Pulling completed`, 5000)
+            vscode.window.setStatusBarMessage(`Pulling completed`, 10000)
 
             vscode.commands.executeCommand('git.refresh')
         })
@@ -467,7 +467,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             stamp('push')
 
-            vscode.window.setStatusBarMessage(`Pushing completed` + (repoGotUpdated ? ' with some updates' : ''), 5000)
+            vscode.window.setStatusBarMessage(`Pushing completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
 
             vscode.commands.executeCommand('git.refresh')
         })
@@ -517,7 +517,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        vscode.window.setStatusBarMessage(`Committing completed`, 5000)
+        vscode.window.setStatusBarMessage(`Committing completed`, 10000)
 
         vscode.commands.executeCommand('git.refresh')
     }))
@@ -747,7 +747,7 @@ export function activate(context: vscode.ExtensionContext) {
                 return null
             }
 
-            vscode.window.setStatusBarMessage(`Syncing completed`, 5000)
+            vscode.window.setStatusBarMessage(`Syncing completed`, 10000)
 
             vscode.commands.executeCommand('git.refresh')
         })
