@@ -33,7 +33,7 @@ As soon as **Git Grace** is installed, the extension provides the following comm
 - **Create Pull-Request...** (`gitGrace.pullRequest`) – does push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.
 - **Sync (Gracefully)** (`gitGrace.sync`) – does push to _origin_ then pulls with `-all`, `--rebase` and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.
 - **Delete Merged Branches...** (`gitGrace.deleteMergedBranches`) – does search and deletes all the merged branches. You will be asked if you want to proceed once all the merged branches have been counted.
-
+- **Show Output (Git Grace)** (`gitGrace.showOutput`) – does open the output channel for this extension (do not confuse with `git.showOutput` command).
 
 In addition to Git commands above, **Git Grace** also provides **TortoiseGit** integration. The select commands are copied from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension.
 
