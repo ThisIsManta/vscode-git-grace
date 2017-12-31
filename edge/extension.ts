@@ -19,6 +19,10 @@ function queue(action: () => Promise<any>) {
             return await action()
         }
 
+        if (processingActionList[0] === action) {
+            return undefined
+        }
+
         processingActionList.unshift(action)
 
         if (processingActionList.length === 1) {
