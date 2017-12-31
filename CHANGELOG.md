@@ -1,5 +1,6 @@
 ### 1.1.0
 - Amended "gitGrace.fetch" and "gitGrace.pull" commands so they stop showing "There were no updates" message.
+- Amended "gitGrace.pullRequest" command so it will not proceed if the repository is dirty.
 - Amended queuing command system so that it ignores duplicate commands.
 - Added "showOutput" command.
 

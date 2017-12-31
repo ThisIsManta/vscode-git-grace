@@ -674,6 +674,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const status = await getCurrentBranchStatus(root.uri)
+        if (status.dirty) {
+            return vscode.window.showErrorMessage(`Git Grace: The current repository was dirty.`)
+        }
         if (status.local === '') {
             return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
         }
