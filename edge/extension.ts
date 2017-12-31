@@ -330,7 +330,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            vscode.window.setStatusBarMessage(`Fetching completed`, 5000)
+            vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 5000)
         })
         if (error !== undefined) {
             return null
@@ -360,14 +360,8 @@ export function activate(context: vscode.ExtensionContext) {
                         showError(`Git Grace: Fast forwarding failed.`)
                         return null
                     }
-
-                    repoGotUpdated = true
                 }
             }
-        }
-
-        if (repoGotUpdated === false) {
-            vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
         }
 
         vscode.commands.executeCommand('git.refresh')
@@ -459,14 +453,9 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            if (repoGotUpdated) {
-                vscode.commands.executeCommand('git.refresh')
+            vscode.window.setStatusBarMessage(`Pushing completed` + (repoGotUpdated ? ' with some updates' : ''), 5000)
 
-            } else {
-                vscode.window.showInformationMessage(`Git Grace: There were no updates.`)
-            }
-
-            vscode.window.setStatusBarMessage(`Pushing completed`, 5000)
+            vscode.commands.executeCommand('git.refresh')
         })
     })))
 

@@ -1,3 +1,6 @@
+### 1.1.0
+- Amended "gitGrace.fetch" and "gitGrace.pull" commands so they stop showing "There were no updates" message.
+
 ### 1.0.1
 - Fixed "gitGrace.deleteMergedBranches" command so that it can delete local branches which their remote counterparts have merged.
 
