@@ -38,6 +38,19 @@ function queue(action: () => Promise<any>) {
     }
 }
 
+const keyStampMap = new Map<string, number>()
+
+function check(key: string, callback: () => Thenable<any> | void) {
+    if (keyStampMap.has(key) && Date.now() - keyStampMap.get(key) < 5000) {
+        return undefined
+    }
+    return callback()
+}
+
+function stamp(key: string) {
+    keyStampMap.set(key, Date.now())
+}
+
 export function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel('Git Grace')
 
@@ -298,11 +311,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    let lastFetchStamp: number = undefined
-    function checkIfRecentlyFetched() {
-        return lastFetchStamp !== undefined && Date.now() - lastFetchStamp < 15000
-    }
-
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
         if (rootList.length === 0) {
             return null
@@ -340,7 +348,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        lastFetchStamp = Date.now()
+        stamp('fetch')
 
         let root: vscode.WorkspaceFolder
         if (
@@ -456,6 +464,8 @@ export function activate(context: vscode.ExtensionContext) {
                     }
                 }
             }
+
+            stamp('push')
 
             vscode.window.setStatusBarMessage(`Pushing completed` + (repoGotUpdated ? ' with some updates' : ''), 5000)
 
@@ -573,9 +583,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        if (checkIfRecentlyFetched() === false) {
-            await vscode.commands.executeCommand('gitGrace.fetch', true)
-        }
+        check('fetch', () => vscode.commands.executeCommand('gitGrace.fetch', true))
 
         const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
         const masterHash = masterInfo.trim()
@@ -690,7 +698,7 @@ export function activate(context: vscode.ExtensionContext) {
             return vscode.window.showErrorMessage(`Git Grace: The current branch was out-of-sync with its remote branch.`)
         }
         if (status.remote === '' || status.distance > 0) {
-            const error = await vscode.commands.executeCommand('gitGrace.push', true)
+            const error = await check('push', () => vscode.commands.executeCommand('gitGrace.push', true))
             if (error !== undefined) {
                 return null
             }
@@ -839,7 +847,7 @@ export function activate(context: vscode.ExtensionContext) {
             syncingStatusBar = undefined
         }
     }))
-    
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.showOutput', () => {
         outputChannel.show()
     }))
@@ -864,4 +872,6 @@ export function deactivate() {
     }
 
     processingActionList.splice(0, processingActionList.length)
+
+    keyStampMap.clear()
 }
