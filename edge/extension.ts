@@ -341,8 +341,6 @@ export function activate(context: vscode.ExtensionContext) {
                     return null
                 }
             }
-
-            vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
         })
         if (error !== undefined) {
             return null
@@ -366,6 +364,8 @@ export function activate(context: vscode.ExtensionContext) {
                     try {
                         await git(root.uri, 'rebase', '--autostash', status.remote)
 
+                        vscode.window.showInformationMessage(`Git Grace: Fast forwarding is completed.`)
+
                     } catch (ex) {
                         setRootAsFailure(root)
 
@@ -375,6 +375,8 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
         }
+
+        vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
 
         vscode.commands.executeCommand('git.refresh')
     })))
@@ -583,7 +585,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        check('fetch', () => vscode.commands.executeCommand('gitGrace.fetch', true))
+        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetch', true))
 
         const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
         const masterHash = masterInfo.trim()

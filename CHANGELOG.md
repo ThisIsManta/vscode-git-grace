@@ -1,3 +1,6 @@
+### 1.1.1
+- Fixed "gitGrace.master" command so that it awaits the fetch sub-command before checking out.
+
 ### 1.1.0
 - Amended "gitGrace.fetch" and "gitGrace.pull" commands so they stop showing "There were no updates" message.
 - Amended "gitGrace.pullRequest" command so it will not proceed if the repository is dirty.
