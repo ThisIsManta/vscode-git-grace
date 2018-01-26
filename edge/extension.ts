@@ -800,6 +800,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (mergedLocalBranches.length === 0 && mergedRemoteBranches.length === 0) {
+            vscode.window.showInformationMessage(`Git Grace: There were no merged branches to be deleted.`)
+
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
             return undefined
         }
@@ -819,6 +821,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (mergedRemoteBranches.length === 0) {
+            vscode.window.showInformationMessage(`Git Grace: ${mergedLocalBranches.length} merged local branch${mergedLocalBranches.length > 1 ? 'es have' : ' has'} been deleted.`)
+
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
             return undefined
         }
@@ -844,7 +848,7 @@ export function activate(context: vscode.ExtensionContext) {
             })
             deletedRemoteBranchCount -= 1 // Compensate the initial count of 1
 
-            vscode.window.showInformationMessage(`Git Grace: ${mergedLocalBranches.length + mergedRemoteBranches.length} merged branches have been deleted.`)
+            vscode.window.showInformationMessage(`Git Grace: ${mergedLocalBranches.length + mergedRemoteBranches.length} merged branch${mergedLocalBranches.length + mergedRemoteBranches.length ? 'es have' : 'has'} been deleted.`)
 
         } catch (ex) {
             if (ex instanceof Error) {
