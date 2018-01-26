@@ -766,6 +766,8 @@ export function activate(context: vscode.ExtensionContext) {
             return undefined
         }
 
+        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetch', true))
+
         syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
         syncingStatusBar.text = `$(clock) Querying merged branches...`
         syncingStatusBar.tooltip = 'Click to cancel the operation'
