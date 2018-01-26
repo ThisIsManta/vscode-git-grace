@@ -1,3 +1,6 @@
+### 1.2.0
+- Amended "gitGrace.deleteMergedBranches" command confirmation dialog. 
+
 ### 1.1.1
 - Fixed "gitGrace.master" command so that it awaits the fetch sub-command before checking out.
 

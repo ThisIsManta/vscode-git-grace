@@ -60,10 +60,12 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
-    const git = (link: vscode.Uri, ...parameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
-        outputChannel.appendLine('git ' + parameters.join(' '))
+    const git = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
+        const actualParameters = formalParameters.filter(parameter => parameter !== undefined || parameter !== null || parameter !== '')
 
-        const pipe = cp.spawn(gitPath, parameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
+        outputChannel.appendLine('git ' + actualParameters.join(' '))
+
+        const pipe = cp.spawn(gitPath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
 
         let errorBuffer = ''
         pipe.stderr.on('data', text => {
@@ -770,50 +772,61 @@ export function activate(context: vscode.ExtensionContext) {
         syncingStatusBar.command = 'gitGrace.deleteMergedBranches.cancel'
         syncingStatusBar.show()
 
-        let mergedBranches: Array<{ root: vscode.WorkspaceFolder, name: string }> = []
-        for (const root of rootList) {
-            const branches = _.chain([
-                await git(root.uri, 'branch', '--merged', 'origin/master'),
-                await git(root.uri, 'branch', '--merged', 'origin/master', '--remotes'),
-            ])
-                .map(content => content.trim().split('\n'))
-                .flatten()
-                .map(branch => branch.trim())
-                .map(branch => branch.split(' -> '))
-                .flatten()
-                .difference(['origin/HEAD', 'origin/master'])
-                .reject(branch => branch.startsWith('*'))
-                .compact()
-                .map(branch => ({ root, name: branch }))
-                .value()
-            mergedBranches = mergedBranches.concat(branches)
+        interface Branch {
+            root: vscode.WorkspaceFolder
+            name: string
         }
 
-        if (mergedBranches.length === 0) {
+        let mergedLocalBranches: Array<Branch> = []
+        let mergedRemoteBranches: Array<Branch> = []
+
+        async function getMergedBranchNames(root: vscode.WorkspaceFolder, remote: boolean) {
+            const content = await git(root.uri, 'branch', '--merged', 'origin/master', remote ? '--remotes' : null)
+            return _.chain(content.trim().split('\n'))
+                .map(line => line.trim().split(' -> '))
+                .flatten()
+                .difference(['origin/HEAD', 'origin/master'])
+                .reject(name => name.startsWith('*'))
+                .compact()
+                .map(name => ({ root, name }))
+                .value()
+        }
+
+        for (const root of rootList) {
+            mergedLocalBranches = mergedLocalBranches.concat(await getMergedBranchNames(root, false))
+            mergedRemoteBranches = mergedRemoteBranches.concat(await getMergedBranchNames(root, true))
+        }
+
+        if (mergedLocalBranches.length === 0 && mergedRemoteBranches.length === 0) {
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
             return undefined
         }
 
         const options: Array<vscode.MessageItem> = [{ title: 'Delete Merged Branches' }, { title: 'Cancel', isCloseAffordance: true }]
         const select = await vscode.window.showInformationMessage(
-            `Git Grace: Are you sure you want to delete ${mergedBranches.length} merged branches?`,
-            ...options)
+            `Git Grace: Are you sure you want to delete ${[[mergedLocalBranches, 'local branch'], [mergedRemoteBranches, 'remote branch']].filter(([list, unit]) => list.length > 0).map(([list, unit]) => list.length + ' ' + unit + (list.length > 1 ? 'es' : '')).join(' and ')}?`,
+            { modal: true }, ...options)
         if (select !== options[0]) {
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
             return undefined
         }
 
-        let count = 1
+        // Remove the merged local branches quickly
+        for (const branch of mergedLocalBranches) {
+            await retry(1, () => git(branch.root.uri, 'branch', '--delete', '--force', branch.name))
+        }
+
+        if (mergedRemoteBranches.length === 0) {
+            vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
+            return undefined
+        }
+
+        // Remove the merged remote branches with the progress bar
+        let deletedRemoteBranchCount = 1
         try {
             await vscode.window.withProgress({ location: vscode.ProgressLocation.SourceControl }, async () => {
-                const [remotes, locals] = _.partition(mergedBranches, branch => branch.name.startsWith('origin/'))
-                for (const branch of locals) {
-                    syncingStatusBar.text = `$(clock) Deleting merged branches... (${count} of ${mergedBranches.length})`
-                    await retry(1, () => git(branch.root.uri, 'branch', '--delete', '--force', branch.name))
-                    count += 1
-                }
-                for (const branch of remotes) {
-                    syncingStatusBar.text = `$(clock) Deleting merged branches... (${count} of ${mergedBranches.length})`
+                for (const branch of mergedRemoteBranches) {
+                    syncingStatusBar.text = `$(clock) Deleting merged remote branches... (${deletedRemoteBranchCount} of ${mergedRemoteBranches.length})`
                     const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
                     try {
                         await retry(1, () => git(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
@@ -824,19 +837,19 @@ export function activate(context: vscode.ExtensionContext) {
                             throw ex
                         }
                     }
-                    count += 1
+                    deletedRemoteBranchCount += 1
                 }
             })
-            count -= 1 // Compensate the initial count of 1
+            deletedRemoteBranchCount -= 1 // Compensate the initial count of 1
 
-            vscode.window.showInformationMessage(`Git Grace: ${mergedBranches.length} merged branches have been deleted.`)
+            vscode.window.showInformationMessage(`Git Grace: ${mergedLocalBranches.length + mergedRemoteBranches.length} merged branches have been deleted.`)
 
         } catch (ex) {
             if (ex instanceof Error) {
                 outputChannel.appendLine(ex.message)
             }
 
-            showError(`Git Grace: Deleting merged branches failed - only ${count === 1 ? `branch "${mergedBranches[0].name}" has` : `${count} branches have`} been deleted.`)
+            showError(`Git Grace: Deleting merged branches failed - only ${deletedRemoteBranchCount === 1 ? `branch "${mergedRemoteBranches[0].name}" has` : `${deletedRemoteBranchCount} branches have`} been deleted.`)
         }
 
         vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
