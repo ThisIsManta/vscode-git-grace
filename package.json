@@ -124,49 +124,96 @@
         ],
         "keybindings": [
             {
+                "key": "alt+g f",
                 "command": "gitGrace.fetch"
             },
             {
+                "key": "alt+g u",
                 "command": "gitGrace.pull"
             },
             {
+                "key": "alt+g p",
                 "command": "gitGrace.push"
             },
             {
+                "key": "alt+g d",
+                "command": "git.openChange"
+            },
+            {
+                "key": "alt+g q",
+                "command": "git.unstageAll"
+            },
+            {
+                "key": "alt+g r",
+                "command": "git.cleanAll"
+            },
+            {
+                "key": "alt+g c",
+                "command": "workbench.view.scm"
+            },
+            {
+                "key": "alt+g a",
                 "command": "gitGrace.commitAmend"
             },
             {
+                "key": "alt+g e",
                 "command": "gitGrace.commitEmpty"
             },
             {
-                "command": "gitGrace.stash"
-            },
-            {
+                "key": "alt+g m",
                 "command": "gitGrace.master"
             },
             {
-                "command": "gitGrace.open"
+                "key": "alt+g n",
+                "command": "git.branch"
             },
             {
+                "key": "alt+g s",
+                "command": "git.checkout"
+            },
+            {
+                "key": "alt+g h",
+                "command": "gitGrace.openWeb"
+            },
+            {
+                "key": "alt+g j",
                 "command": "gitGrace.pullRequest"
             },
             {
+                "key": "alt+g g",
                 "command": "gitGrace.sync"
             },
             {
+                "key": "alt+g o",
                 "command": "gitGrace.showOutput"
             },
             {
+                "key": "alt+g l",
                 "command": "tortoiseGit.showLog"
             },
             {
+                "key": "alt+g k",
                 "command": "tortoiseGit.showFileLog"
             },
             {
+                "key": "alt+g v",
                 "command": "tortoiseGit.commit"
             },
             {
+                "key": "alt+g b",
                 "command": "tortoiseGit.blame"
+            },
+            {
+                "key": "alt+s s",
+                "command": "gitGrace.stash"
+            },
+            {
+                "key": "alt+s p",
+                "command": "git.stashPopLatest"
+            },
+            {
+                "key": "alt+s l",
+                "command": "git.stashPop"
             }
         ]
     },

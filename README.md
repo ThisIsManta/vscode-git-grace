@@ -20,26 +20,34 @@ Here are the solutions to the problems above:
 
 ## Basic usage
 
-As soon as **Git Grace** is installed, the extension provides the following commands and keybindings:
+As soon as **Git Grace** is installed, the extension provides the following keybindings and commands:
 
-- **Fetch (Persistent)** (`gitGrace.fetch`) – does fetch from _origin_ with `--prune`. You will be asked if you want to fast forward when the current local branch is behind its remote branch.
-- **Pull (Persistent)** (`gitGrace.pull`) – does fetch from _origin_ with `--prune` then rebase normally.
-- **Push (Persistent)** (`gitGrace.push`) – does push to _origin_ with `--tags`. You will be asked if you want to force pushing when the current local branch and its remote branch are out-of-sync.
-- **Commit (Amend)** (`gitGrace.commitAmend`) – is similar to `git.undoCommit` but prompts a confirmation dialog beforehand.
-- **Commit Empty** (`gitGrace.commitEmpty`) – does commit with `--allow-empty` and the message of `(empty commit)`.
-- **Stash (Unnamed, Include Untracked)** (`gitGrace.stash`) – does unnamed stash with `--include-untracked`.
-- **Checkout to "origin/master"** (`gitGrace.master`) – does checkout _origin/master_ without creating a branch. You will be asked if you want to stash or discard the dirty files beforehand.
-- **Open on Web...** (`gitGrace.openWeb`) – does populate the link to the repository and the current active file so you can open them in your web browser.
-- **Create Pull-Request...** (`gitGrace.pullRequest`) – does push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.
-- **Sync (Gracefully)** (`gitGrace.sync`) – does push to _origin_ then pulls with `--all`, `--rebase` and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.
-- **Delete Merged Branches...** (`gitGrace.deleteMergedBranches`) – does search and deletes all the merged branches. You will be asked if you want to proceed once all the merged branches have been counted.
-- **Show Output (Git Grace)** (`gitGrace.showOutput`) – does open the output channel for this extension (do not confuse with `git.showOutput` command).
+|Keybinding|Command|Description|
+|---|---|---|
+|_alt+g f_|`gitGrace.fetch`|Fetch from _origin_ with _--prune_. You will be asked if you want to fast forward when the current local branch is behind its counterpart remote branch.|
+|_alt+g u_|`gitGrace.pull`|Fetch from _origin_ with _--prune_ then rebase normally.|
+|_alt+g p_|`gitGrace.push`|Push to _origin_ with _--tags_. You will be asked if you want to try again with _--force_ when the current local branch and its counterpart remote branch are out-of-sync.|
+|_alt+g d_|`git.openChange`|Open the diff window for the active file.|
+|_alt+g q_|`git.unstageAll`|Remove added files from the stage.|
+|_alt+g r_|`git.cleanAll`|Revert dirty files.|
+|_alt+g c_|`workbench.view.scm`|Commit with **Visual Studio Code** built-in SCM panel.|
+|_alt+g a_|`gitGrace.commitAmend`|Similar to `git.undoCommit` but prompt a confirmation dialog beforehand.|
+|_alt+g e_|`gitGrace.commitEmpty`|Commit with _--allow-empty_ and the message of _(empty commit)_.|
+|_alt+g m_|`gitGrace.master`|Fetch and checkout the commit at _origin/master_ without creating a branch. You will be asked if you want to stash or discard the dirty files beforehand.|
+|_alt+g n_|`git.branch`|Create a new branch at the current commit. You will be asked to type a branch name.|
+|_alt+g s_|`git.checkout`|Checkout an existing branch.|
+|_alt+g h_|`gitGrace.openWeb`|Open the link to the active file in your web browser.|
+|_alt+g j_|`gitGrace.pullRequest`|Push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.|
+|_alt+g g_|`gitGrace.sync`|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.|
+|_alt+g o_|`gitGrace.showOutput`|Open the output channel for **GitGrace** extension.|
+|_alt+g l_|`tortoiseGit.showLog`|Show the log messages for the whole repository.|
+|_alt+g k_|`tortoiseGit.showFileLog`|Show the log messages for the current active file.|
+|_alt+g v_|`tortoiseGit.commit`|Commit with **TortoiseGit**.|
+|_alt+g b_|`tortoiseGit.blame`|Open **TortoiseGitBlame** for the current active file.|
+|_alt+s s_|`gitGrace.stash`|Save an unnamed stash with _--include-untracked_.|
+|_alt+s p_|`git.stashPopLatest`|Restore the last stash without hassle.|
+|_alt+s l_|`git.stashPop`|Open the stash list and restore the selected stash.|
 
-In addition to Git commands above, **Git Grace** also provides **TortoiseGit** integration (Windows exclusive). The select commands are copied from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension.
+**TortoiseGit** integration (Windows exclusive) is slightly modified from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension. By default, the path to **TortoiseGit** executable is `C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe`, but it can be changed later at `gitGrace.tortoiseGitPath` setting.
 
-- **Show Log...** (`tortoiseGit.showLog`) – show the log messages for the whole repository.
-- **Show File Log...** (`tortoiseGit.showFileLog`) – show the log messages for the current active file.
-- **Commit...** (`tortoiseGit.commit`) – open **TortoiseGit** commit dialog.
-- **Blame...** (`tortoiseGit.blame`) – open **TortoiseGitBlame** for the current active file.
-
-By default, the path to **TortoiseGit** executable is `C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe`, but it can be changed later at `gitGrace.tortoiseGitPath` setting.
+Additionally, **Git Grace** also provides a special command **Delete Merged Branches...** (`gitGrace.deleteMergedBranches`), which searches and deletes all the merged branches. You will be asked if you want to proceed once all the merged branches have been counted.
