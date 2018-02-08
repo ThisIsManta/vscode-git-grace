@@ -67,14 +67,14 @@ export function activate(context: vscode.ExtensionContext) {
 
         const pipe = cp.spawn(gitPath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
 
-        let errorBuffer = ''
-        pipe.stderr.on('data', text => {
-            errorBuffer += String(text)
+        let outputBuffer = ''
+
+        pipe.stdout.on('data', text => {
+            outputBuffer += String(text)
             outputChannel.append(String(text))
         })
 
-        let outputBuffer = ''
-        pipe.stdout.on('data', text => {
+        pipe.stderr.on('data', text => {
             outputBuffer += String(text)
             outputChannel.append(String(text))
         })
@@ -85,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (exit === 0) {
                 resolve(outputBuffer)
             } else {
-                reject(errorBuffer)
+                reject(outputBuffer)
             }
         })
     })
