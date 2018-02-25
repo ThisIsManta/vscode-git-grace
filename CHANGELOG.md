@@ -1,10 +1,13 @@
+### 1.4.1
+- Fixed "gitGrace.deleteMergedBranches" command so it deletes the merged local branches.
+
 ### 1.4.0
 - Added default keybindings.
 - Fixed "gitGrace.push" command so that it will not show "Pushing complete with some updates" unless it really does.
 
 ### 1.2.0
-- Amended "gitGrace.deleteMergedBranches" command confirmation dialog. 
-- Amended "gitGrace.deleteMergedBranches" command so it fetches beforehand. 
+- Amended "gitGrace.deleteMergedBranches" command confirmation dialog.
+- Amended "gitGrace.deleteMergedBranches" command so it fetches beforehand.
 
 ### 1.1.1
 - Fixed "gitGrace.master" command so that it awaits the fetch sub-command before checking out.

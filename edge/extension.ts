@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
     const git = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
-        const actualParameters = formalParameters.filter(parameter => parameter !== undefined || parameter !== null || parameter !== '')
+        const actualParameters = formalParameters.filter(parameter => parameter !== undefined && parameter !== null && parameter !== '')
 
         outputChannel.appendLine('git ' + actualParameters.join(' '))
 
