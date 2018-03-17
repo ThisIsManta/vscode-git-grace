@@ -14,8 +14,8 @@ let syncingStatusBar: vscode.StatusBarItem
 
 const processingActionList: Array<() => Promise<any>> = []
 function queue(action: () => Promise<any>) {
-    return async (bypass) => {
-        if (bypass === true) {
+    return async (options?: { bypass?: boolean }) => {
+        if (options && options.bypass === true) {
             return await action()
         }
 
@@ -41,7 +41,7 @@ function queue(action: () => Promise<any>) {
 const keyStampMap = new Map<string, number>()
 
 function check(key: string, callback: () => Thenable<any> | void) {
-    if (keyStampMap.has(key) && Date.now() - keyStampMap.get(key) < 5000) {
+    if (keyStampMap.has(key) && Date.now() - keyStampMap.get(key) < 15000) {
         return undefined
     }
     return callback()
@@ -314,6 +314,45 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
+        const repoGotUpdated = await vscode.commands.executeCommand('gitGrace.fetchSync')
+        if (repoGotUpdated === null) {
+            return null
+        }
+
+        let root: vscode.WorkspaceFolder
+        if (
+            vscode.window.activeTextEditor &&
+            vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri) &&
+            (root = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
+        ) {
+            const status = await getCurrentBranchStatus(root.uri)
+            if (status.local !== '' && status.remote !== '' && status.distance < 0) {
+                const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }]
+                const select = await vscode.window.showInformationMessage(
+                    `Git Grace: The branch "${status.local}" is behind its remote branch.`,
+                    ...options)
+                if (select === options[0]) {
+                    try {
+                        await git(root.uri, 'rebase', '--autostash', status.remote)
+
+                        vscode.window.showInformationMessage(`Git Grace: Fast forwarding is completed.`)
+
+                    } catch (ex) {
+                        setRootAsFailure(root)
+
+                        showError(`Git Grace: Fast forwarding failed.`)
+                        return null
+                    }
+                }
+            }
+        }
+
+        vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
+
+        vscode.commands.executeCommand('git.refresh')
+    })))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetchSync', async () => {
         if (rootList.length === 0) {
             return null
         }
@@ -350,38 +389,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         stamp('fetch')
 
-        let root: vscode.WorkspaceFolder
-        if (
-            vscode.window.activeTextEditor &&
-            vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri) &&
-            (root = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
-        ) {
-            const status = await getCurrentBranchStatus(root.uri)
-            if (status.local !== '' && status.remote !== '' && status.distance < 0) {
-                const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }, { title: 'Do Nothing', isCloseAffordance: true }]
-                const select = await vscode.window.showInformationMessage(
-                    `Git Grace: The branch "${status.local}" is behind its remote branch.`,
-                    ...options)
-                if (select === options[0]) {
-                    try {
-                        await git(root.uri, 'rebase', '--autostash', status.remote)
-
-                        vscode.window.showInformationMessage(`Git Grace: Fast forwarding is completed.`)
-
-                    } catch (ex) {
-                        setRootAsFailure(root)
-
-                        showError(`Git Grace: Fast forwarding failed.`)
-                        return null
-                    }
-                }
-            }
-        }
-
-        vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
-
-        vscode.commands.executeCommand('git.refresh')
-    })))
+        return repoGotUpdated
+    }))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', queue(async () => {
         if (rootList.length === 0) {
@@ -587,7 +596,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetch', true))
+        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetchSync', { bypass: true }))
 
         const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
         const masterHash = masterInfo.trim()
@@ -702,7 +711,7 @@ export function activate(context: vscode.ExtensionContext) {
             return vscode.window.showErrorMessage(`Git Grace: The current branch was out-of-sync with its remote branch.`)
         }
         if (status.remote === '' || status.distance > 0) {
-            const error = await check('push', () => vscode.commands.executeCommand('gitGrace.push', true))
+            const error = await check('push', () => vscode.commands.executeCommand('gitGrace.push', { bypass: true }))
             if (error !== undefined) {
                 return null
             }
@@ -766,7 +775,7 @@ export function activate(context: vscode.ExtensionContext) {
             return undefined
         }
 
-        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetch', true))
+        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetchSync', { bypass: true }))
 
         syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
         syncingStatusBar.text = `$(clock) Querying merged branches...`
