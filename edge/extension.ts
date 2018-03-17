@@ -612,6 +612,30 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     })))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', queue(async () => {
+        const root = await getCurrentRoot()
+        if (!root) {
+            return null
+        }
+
+        const status = await getCurrentBranchStatus(root.uri)
+        if (!status.local || status.local === 'master') {
+            return vscode.commands.executeCommand('git.branch')
+
+        } else {
+            const options: Array<vscode.MessageItem> = [{ title: 'Create New Branch' }, { title: 'Rename Current Branch' }]
+            const select = await vscode.window.showWarningMessage(
+                `Git Grace: You are on the local branch "${status.local}".`,
+                { modal: true }, ...options
+            )
+            if (select === options[0]) {
+                return vscode.commands.executeCommand('git.branch')
+            } else if (select === options[1]) {
+                return vscode.commands.executeCommand('git.renameBranch')
+            }
+        }
+    })))
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.openWeb', queue(async () => {
         const repoList = await getRepositoryList()
 

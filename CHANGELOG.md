@@ -1,3 +1,7 @@
+### 1.5.0
+- Added "gitGrace.branch" command.
+- Fixed "gitGrance.master" and "gitGrace.deleteMergedBranches" commands so they stop asking for fast forward.
+
 ### 1.4.1
 - Fixed "gitGrace.deleteMergedBranches" command so it deletes the merged local branches.
 

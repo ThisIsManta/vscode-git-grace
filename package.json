@@ -22,7 +22,7 @@
         "theme": "light"
     },
     "engines": {
-        "vscode": "^1.18.0"
+        "vscode": "^1.21.0"
     },
     "activationEvents": [
         "*"
@@ -69,6 +69,11 @@
             {
                 "command": "gitGrace.master",
                 "title": "Checkout to \"origin/master\"",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.branch",
+                "title": "Create Branch... (Persistent)",
                 "category": "Git"
             },
             {
@@ -165,7 +170,7 @@
             },
             {
                 "key": "alt+g n",
-                "command": "git.branch"
+                "command": "gitGrace.branch"
             },
             {
                 "key": "alt+g s",
