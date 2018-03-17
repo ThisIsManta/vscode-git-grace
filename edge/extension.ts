@@ -11,6 +11,7 @@ import TortoiseGit from './TortoiseGit'
 
 let outputChannel: vscode.OutputChannel
 let syncingStatusBar: vscode.StatusBarItem
+let stashCountBar: vscode.StatusBarItem
 
 const processingActionList: Array<() => Promise<any>> = []
 function queue(action: () => Promise<any>) {
@@ -62,9 +63,11 @@ async function executeInternalCommand(command: string, options?: object) {
 export function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel('Git Grace')
 
-    function checkIfAutoSaveIsOn() {
+    function saveAllFilesOnlyIfAutoSaveIsOn() {
         const autoSave = vscode.workspace.getConfiguration('files').get<string>('autoSave')
-        return autoSave === 'afterDelay' || autoSave === 'onFocusChange'
+        if (autoSave === 'afterDelay' || autoSave === 'onFocusChange') {
+            return vscode.workspace.saveAll(false)
+        }
     }
 
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
@@ -422,9 +425,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        if (checkIfAutoSaveIsOn()) {
-            await vscode.commands.executeCommand('workbench.action.files.saveAll')
-        }
+        await saveAllFilesOnlyIfAutoSaveIsOn()
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
             let repoGotUpdated = false
@@ -531,9 +532,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        if (checkIfAutoSaveIsOn()) {
-            await vscode.commands.executeCommand('workbench.action.files.saveAll')
-        }
+        await saveAllFilesOnlyIfAutoSaveIsOn()
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Saving Stash...' }, async () => {
             try {
@@ -547,6 +546,8 @@ export function activate(context: vscode.ExtensionContext) {
         })
 
         vscode.commands.executeCommand('git.refresh')
+
+        updateStashCountBar()
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPopLatest', queue(async () => {
@@ -555,9 +556,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        if (checkIfAutoSaveIsOn()) {
-            await vscode.commands.executeCommand('workbench.action.files.saveAll')
-        }
+        await saveAllFilesOnlyIfAutoSaveIsOn()
 
         await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Popping Stash...' }, async () => {
             try {
@@ -571,6 +570,14 @@ export function activate(context: vscode.ExtensionContext) {
         })
 
         vscode.commands.executeCommand('git.refresh')
+
+        updateStashCountBar()
+    })))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPop', queue(async () => {
+        console.log(await vscode.commands.executeCommand('git.stashPop'))
+
+        updateStashCountBar()
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.master', queue(async () => {
@@ -579,9 +586,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        if (checkIfAutoSaveIsOn()) {
-            await vscode.commands.executeCommand('workbench.action.files.saveAll')
-        }
+        await saveAllFilesOnlyIfAutoSaveIsOn()
 
         const status = await getCurrentBranchStatus(root.uri)
         if (status.dirty) {
@@ -767,9 +772,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        if (checkIfAutoSaveIsOn()) {
-            await vscode.commands.executeCommand('workbench.action.files.saveAll')
-        }
+        await saveAllFilesOnlyIfAutoSaveIsOn()
 
         await vscode.commands.executeCommand('git.refresh')
 
@@ -928,8 +931,32 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', queue(() => tortoiseGit.commit())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
 
-    // Fetch automatically
+    async function updateStashCountBar() {
+        const rootList = await getRepositoryList()
+        if (rootList.length === 1) {
+            const result = await git(rootList[0].root.uri, 'stash', 'list')
+            const stashList = _.compact(result.split('\n'))
+            if (stashList.length > 0) {
+                if (!stashCountBar) {
+                    stashCountBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5)
+                }
+                stashCountBar.text = `${stashList.length} Stash${stashList.length > 1 ? 'es' : ''}`
+                stashCountBar.command = 'gitGrace.stashPop'
+                stashCountBar.show()
+                return undefined
+            }
+        }
+
+        if (stashCountBar) {
+            stashCountBar.dispose()
+            stashCountBar = null
+        }
+    }
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
+
+    // Run start-up operations
     vscode.commands.executeCommand('gitGrace.fetch')
+    updateStashCountBar()
 }
 
 export function deactivate() {
@@ -939,6 +966,12 @@ export function deactivate() {
 
     if (syncingStatusBar) {
         syncingStatusBar.dispose()
+        syncingStatusBar = null
+    }
+
+    if (stashCountBar) {
+        stashCountBar.dispose()
+        stashCountBar = null
     }
 
     processingActionList.splice(0, processingActionList.length)

@@ -2,6 +2,8 @@
 - Added "gitGrace.branch" command.
 - Added "gitGrace.checkout" command.
 - Added "gitGrace.stashPopLatest" command.
+- Added "gitGrace.stashPop" command.
+- Added stash count status bar.
 - Fixed "gitGrance.master" and "gitGrace.deleteMergedBranches" commands so they stop asking for fast forward.
 
 ### 1.4.1

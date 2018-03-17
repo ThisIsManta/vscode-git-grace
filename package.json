@@ -72,6 +72,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.stashPop",
+                "title": "Pop Stash... (Persistent)",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.master",
                 "title": "Checkout to \"origin/master\"",
                 "category": "Git"
@@ -228,7 +233,7 @@
             },
             {
                 "key": "alt+s l",
-                "command": "git.stashPop"
+                "command": "gitGrace.stashPop"
             }
         ]
     },
