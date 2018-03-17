@@ -34,8 +34,8 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g a_|`gitGrace.commitAmend`|Similar to `git.undoCommit` but prompt a confirmation dialog beforehand.|
 |_alt+g e_|`gitGrace.commitEmpty`|Commit with _--allow-empty_ and the message of _(empty commit)_.|
 |_alt+g m_|`gitGrace.master`|Fetch and checkout the commit at _origin/master_ without creating a branch. You will be asked if you want to stash or discard the dirty files beforehand.|
-|_alt+g n_|`git.branch`|Create a new branch at the current commit. You will be asked to type a branch name.|
-|_alt+g s_|`git.checkout`|Checkout an existing branch.|
+|_alt+g n_|`gitGrace.branch`|Create a new branch at the current commit, or rename the current non-master local branch. You will be asked to type a branch name.|
+|_alt+g s_|`gitGrace.checkout`|Fetch and checkout an existing branch.|
 |_alt+g h_|`gitGrace.openWeb`|Open the link to the active file in your web browser.|
 |_alt+g j_|`gitGrace.pullRequest`|Push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.|
 |_alt+g g_|`gitGrace.sync`|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.|
@@ -45,8 +45,8 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g v_|`tortoiseGit.commit`|Commit with **TortoiseGit**.|
 |_alt+g b_|`tortoiseGit.blame`|Open **TortoiseGitBlame** for the current active file.|
 |_alt+s s_|`gitGrace.stash`|Save an unnamed stash with _--include-untracked_.|
-|_alt+s p_|`git.stashPopLatest`|Restore the last stash without hassle.|
-|_alt+s l_|`git.stashPop`|Open the stash list and restore the selected stash.|
+|_alt+s p_|`gitGrace.stashPopLatest`|Restore the last stash without hassle.|
+|_alt+s l_|`gitGrace.stashPop`|Open the stash list and restore the selected stash.|
 
 **TortoiseGit** integration (Windows exclusive) is slightly modified from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension. By default, the path to **TortoiseGit** executable is `C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe`, but it can be changed later at `gitGrace.tortoiseGitPath` setting.
 
