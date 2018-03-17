@@ -539,14 +539,39 @@ export function activate(context: vscode.ExtensionContext) {
             await vscode.commands.executeCommand('workbench.action.files.saveAll')
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Stashing...' }, async () => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Saving Stash...' }, async () => {
             try {
                 await git(root.uri, 'stash', 'save', '--include-untracked')
 
             } catch (ex) {
                 setRootAsFailure(root)
 
-                showError(`Git Grace: Stashing failed.`)
+                showError(`Git Grace: Saving stash failed.`)
+                return null
+            }
+        })
+
+        vscode.commands.executeCommand('git.refresh')
+    })))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPopLatest', queue(async () => {
+        const root = await getCurrentRoot()
+        if (!root) {
+            return null
+        }
+
+        if (checkIfAutoSaveIsOn()) {
+            await vscode.commands.executeCommand('workbench.action.files.saveAll')
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Popping Stash...' }, async () => {
+            try {
+                await git(root.uri, 'stash', 'pop')
+
+            } catch (ex) {
+                setRootAsFailure(root)
+
+                showError(`Git Grace: Popping stash failed.`)
                 return null
             }
         })

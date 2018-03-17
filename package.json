@@ -63,7 +63,12 @@
             },
             {
                 "command": "gitGrace.stash",
-                "title": "Stash (Unnamed, Include Untracked)",
+                "title": "Stash (Include Untracked, Persistent)",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.stashPopLatest",
+                "title": "Pop Latest Stash (Persistent)",
                 "category": "Git"
             },
             {
@@ -219,7 +224,7 @@
             },
             {
                 "key": "alt+s p",
-                "command": "git.stashPopLatest"
+                "command": "gitGrace.stashPopLatest"
             },
             {
                 "key": "alt+s l",
