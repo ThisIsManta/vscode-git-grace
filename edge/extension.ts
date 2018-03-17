@@ -312,7 +312,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
-        const repoGotUpdated = await vscode.commands.executeCommand('gitGrace.fetchSync')
+        const repoGotUpdated = await vscode.commands.executeCommand('gitGrace.fetch.internal')
         if (repoGotUpdated === null) {
             return null
         }
@@ -350,7 +350,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetchSync', async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch.internal', async () => {
         if (rootList.length === 0) {
             return null
         }
@@ -590,7 +590,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        await executeInternalCommand('gitGrace.fetchSync')
+        await executeInternalCommand('gitGrace.fetch.internal')
 
         const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
         const masterHash = masterInfo.trim()
@@ -637,7 +637,7 @@ export function activate(context: vscode.ExtensionContext) {
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkout', queue(async () => {
-        await executeInternalCommand('gitGrace.fetchSync')
+        await executeInternalCommand('gitGrace.fetch.internal')
 
         return vscode.commands.executeCommand('git.checkout')
     })))
@@ -799,7 +799,7 @@ export function activate(context: vscode.ExtensionContext) {
             return undefined
         }
 
-        await executeInternalCommand('gitGrace.fetchSync')
+        await executeInternalCommand('gitGrace.fetch.internal')
 
         syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
         syncingStatusBar.text = `$(clock) Querying merged branches...`
