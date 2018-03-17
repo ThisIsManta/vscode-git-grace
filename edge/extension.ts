@@ -38,17 +38,15 @@ function queue(action: () => Promise<any>) {
     }
 }
 
-const keyStampMap = new Map<string, number>()
+const recentlyExecutedInternalCommandHash = new Map<string, number>()
 
-function check(key: string, callback: () => Thenable<any> | void) {
-    if (keyStampMap.has(key) && Date.now() - keyStampMap.get(key) < 15000) {
+async function executeInternalCommand(command: string, options?: object) {
+    if (recentlyExecutedInternalCommandHash.has(command) && Date.now() - recentlyExecutedInternalCommandHash.get(command) < 15000) {
         return undefined
     }
-    return callback()
-}
-
-function stamp(key: string) {
-    keyStampMap.set(key, Date.now())
+    const result = await vscode.commands.executeCommand(command, { bypass: true, ...options })
+    recentlyExecutedInternalCommandHash.set(command, Date.now())
+    return result
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -387,8 +385,6 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        stamp('fetch')
-
         return repoGotUpdated
     }))
 
@@ -477,8 +473,6 @@ export function activate(context: vscode.ExtensionContext) {
                     }
                 }
             }
-
-            stamp('push')
 
             vscode.window.setStatusBarMessage(`Pushing completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
 
@@ -596,7 +590,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetchSync', { bypass: true }))
+        await executeInternalCommand('gitGrace.fetchSync')
 
         const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
         const masterHash = masterInfo.trim()
@@ -711,7 +705,7 @@ export function activate(context: vscode.ExtensionContext) {
             return vscode.window.showErrorMessage(`Git Grace: The current branch was out-of-sync with its remote branch.`)
         }
         if (status.remote === '' || status.distance > 0) {
-            const error = await check('push', () => vscode.commands.executeCommand('gitGrace.push', { bypass: true }))
+            const error = await executeInternalCommand('gitGrace.push')
             if (error !== undefined) {
                 return null
             }
@@ -775,7 +769,7 @@ export function activate(context: vscode.ExtensionContext) {
             return undefined
         }
 
-        await check('fetch', () => vscode.commands.executeCommand('gitGrace.fetchSync', { bypass: true }))
+        await executeInternalCommand('gitGrace.fetchSync')
 
         syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
         syncingStatusBar.text = `$(clock) Querying merged branches...`
@@ -903,5 +897,5 @@ export function deactivate() {
 
     processingActionList.splice(0, processingActionList.length)
 
-    keyStampMap.clear()
+    recentlyExecutedInternalCommandHash.clear()
 }
