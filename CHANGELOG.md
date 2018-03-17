@@ -1,3 +1,7 @@
+### 2.0.0
+- Added "gitGrace.urgent" and "gitGrace.urgentRestore" commands.
+- Amended keybinding of "git.unstageAll" command from `alt+g q` to `alt+g z` in favor of "gitGrace.urgent" command.
+
 ### 1.5.0
 - Added "gitGrace.branch" command.
 - Added "gitGrace.checkout" command.

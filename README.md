@@ -28,7 +28,7 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g u_|`gitGrace.pull`|Fetch from _origin_ with _--prune_ then rebase normally.|
 |_alt+g p_|`gitGrace.push`|Push to _origin_ with _--tags_. You will be asked if you want to try again with _--force_ when the current local branch and its counterpart remote branch are out-of-sync.|
 |_alt+g d_|`git.openChange`|Open the diff window for the active file.|
-|_alt+g q_|`git.unstageAll`|Remove added files from the stage.|
+|_alt+g z_|`git.unstageAll`|Remove added files from the stage.|
 |_alt+g r_|`git.cleanAll`|Revert dirty files.|
 |_alt+g c_|`workbench.view.scm`|Commit with **Visual Studio Code** built-in SCM panel.|
 |_alt+g a_|`gitGrace.commitAmend`|Similar to `git.undoCommit` but prompt a confirmation dialog beforehand.|
@@ -40,6 +40,8 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g j_|`gitGrace.pullRequest`|Push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.|
 |_alt+g g_|`gitGrace.sync`|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.|
 |_alt+g o_|`gitGrace.showOutput`|Open the output channel for **GitGrace** extension.|
+|_alt+g q_|`gitGrace.urgent`|Commit all files with the message of "(work-in-progress)", create WIP tag, and push only the tag. This command is useful when you want to leave your computer and continue where you left off on another computer.|
+|_alt+g w_|`gitGrace.urgentRestore`|Checkout and delete WIP tag that corresponding to the current local branch.|
 |_alt+g l_|`tortoiseGit.showLog`|Show the log messages for the whole repository.|
 |_alt+g k_|`tortoiseGit.showFileLog`|Show the log messages for the current active file.|
 |_alt+g v_|`tortoiseGit.commit`|Commit with **TortoiseGit**.|

@@ -13,33 +13,33 @@ let outputChannel: vscode.OutputChannel
 let syncingStatusBar: vscode.StatusBarItem
 let stashCountBar: vscode.StatusBarItem
 
-const processingActionList: Array<() => Promise<any>> = []
-function queue(action: () => Promise<any>) {
+const pendingActionList: Array<{ action: (options?) => Promise<any>, options?}> = []
+function queue(action: (options?) => Promise<any>) {
     return async (options?: { bypass?: boolean }) => {
         try {
             if (options && options.bypass === true) {
-                return await action()
+                return await action(options)
             }
 
-            if (processingActionList[0] === action) {
+            if (_.isEqual(pendingActionList[0], { action, options })) {
                 return undefined
             }
 
-            processingActionList.unshift(action)
+            pendingActionList.unshift({ action, options })
 
-            if (processingActionList.length === 1) {
-                await action()
-                processingActionList.pop()
+            if (pendingActionList.length === 1) {
+                await action(options)
+                pendingActionList.pop()
 
-                while (processingActionList.length > 0) {
-                    const nextAction = _.last(processingActionList)
-                    await nextAction()
-                    processingActionList.pop()
+                while (pendingActionList.length > 0) {
+                    const { action: nextAction, options } = _.last(pendingActionList)
+                    await nextAction(options)
+                    pendingActionList.pop()
                 }
             }
 
         } catch (error) {
-            processingActionList.splice(0, processingActionList.length)
+            pendingActionList.splice(0, pendingActionList.length)
 
             const message = error instanceof Error ? error.message : String(error)
             if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
@@ -177,6 +177,29 @@ export function activate(context: vscode.ExtensionContext) {
             message: result.substring(result.indexOf(' ') + 1).trim().split('\n')[0],
         }
     }
+
+    async function updateStashCountBar() {
+        const rootList = await getRepositoryList()
+        if (rootList.length === 1) {
+            const result = await git(rootList[0].root.uri, 'stash', 'list')
+            const stashList = _.compact(result.split('\n'))
+            if (stashList.length > 0) {
+                if (!stashCountBar) {
+                    stashCountBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5)
+                }
+                stashCountBar.text = `${stashList.length} Stash${stashList.length > 1 ? 'es' : ''}`
+                stashCountBar.command = 'gitGrace.stashPop'
+                stashCountBar.show()
+                return undefined
+            }
+        }
+
+        if (stashCountBar) {
+            stashCountBar.dispose()
+            stashCountBar = null
+        }
+    }
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
 
     let rootList: Array<vscode.WorkspaceFolder> = []
     if (vscode.workspace.workspaceFolders) {
@@ -526,6 +549,93 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand('git.refresh')
     }))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.urgent', queue(async () => {
+        if (rootList.length === 0) {
+            return null
+        }
+
+        if (await vscode.workspace.saveAll(true) === false) {
+            return null
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing as Work-In-Progress...' }, async (progress) => {
+            for (const root of rootList) {
+                const status = await getCurrentBranchStatus(root.uri)
+                if (!status.dirty) {
+                    continue
+                }
+
+                await git(root.uri, 'commit', '--all', '--untracked-files', '--message=(work-in-progress)')
+
+                const tagName = 'WIP/' + _.compact((new Date().toISOString()).split(/\W/)).join('-')
+                await git(root.uri, 'tag', tagName)
+
+                try {
+                    await retry(1, () => git(root.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName))
+                } catch (ex) {
+                    throw `Pushing failed.`
+                }
+            }
+        })
+
+        vscode.commands.executeCommand('workbench.action.quit')
+    })))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.urgentRestore', queue(async (options = { prompt: false }) => {
+        if (rootList.length === 0) {
+            return null
+        }
+
+        const waitList: Array<{ root: vscode.WorkspaceFolder, branchName: string, tagName: string, distance: number }> = []
+        for (const root of rootList) {
+            const status = await getCurrentBranchStatus(root.uri)
+            if (status.dirty || !status.local) {
+                continue
+            }
+
+            const tagNames = _.compact((await git(root.uri, 'tag', '--list')).split('\n')).filter(tagName => tagName.startsWith('WIP/'))
+            tagNames.sort().reverse()
+            for (const tagName of tagNames) {
+                const result = await git(root.uri, 'rev-list', '--left-right', '--count', status.local + '...refs/tags/' + tagName)
+                const [base, diff] = result.trim().match(/\d+/g)
+                if (parseInt(base) === 0) {
+                    waitList.push({ root, branchName: status.local, tagName, distance: parseInt(diff) })
+
+                    break
+                }
+            }
+        }
+
+        if (waitList.length === 0) {
+            return null
+        }
+
+        if (options && options.prompt) {
+            const options: Array<vscode.MessageItem> = [{ title: 'Restore Work-In-Progress' }]
+            const select = await vscode.window.showWarningMessage(
+                `There ${waitList.length === 1 ? 'is' : 'are'} ${waitList.length} work-in-progress found.`,
+                ...options)
+            if (select !== options[0]) {
+                return null
+            }
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Restoring Work-In-Progress...' }, async (progress) => {
+            for (const { root, branchName, tagName, distance } of waitList) {
+                if (distance >= 1) {
+                    await git(root.uri, 'checkout', '-B', branchName, 'refs/tags/' + tagName)
+                }
+
+                await git(root.uri, 'reset', '--mixed', 'HEAD~1')
+
+                await git(root.uri, 'tag', '--delete', tagName)
+                await git(root.uri, 'push', '--delete', 'origin', 'refs/tags/' + tagName)
+            }
+        })
+
+        vscode.commands.executeCommand('git.refresh')
+    })))
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stash', queue(async () => {
         const root = await getCurrentRoot()
         if (!root) {
@@ -592,7 +702,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (status.dirty) {
             const options: Array<vscode.MessageItem> = [{ title: 'Stash Now' }, { title: 'Discard All Files' }, { title: 'Cancel', isCloseAffordance: true }]
             const select = await vscode.window.showWarningMessage(
-                `The current repository was dirty.`,
+                `The current repository is dirty.`,
                 { modal: true }, ...options)
             if (select === options[0]) {
                 const error = await vscode.commands.executeCommand('gitGrace.stash', true)
@@ -647,7 +757,7 @@ export function activate(context: vscode.ExtensionContext) {
         } else {
             const options: Array<vscode.MessageItem> = [{ title: 'Create New Branch' }, { title: 'Rename Current Branch' }]
             const select = await vscode.window.showWarningMessage(
-                `Git Grace: You are on the local branch "${status.local}".`,
+                `You are on the local branch "${status.local}".`,
                 { modal: true }, ...options
             )
             if (select === options[0]) {
@@ -860,7 +970,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         const options: Array<vscode.MessageItem> = [{ title: 'Delete Merged Branches' }, { title: 'Cancel', isCloseAffordance: true }]
         const select = await vscode.window.showInformationMessage(
-            `Git Grace: Are you sure you want to delete ${[[mergedLocalBranches, 'local branch'], [mergedRemoteBranches, 'remote branch']].filter(([list, unit]) => list.length > 0).map(([list, unit]) => list.length + ' ' + unit + (list.length > 1 ? 'es' : '')).join(' and ')}?`,
+            `Are you sure you want to delete ${[[mergedLocalBranches, 'local branch'], [mergedRemoteBranches, 'remote branch']].filter(([list, unit]) => list.length > 0).map(([list, unit]) => list.length + ' ' + unit + (list.length > 1 ? 'es' : '')).join(' and ')}?`,
             { modal: true }, ...options)
         if (select !== options[0]) {
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
@@ -931,32 +1041,13 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', queue(() => tortoiseGit.commit())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
 
-    async function updateStashCountBar() {
-        const rootList = await getRepositoryList()
-        if (rootList.length === 1) {
-            const result = await git(rootList[0].root.uri, 'stash', 'list')
-            const stashList = _.compact(result.split('\n'))
-            if (stashList.length > 0) {
-                if (!stashCountBar) {
-                    stashCountBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5)
-                }
-                stashCountBar.text = `${stashList.length} Stash${stashList.length > 1 ? 'es' : ''}`
-                stashCountBar.command = 'gitGrace.stashPop'
-                stashCountBar.show()
-                return undefined
-            }
-        }
-
-        if (stashCountBar) {
-            stashCountBar.dispose()
-            stashCountBar = null
-        }
+    async function startUp() {
+        await vscode.commands.executeCommand('gitGrace.fetch')
+        await vscode.commands.executeCommand('gitGrace.urgentRestore', { prompt: true })
+        updateStashCountBar()
     }
-    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
 
-    // Run start-up operations
-    vscode.commands.executeCommand('gitGrace.fetch')
-    updateStashCountBar()
+    startUp()
 }
 
 export function deactivate() {
@@ -974,7 +1065,7 @@ export function deactivate() {
         stashCountBar = null
     }
 
-    processingActionList.splice(0, processingActionList.length)
+    pendingActionList.splice(0, pendingActionList.length)
 
     recentlyExecutedInternalCommandHash.clear()
 }
