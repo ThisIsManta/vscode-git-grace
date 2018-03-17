@@ -15,24 +15,34 @@ let syncingStatusBar: vscode.StatusBarItem
 const processingActionList: Array<() => Promise<any>> = []
 function queue(action: () => Promise<any>) {
     return async (options?: { bypass?: boolean }) => {
-        if (options && options.bypass === true) {
-            return await action()
-        }
+        try {
+            if (options && options.bypass === true) {
+                return await action()
+            }
 
-        if (processingActionList[0] === action) {
-            return undefined
-        }
+            if (processingActionList[0] === action) {
+                return undefined
+            }
 
-        processingActionList.unshift(action)
+            processingActionList.unshift(action)
 
-        if (processingActionList.length === 1) {
-            await action()
-            processingActionList.pop()
-
-            while (processingActionList.length > 0) {
-                const nextAction = _.last(processingActionList)
-                await nextAction()
+            if (processingActionList.length === 1) {
+                await action()
                 processingActionList.pop()
+
+                while (processingActionList.length > 0) {
+                    const nextAction = _.last(processingActionList)
+                    await nextAction()
+                    processingActionList.pop()
+                }
+            }
+
+        } catch (error) {
+            processingActionList.splice(0, processingActionList.length)
+
+            const message = error instanceof Error ? error.message : String(error)
+            if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
+                vscode.commands.executeCommand('gitGrace.showOutput')
             }
         }
     }
@@ -305,12 +315,6 @@ export function activate(context: vscode.ExtensionContext) {
         })
     }
 
-    async function showError(message: string) {
-        if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
-            vscode.commands.executeCommand('gitGrace.showOutput')
-        }
-    }
-
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
         const repoGotUpdated = await vscode.commands.executeCommand('gitGrace.fetch.internal')
         if (repoGotUpdated === null) {
@@ -327,19 +331,18 @@ export function activate(context: vscode.ExtensionContext) {
             if (status.local !== '' && status.remote !== '' && status.distance < 0) {
                 const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }]
                 const select = await vscode.window.showInformationMessage(
-                    `Git Grace: The branch "${status.local}" is behind its remote branch.`,
+                    `The branch "${status.local}" is behind its remote branch.`,
                     ...options)
                 if (select === options[0]) {
                     try {
                         await git(root.uri, 'rebase', '--autostash', status.remote)
 
-                        vscode.window.showInformationMessage(`Git Grace: Fast forwarding is completed.`)
+                        vscode.window.showInformationMessage(`Fast forwarding is complete.`)
 
                     } catch (ex) {
                         setRootAsFailure(root)
 
-                        showError(`Git Grace: Fast forwarding failed.`)
-                        return null
+                        throw `Fast forwarding failed.`
                     }
                 }
             }
@@ -357,7 +360,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         let repoGotUpdated = false
 
-        const error = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
             for (const root of rootList) {
                 if (rootList.length > 1) {
                     progress.report({ message: `Fetching "${root.name}"...` })
@@ -373,17 +376,13 @@ export function activate(context: vscode.ExtensionContext) {
                     setRootAsFailure(root)
 
                     if (rootList.length > 1) {
-                        showError(`Git Grace: Fetching "${root.name}" failed.`)
+                        throw `Fetching "${root.name}" failed.`
                     } else {
-                        showError(`Git Grace: Fetching failed.`)
+                        throw `Fetching failed.`
                     }
-                    return null
                 }
             }
         })
-        if (error !== undefined) {
-            return null
-        }
 
         return repoGotUpdated
     }))
@@ -408,8 +407,7 @@ export function activate(context: vscode.ExtensionContext) {
                 } catch (ex) {
                     setRootAsFailure(root)
 
-                    showError(`Git Grace: Pulling failed.`)
-                    return null
+                    throw `Pulling failed.`
                 }
             }
 
@@ -438,7 +436,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 const status = await getCurrentBranchStatus(root.uri)
                 if (status.local === '') {
-                    return vscode.window.showErrorMessage(`Git Grace: You were not on any branches.`)
+                    throw `You were not on any branches.`
                 }
 
                 const branch = status.local
@@ -465,11 +463,10 @@ export function activate(context: vscode.ExtensionContext) {
                         setRootAsFailure(root)
 
                         if (rootList.length > 1) {
-                            showError(`Git Grace: Pushing "${root.name}" failed.`)
+                            throw `Pushing "${root.name}" failed.`
                         } else {
-                            showError(`Git Grace: Pushing failed.`)
+                            throw `Pushing failed.`
                         }
-                        return null
                     }
                 }
             }
@@ -520,8 +517,7 @@ export function activate(context: vscode.ExtensionContext) {
         } catch (ex) {
             setRootAsFailure(root)
 
-            showError(`Git Grace: Committing failed.`)
-            return null
+            throw `Committing failed.`
         }
 
         vscode.window.setStatusBarMessage(`Committing completed`, 10000)
@@ -546,8 +542,7 @@ export function activate(context: vscode.ExtensionContext) {
             } catch (ex) {
                 setRootAsFailure(root)
 
-                showError(`Git Grace: Saving stash failed.`)
-                return null
+                throw `Saving stash failed.`
             }
         })
 
@@ -571,8 +566,7 @@ export function activate(context: vscode.ExtensionContext) {
             } catch (ex) {
                 setRootAsFailure(root)
 
-                showError(`Git Grace: Popping stash failed.`)
-                return null
+                throw `Popping stash failed.`
             }
         })
 
@@ -606,8 +600,7 @@ export function activate(context: vscode.ExtensionContext) {
                     await git(root.uri, 'reset', '--hard')
 
                 } catch (ex) {
-                    showError(`Git Grace: Cleaning up files failed.`)
-                    return null
+                    throw `Cleaning up files failed.`
                 }
 
             } else {
@@ -622,7 +615,7 @@ export function activate(context: vscode.ExtensionContext) {
         const commitInfo = await git(root.uri, 'status', '--branch', '--porcelain=2')
         const commitHash = commitInfo.split('\n').find(line => line.startsWith('# branch.oid ')).substring('# branch.oid '.length).trim()
         if (masterHash === commitInfo) {
-            vscode.window.showInformationMessage(`Git Grace: You are on "origin/master" already.`)
+            vscode.window.showInformationMessage(`You are on "origin/master" already.`)
             return null
         }
 
@@ -630,8 +623,7 @@ export function activate(context: vscode.ExtensionContext) {
             await git(root.uri, 'checkout', '--detach', 'origin/master')
 
         } catch (ex) {
-            showError(`Git Grace: Checking out "origin/master" failed.`)
-            return null
+            throw `Checking out "origin/master" failed.`
         }
 
         vscode.commands.executeCommand('git.refresh')
@@ -740,24 +732,24 @@ export function activate(context: vscode.ExtensionContext) {
 
         const repo = repoList.find(repo => repo.root.uri.fsPath === root.uri.fsPath)
         if (repo === undefined) {
-            return vscode.window.showErrorMessage(`Git Grace: The selected workspace was not a GitHub repository.`)
+            throw `The selected workspace was not a GitHub repository.`
         }
 
         const status = await getCurrentBranchStatus(root.uri)
         if (status.dirty) {
-            return vscode.window.showErrorMessage(`Git Grace: The current repository was dirty.`)
+            throw `The current repository is dirty.`
         }
         if (status.local === '') {
-            return vscode.window.showErrorMessage(`Git Grace: The current repository was not attached to any branches.`)
+            throw `The current repository is not attached to any branches.`
         }
         if (status.local === 'master') {
-            return vscode.window.showErrorMessage(`Git Grace: The current branch was "master" branch.`)
+            throw `The current branch is branch "master".`
         }
         if (status.distance < 0) {
-            return vscode.window.showErrorMessage(`Git Grace: The current branch was behind its remote branch.`)
+            throw `The current branch was behind its remote branch.`
         }
         if (isNaN(status.distance)) {
-            return vscode.window.showErrorMessage(`Git Grace: The current branch was out-of-sync with its remote branch.`)
+            throw `The current branch was out-of-sync with its remote branch.`
         }
         if (status.remote === '' || status.distance > 0) {
             const error = await executeInternalCommand('gitGrace.push')
@@ -805,8 +797,7 @@ export function activate(context: vscode.ExtensionContext) {
             } catch (ex) {
                 setRootAsFailure(root)
 
-                showError(`Git Grace: Syncing failed.`)
-                return null
+                throw `Syncing failed.`
             }
 
             vscode.window.setStatusBarMessage(`Syncing completed`, 10000)
@@ -858,7 +849,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (mergedLocalBranches.length === 0 && mergedRemoteBranches.length === 0) {
-            vscode.window.showInformationMessage(`Git Grace: There were no merged branches to be deleted.`)
+            vscode.window.showInformationMessage(`There were no merged branches to be deleted.`)
 
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
             return undefined
@@ -879,7 +870,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (mergedRemoteBranches.length === 0) {
-            vscode.window.showInformationMessage(`Git Grace: ${mergedLocalBranches.length} merged local branch${mergedLocalBranches.length > 1 ? 'es have' : ' has'} been deleted.`)
+            vscode.window.showInformationMessage(`${mergedLocalBranches.length} merged local branch${mergedLocalBranches.length > 1 ? 'es have' : ' has'} been deleted.`)
 
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
             return undefined
@@ -906,14 +897,14 @@ export function activate(context: vscode.ExtensionContext) {
             })
             deletedRemoteBranchCount -= 1 // Compensate the initial count of 1
 
-            vscode.window.showInformationMessage(`Git Grace: ${mergedLocalBranches.length + mergedRemoteBranches.length} merged branch${mergedLocalBranches.length + mergedRemoteBranches.length ? 'es have' : 'has'} been deleted.`)
+            vscode.window.showInformationMessage(`${mergedLocalBranches.length + mergedRemoteBranches.length} merged branch${mergedLocalBranches.length + mergedRemoteBranches.length ? 'es have' : 'has'} been deleted.`)
 
         } catch (ex) {
             if (ex instanceof Error) {
                 outputChannel.appendLine(ex.message)
             }
 
-            showError(`Git Grace: Deleting merged branches failed - only ${deletedRemoteBranchCount === 1 ? `branch "${mergedRemoteBranches[0].name}" has` : `${deletedRemoteBranchCount} branches have`} been deleted.`)
+            throw `Deleting merged branches failed - only ${deletedRemoteBranchCount === 1 ? `branch "${mergedRemoteBranches[0].name}" has` : `${deletedRemoteBranchCount} branches have`} been deleted.`
         }
 
         vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
