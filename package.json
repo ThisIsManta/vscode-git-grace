@@ -77,6 +77,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.checkout",
+                "title": "Checkout to... (Persistent)",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.openWeb",
                 "title": "Open on Web...",
                 "category": "Git"
@@ -174,7 +179,7 @@
             },
             {
                 "key": "alt+g s",
-                "command": "git.checkout"
+                "command": "gitGrace.checkout"
             },
             {
                 "key": "alt+g h",

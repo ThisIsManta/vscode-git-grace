@@ -636,6 +636,12 @@ export function activate(context: vscode.ExtensionContext) {
         }
     })))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkout', queue(async () => {
+        await executeInternalCommand('gitGrace.fetchSync')
+
+        return vscode.commands.executeCommand('git.checkout')
+    })))
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.openWeb', queue(async () => {
         const repoList = await getRepositoryList()
 
