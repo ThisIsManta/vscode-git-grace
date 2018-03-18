@@ -1,5 +1,3 @@
-# Git Grace
-
 **Git Grace** is a Visual Studio Code extension that provides handy and persistent Git commands.
 
 ## Introductory
@@ -7,13 +5,13 @@
 The problems with Visual Studio Code built-in Git commands are:
 1. Error messages are hidden in the Git output channel.
 2. Progress bar is hidden in the SCM panel.
-3. Retrying **fetch** and **pull** should be done automatically.
-4. Commands are executed asynchronously. You have to wait the current command to be done before calling another command.
+3. Retrying **fetch** and **pull** should have been done automatically.
+4. Commands are executed asynchronously. You have to wait until the current command has been done before calling another command.
 
 For example, if you fails running **fetch** for whatever reasons, it does not show any error feedback, unless you open its Git output channel manually. And it should retry the operation automatically for user's convenience since it is safe to do so.
 
 Here are the solutions to the problems above:
-1. Error messages are shown at the top with _Show Log_ button to open **Git Grace** output channel (do not confuse this with the built-in **Git** output channel.)
+1. Error messages are shown in the notification area with _Show Log_ button to open **Git Grace** output channel (do not confuse this with the built-in **Git** output channel.)
 2. Progress is shown at the status bar.
 3. Retrying **fetch** and **pull** will be done twice.
 4. Queuing system ensures commands will be executed in sequence. You can call another command without waiting for the current command to be finished.
