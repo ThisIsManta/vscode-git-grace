@@ -685,7 +685,7 @@ export function activate(context: vscode.ExtensionContext) {
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPop', queue(async () => {
-        console.log(await vscode.commands.executeCommand('git.stashPop'))
+        await vscode.commands.executeCommand('git.stashPop')
 
         updateStashCountBar()
     })))
@@ -770,6 +770,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkout', queue(async () => {
         await executeInternalCommand('gitGrace.fetch.internal')
+
+        await vscode.commands.executeCommand('git.refresh')
 
         return vscode.commands.executeCommand('git.checkout')
     })))
