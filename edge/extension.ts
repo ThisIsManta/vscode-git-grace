@@ -763,7 +763,12 @@ export function activate(context: vscode.ExtensionContext) {
             if (select === options[0]) {
                 return vscode.commands.executeCommand('git.branch')
             } else if (select === options[1]) {
-                return vscode.commands.executeCommand('git.renameBranch')
+                await vscode.commands.executeCommand('git.renameBranch')
+
+                if (status.remote) {
+                    const newStatus = await getCurrentBranchStatus(root.uri)
+                    await git(root.uri, 'branch', '--unset-upstream', newStatus.local)
+                }
             }
         }
     })))

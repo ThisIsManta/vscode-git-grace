@@ -1,3 +1,6 @@
+### 2.0.2
+- Amended "gitGrace.branch" command so it untracks its old remote branch.
+
 ### 2.0.1
 - Fixed "gitGrace.checkout" command so it picks the newly created branches.
 
