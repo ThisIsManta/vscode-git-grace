@@ -60,6 +60,13 @@ async function executeInternalCommand(command: string, options?: object) {
     return result
 }
 
+interface BranchStatus {
+    local: string
+    remote: string
+    distance: number
+    dirty: boolean
+}
+
 export function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel('Git Grace')
 
@@ -101,7 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
         })
     })
 
-    async function getCurrentBranchStatus(link: vscode.Uri) {
+    async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchStatus> {
         const status = await git(link, 'status', '--short', '--branch')
 
         const chunk = status.split('\n')[0].substring(3).trim()
@@ -341,8 +348,32 @@ export function activate(context: vscode.ExtensionContext) {
         })
     }
 
+    async function askIfUserWantsToFastForward(root: vscode.WorkspaceFolder) {
+        const status = await getCurrentBranchStatus(root.uri)
+        if (status.local !== '' && status.remote !== '' && status.distance < 0) {
+            const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }]
+            const select = await vscode.window.showInformationMessage(
+                `The branch "${status.local}" is behind its remote branch.`,
+                ...options)
+            if (select === options[0]) {
+                await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fast Forwarding...' }, async () => {
+                    try {
+                        await git(root.uri, 'rebase', '--autostash', status.remote)
+
+                        await vscode.commands.executeCommand('git.refresh')
+
+                    } catch (ex) {
+                        setRootAsFailure(root)
+
+                        throw `Fast forwarding failed.`
+                    }
+                })
+            }
+        }
+    }
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
-        const repoGotUpdated = await vscode.commands.executeCommand('gitGrace.fetch.internal')
+        const repoGotUpdated = await executeInternalCommand('gitGrace.fetch.internal')
         if (repoGotUpdated === null) {
             return null
         }
@@ -353,25 +384,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri) &&
             (root = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
         ) {
-            const status = await getCurrentBranchStatus(root.uri)
-            if (status.local !== '' && status.remote !== '' && status.distance < 0) {
-                const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }]
-                const select = await vscode.window.showInformationMessage(
-                    `The branch "${status.local}" is behind its remote branch.`,
-                    ...options)
-                if (select === options[0]) {
-                    try {
-                        await git(root.uri, 'rebase', '--autostash', status.remote)
-
-                        vscode.window.showInformationMessage(`Fast forwarding is complete.`)
-
-                    } catch (ex) {
-                        setRootAsFailure(root)
-
-                        throw `Fast forwarding failed.`
-                    }
-                }
-            }
+            await askIfUserWantsToFastForward(root)
         }
 
         vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
@@ -776,9 +789,17 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkout', queue(async () => {
         await executeInternalCommand('gitGrace.fetch.internal')
 
+        const root = await getCurrentRoot()
+        const oldBranchStatus = await getCurrentBranchStatus(root.uri)
+
         await vscode.commands.executeCommand('git.refresh')
 
-        return vscode.commands.executeCommand('git.checkout')
+        await vscode.commands.executeCommand('git.checkout')
+
+        const newBranchStatus = await getCurrentBranchStatus(root.uri)
+        if (oldBranchStatus.local !== newBranchStatus.local) {
+            await askIfUserWantsToFastForward(root)
+        }
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.openWeb', queue(async () => {
