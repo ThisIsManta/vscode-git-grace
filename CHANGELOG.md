@@ -1,5 +1,6 @@
 ### 2.0.3
 - Amended "gitGrace.checkout" command so it asks if users want to fast forward.
+- Amended internal command cool down time to 60 seconds.
 
 ### 2.0.2
 - Amended "gitGrace.branch" command so it untracks its old remote branch.

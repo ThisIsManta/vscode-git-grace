@@ -52,7 +52,7 @@ function queue(action: (options?) => Promise<any>) {
 const recentlyExecutedInternalCommandHash = new Map<string, number>()
 
 async function executeInternalCommand(command: string, options?: object) {
-    if (recentlyExecutedInternalCommandHash.has(command) && Date.now() - recentlyExecutedInternalCommandHash.get(command) < 15000) {
+    if (recentlyExecutedInternalCommandHash.has(command) && Date.now() - recentlyExecutedInternalCommandHash.get(command) < 60 * 1000) {
         return undefined
     }
     const result = await vscode.commands.executeCommand(command, { bypass: true, ...options })
