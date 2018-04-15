@@ -387,7 +387,11 @@ export function activate(context: vscode.ExtensionContext) {
             await askIfUserWantsToFastForward(root)
         }
 
-        vscode.window.setStatusBarMessage(`Fetching completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
+        if (repoGotUpdated) {
+            vscode.window.setStatusBarMessage(`Fetching completed`, 10000)
+        } else {
+            vscode.window.setStatusBarMessage(`No updates`, 10000)
+        }
 
         vscode.commands.executeCommand('git.refresh')
     })))
@@ -508,7 +512,11 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            vscode.window.setStatusBarMessage(`Pushing completed` + (repoGotUpdated ? ' with some updates' : ''), 10000)
+            if (repoGotUpdated) {
+                vscode.window.setStatusBarMessage(`Pushing completed`, 10000)
+            } else {
+                vscode.window.setStatusBarMessage(`No updates`, 10000)
+            }
 
             vscode.commands.executeCommand('git.refresh')
         })
