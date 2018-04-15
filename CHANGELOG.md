@@ -1,8 +1,8 @@
-### 2.1.0
+### 2.2.0
 - Amended "gitGrace.fetch" and "gitGrace.push" status messages.
 - Amended "gitGrace.fetch" command so it does a non-blocking fast forward operation.
 
-### 2.0.3
+### 2.1.0
 - Amended "gitGrace.checkout" command so it asks if users want to fast forward.
 - Amended internal command cool down time to 60 seconds.
 
