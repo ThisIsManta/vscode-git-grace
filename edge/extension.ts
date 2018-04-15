@@ -351,16 +351,24 @@ export function activate(context: vscode.ExtensionContext) {
     async function askIfUserWantsToFastForward(root: vscode.WorkspaceFolder) {
         const status = await getCurrentBranchStatus(root.uri)
         if (status.local !== '' && status.remote !== '' && status.distance < 0) {
+            const oldStatus = status
             const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }]
-            const select = await vscode.window.showInformationMessage(
+            const select = await vscode.window.showWarningMessage(
                 `The branch "${status.local}" is behind its remote branch.`,
                 ...options)
             if (select === options[0]) {
-                await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fast Forwarding...' }, async () => {
+                const status = await getCurrentBranchStatus(root.uri)
+                if (status.local !== oldStatus.local || !(status.local !== '' && status.remote !== '' && status.distance < 0)) {
+                    return vscode.window.showErrorMessage(`Fast forwarding failed because the branch status has changed.`)
+                }
+
+                await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fast Forwarding...' }, async () => {
                     try {
                         await git(root.uri, 'rebase', '--autostash', status.remote)
 
                         await vscode.commands.executeCommand('git.refresh')
+
+                        vscode.window.setStatusBarMessage(`Fast forwarding completed`, 10000)
 
                     } catch (ex) {
                         setRootAsFailure(root)
@@ -384,7 +392,8 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri) &&
             (root = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
         ) {
-            await askIfUserWantsToFastForward(root)
+            // Do not wait for fast forwarding
+            askIfUserWantsToFastForward(root)
         }
 
         if (repoGotUpdated) {
