@@ -1,5 +1,3 @@
-import * as fs from 'fs'
-import * as fp from 'path'
 import * as cp from 'child_process'
 import * as vscode from 'vscode'
 

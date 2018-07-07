@@ -4,7 +4,6 @@ import * as cp from 'child_process'
 import * as os from 'os'
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
-import * as process from 'process'
 import * as open from 'open'
 
 import TortoiseGit from './TortoiseGit'
