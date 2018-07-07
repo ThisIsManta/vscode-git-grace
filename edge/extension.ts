@@ -78,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
     const git = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
-        const actualParameters = formalParameters.filter(parameter => parameter !== undefined && parameter !== null && parameter !== '')
+        const actualParameters = formalParameters.filter(parameter => !!parameter)
 
         outputChannel.appendLine('git ' + actualParameters.join(' '))
 
@@ -488,15 +488,13 @@ export function activate(context: vscode.ExtensionContext) {
                     throw `You were not on any branches.`
                 }
 
-                const branch = status.local
-                try {
-                    const result = await git(root.uri, 'push', '--tags', 'origin', branch)
-                    if (result.trim() !== 'Everything up-to-date') {
-                        repoGotUpdated = true
-                    }
+                let branchIsOutOfSync = false
+                if (status.remote) {
+                    const result = await git(root.uri, 'rev-list', '--left-right', status.local + '...' + status.remote)
+                    const trails = _.countBy(result.trim().split('\n'), line => line.charAt(0))
+                    branchIsOutOfSync = trails['<'] > 0 && trails['>'] > 0
 
-                } catch (ex) {
-                    if (String(ex).includes('hint: Updates were rejected because the tip of your current branch is behind')) {
+                    if (branchIsOutOfSync) {
                         const options: Array<vscode.MessageItem> = [{ title: 'Force Pushing' }, { title: 'Cancel', isCloseAffordance: true }]
                         const select = await vscode.window.showWarningMessage(
                             `The current branch on repository "${root.name}" could not be pushed because its remote branch was out-of-sync.`,
@@ -504,18 +502,22 @@ export function activate(context: vscode.ExtensionContext) {
                         if (select !== options[0]) {
                             return null
                         }
+                    }
+                }
 
-                        await git(root.uri, 'push', '--force-with-lease', 'origin', branch)
+                try {
+                    const result = await git(root.uri, 'push', '--tags', branchIsOutOfSync && '--force-with-lease', 'origin', status.local)
+                    if (result.trim() !== 'Everything up-to-date') {
                         repoGotUpdated = true
+                    }
 
+                } catch (ex) {
+                    setRootAsFailure(root)
+
+                    if (rootList.length > 1) {
+                        throw `Pushing "${root.name}" failed.`
                     } else {
-                        setRootAsFailure(root)
-
-                        if (rootList.length > 1) {
-                            throw `Pushing "${root.name}" failed.`
-                        } else {
-                            throw `Pushing failed.`
-                        }
+                        throw `Pushing failed.`
                     }
                 }
             }

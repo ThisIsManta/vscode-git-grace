@@ -1,3 +1,6 @@
+### 2.3.0
+- Amended "gitGrace.push" command so it asks for force pushing promptly.
+
 ### 2.2.0
 - Amended "gitGrace.fetch" and "gitGrace.push" status messages.
 - Amended "gitGrace.fetch" command so it does a non-blocking fast forward operation.
