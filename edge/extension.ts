@@ -359,7 +359,7 @@ export function activate(context: vscode.ExtensionContext) {
             delete newStatus.distance
             if (_.isMatch(status, newStatus) === false) {
                 vscode.window.showErrorMessage(`The operation was cancelled because the branch status has changed.`, { modal: true })
-                throw new Error('Cancelled')
+                throw null
             }
         }
 
@@ -398,7 +398,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             await abortIfStatusHasChanged()
 
-            await vscode.commands.executeCommand('gitGrace.push', { bypass: true, progressLocation: vscode.ProgressLocation.Notification })
+            await vscode.commands.executeCommand('gitGrace.push', { bypass: true })
 
         } else if (status.sync === SyncStatus.OutOfSync) {
             const select = await vscode.window.showWarningMessage(
@@ -420,6 +420,8 @@ export function activate(context: vscode.ExtensionContext) {
                         vscode.window.setStatusBarMessage(`Rebasing completed`, 10000)
 
                     } catch (ex) {
+                        setRootAsFailure(root)
+
                         if (String(ex).includes('CONFLICT')) {
                             await git(root.uri, 'rebase', '--abort')
 
@@ -428,8 +430,6 @@ export function activate(context: vscode.ExtensionContext) {
                         } else {
                             vscode.window.showErrorMessage(`Rebasing was cancelled due to an unknown error. Please do it manually.`, { modal: true })
                         }
-
-                        setRootAsFailure(root)
                     }
                 })
 
@@ -443,6 +443,8 @@ export function activate(context: vscode.ExtensionContext) {
                         vscode.window.setStatusBarMessage(`Merging completed`, 10000)
 
                     } catch (ex) {
+                        setRootAsFailure(root)
+
                         if (String(ex).includes('CONFLICT')) {
                             await git(root.uri, 'merge', '--abort')
 
@@ -451,8 +453,6 @@ export function activate(context: vscode.ExtensionContext) {
                         } else {
                             vscode.window.showErrorMessage(`Merging was cancelled due to an unknown error. Please do it manually.`, { modal: true })
                         }
-
-                        setRootAsFailure(root)
                     }
                 })
             }
@@ -491,7 +491,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         let repoGotUpdated = false
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fetching...' }, async (progress) => {
             for (const root of rootList) {
                 if (rootList.length > 1) {
                     progress.report({ message: `Fetching "${root.name}"...` })
@@ -523,7 +523,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async (progress) => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pulling...' }, async () => {
             for (const root of rootList) {
                 try {
                     await retry(2, () => git(root.uri, 'fetch', '--prune', 'origin'))
@@ -548,14 +548,14 @@ export function activate(context: vscode.ExtensionContext) {
         })
     })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', queue(async (options: { progressLocation: vscode.ProgressLocation }) => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', queue(async () => {
         if (rootList.length === 0) {
             return null
         }
 
         await saveAllFilesOnlyIfAutoSaveIsOn()
 
-        await vscode.window.withProgress({ location: options.progressLocation === undefined ? vscode.ProgressLocation.Window : options.progressLocation, title: 'Pushing...' }, async (progress) => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pushing...' }, async (progress) => {
             let repoGotUpdated = false
 
             for (const root of rootList) {
@@ -659,7 +659,7 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing as Work-In-Progress...' }, async (progress) => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pushing as Work-In-Progress...' }, async (progress) => {
             for (const root of rootList) {
                 const status = await getCurrentBranchStatus(root.uri)
                 if (!status.dirty) {
@@ -720,7 +720,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Restoring Work-In-Progress...' }, async (progress) => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Restoring Work-In-Progress...' }, async (progress) => {
             for (const { root, branchName, tagName, distance } of waitList) {
                 if (distance >= 1) {
                     await git(root.uri, 'checkout', '-B', branchName, 'refs/tags/' + tagName)
@@ -744,7 +744,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         await saveAllFilesOnlyIfAutoSaveIsOn()
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Saving Stash...' }, async () => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Saving Stash...' }, async () => {
             try {
                 await git(root.uri, 'stash', 'save', '--include-untracked')
 
@@ -768,7 +768,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         await saveAllFilesOnlyIfAutoSaveIsOn()
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Popping Stash...' }, async () => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Popping Stash...' }, async () => {
             try {
                 await git(root.uri, 'stash', 'pop')
 
@@ -1027,7 +1027,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing...' }, async () => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Syncing...' }, async () => {
             try {
                 if (status.remote === '') {
                     await git(root.uri, 'push', 'origin', status.local)
