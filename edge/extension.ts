@@ -14,9 +14,9 @@ let stashCountBar: vscode.StatusBarItem
 
 const pendingActionList: Array<{ action: (options?) => Promise<any>, options?}> = []
 function queue(action: (options?) => Promise<any>) {
-    return async (options?: { bypass?: boolean }) => {
+    return async ({ bypass, ...options } = { bypass: false }) => {
         try {
-            if (options && options.bypass === true) {
+            if (bypass === true) {
                 return await action(options)
             }
 
@@ -41,7 +41,7 @@ function queue(action: (options?) => Promise<any>) {
             pendingActionList.splice(0, pendingActionList.length)
 
             const message = error instanceof Error ? error.message : String(error)
-            if (await vscode.window.showErrorMessage(message, 'Show Log') === 'Show Log') {
+            if (await vscode.window.showErrorMessage(message, { modal: true }, 'Show Log') === 'Show Log') {
                 vscode.commands.executeCommand('gitGrace.showOutput')
             }
         }
@@ -59,11 +59,19 @@ async function executeInternalCommand(command: string, options?: object) {
     return result
 }
 
+enum SyncStatus {
+    InSync,
+    OutOfSync,
+    Behind,
+    Ahead,
+}
+
 interface BranchStatus {
     local: string
     remote: string
-    distance: number
     dirty: boolean
+    sync: SyncStatus
+    distance: number
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -114,27 +122,15 @@ export function activate(context: vscode.ExtensionContext) {
         const dirty = status.trim().split('\n').length > 1
 
         if (chunk.includes('(no branch)')) {
-            return { local: '', remote: '', distance: 0, dirty }
+            return { local: '', remote: '', dirty, sync: SyncStatus.InSync, distance: 0 }
         }
 
         let local = chunk
         let remote = ''
-        let distance = 0
         if (chunk.includes('...')) {
             const separator = chunk.indexOf('...')
             local = chunk.substring(0, separator)
             remote = chunk.substring(separator + 3).trim()
-
-            if (/\[(ahead|behind)\s\d+\]/.test(remote)) {
-                distance = parseInt(chunk.match(/\[(ahead|behind)\s(\d+)\]/)[2])
-                if (/\[behind\s\d+\]/.test(remote)) {
-                    distance *= -1
-                }
-
-            } else if (/\[ahead\s\d+, behind\s\d+\]/.test(remote)) {
-                distance = NaN
-            }
-
             if (remote.indexOf(' [') > 0) {
                 remote = remote.substring(0, remote.indexOf(' ['))
             }
@@ -146,11 +142,25 @@ export function activate(context: vscode.ExtensionContext) {
                 await setRemoteBranch(link, local)
                 const newStatus = await getCurrentBranchStatus(link)
                 remote = newStatus.remote
-                distance = newStatus.distance
             }
         }
 
-        return { local, remote, distance, dirty }
+        let sync = SyncStatus.InSync
+        let distance = 0
+        if (local && remote) {
+            const result = await git(link, 'rev-list', '--left-right', local + '...' + remote)
+            const trails = _.countBy(result.trim().split('\n'), line => line.charAt(0))
+            if (trails['<'] && trails['>']) {
+                sync = SyncStatus.OutOfSync
+            } else if (trails['<']) {
+                sync = SyncStatus.Ahead
+            } else if (trails['>']) {
+                sync = SyncStatus.Behind
+            }
+            distance = (trails['<'] || 0) + (trails['>'] || 0)
+        }
+
+        return { local, remote, dirty, sync, distance }
     }
 
     async function getLocalBranchNames(link: vscode.Uri) {
@@ -259,12 +269,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     function getWorkingFile() {
         if (!vscode.window.activeTextEditor) {
-            vscode.window.showErrorMessage(`There were no files opened.`)
+            vscode.window.showErrorMessage(`There were no files opened.`, { modal: true })
             return null
         }
 
         if (getGitFolder(vscode.window.activeTextEditor.document.uri) === null) {
-            vscode.window.showErrorMessage(`The current file was not in Git repository.`)
+            vscode.window.showErrorMessage(`The current file was not in Git repository.`, { modal: true })
             return null
         }
 
@@ -274,11 +284,11 @@ export function activate(context: vscode.ExtensionContext) {
     async function getCurrentRoot() {
         if (rootList.length === 0) {
             if (!vscode.workspace.workspaceFolders) {
-                vscode.window.showErrorMessage(`There were no folders opened.`)
+                vscode.window.showErrorMessage(`There were no folders opened.`, { modal: true })
                 return null
 
             } else {
-                vscode.window.showErrorMessage(`The current folder was not in Git repository.`)
+                vscode.window.showErrorMessage(`The current folder was not in Git repository.`, { modal: true })
                 return null
             }
         }
@@ -347,32 +357,111 @@ export function activate(context: vscode.ExtensionContext) {
         })
     }
 
-    async function askIfUserWantsToFastForward(root: vscode.WorkspaceFolder) {
+    async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
         const status = await getCurrentBranchStatus(root.uri)
-        if (status.local !== '' && status.remote !== '' && status.distance < 0) {
-            const oldStatus = status
-            const options: Array<vscode.MessageItem> = [{ title: 'Fast Forward' }]
-            const select = await vscode.window.showWarningMessage(
-                `The branch "${status.local}" is behind its remote branch.`,
-                ...options)
-            if (select === options[0]) {
-                const status = await getCurrentBranchStatus(root.uri)
-                if (status.local !== oldStatus.local || !(status.local !== '' && status.remote !== '' && status.distance < 0)) {
-                    return vscode.window.showErrorMessage(`Fast forwarding failed because the branch status has changed.`)
-                }
+        if (status.local === '' || status.remote === '' || status.sync === SyncStatus.InSync) {
+            return null
+        }
 
-                await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fast Forwarding...' }, async () => {
+        async function abortIfStatusHasChanged() {
+            const newStatus = await getCurrentBranchStatus(root.uri)
+            delete newStatus.distance
+            if (_.isMatch(status, newStatus) === false) {
+                vscode.window.showErrorMessage(`The operation was cancelled because the branch status has changed.`, { modal: true })
+                throw new Error('Cancelled')
+            }
+        }
+
+        if (status.sync === SyncStatus.Behind) {
+            const select = await vscode.window.showWarningMessage(
+                `The local branch "${status.local}" is behind its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
+                'Fast Forward')
+            if (!select) {
+                return null
+            }
+
+            await abortIfStatusHasChanged()
+
+            await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fast Forwarding...' }, async () => {
+                try {
+                    await git(root.uri, 'rebase', '--autostash', status.remote)
+
+                    await vscode.commands.executeCommand('git.refresh')
+
+                    vscode.window.setStatusBarMessage(`Fast forwarding completed`, 10000)
+
+                } catch (ex) {
+                    setRootAsFailure(root)
+
+                    return vscode.window.showErrorMessage(`Fast forwarding failed.`, { modal: true })
+                }
+            })
+
+        } else if (status.sync === SyncStatus.Ahead) {
+            const select = await vscode.window.showWarningMessage(
+                `The local branch "${status.local}" is ahead of its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
+                'Push Now')
+            if (!select) {
+                return null
+            }
+
+            await abortIfStatusHasChanged()
+
+            await executeInternalCommand('gitGrace.push', { progressLocation: vscode.ProgressLocation.Notification })
+
+        } else if (status.sync === SyncStatus.OutOfSync) {
+            const select = await vscode.window.showWarningMessage(
+                `The local branch "${status.local}" is out of sync with its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
+                'Rebase Now', 'Merge Now')
+            if (!select) {
+                return null
+            }
+
+            await abortIfStatusHasChanged()
+
+            if (select === 'Rebase Now') {
+                await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Rebasing...' }, async () => {
                     try {
                         await git(root.uri, 'rebase', '--autostash', status.remote)
 
                         await vscode.commands.executeCommand('git.refresh')
 
-                        vscode.window.setStatusBarMessage(`Fast forwarding completed`, 10000)
+                        vscode.window.setStatusBarMessage(`Rebasing completed`, 10000)
 
                     } catch (ex) {
-                        setRootAsFailure(root)
+                        if (String(ex).includes('CONFLICT')) {
+                            await git(root.uri, 'rebase', '--abort')
 
-                        throw `Fast forwarding failed.`
+                            vscode.window.showErrorMessage(`Rebasing was cancelled due to conflicts. Please do it manually.`, { modal: true })
+
+                        } else {
+                            vscode.window.showErrorMessage(`Rebasing was cancelled due to an unknown error. Please do it manually.`, { modal: true })
+                        }
+
+                        setRootAsFailure(root)
+                    }
+                })
+
+            } else {
+                await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Merging...' }, async () => {
+                    try {
+                        await git(root.uri, 'merge', status.remote)
+
+                        await vscode.commands.executeCommand('git.refresh')
+
+                        vscode.window.setStatusBarMessage(`Merging completed`, 10000)
+
+                    } catch (ex) {
+                        if (String(ex).includes('CONFLICT')) {
+                            await git(root.uri, 'merge', '--abort')
+
+                            vscode.window.showErrorMessage(`Merging was cancelled due to conflicts. Please do it manually.`, { modal: true })
+
+                        } else {
+                            vscode.window.showErrorMessage(`Merging was cancelled due to an unknown error. Please do it manually.`, { modal: true })
+                        }
+
+                        setRootAsFailure(root)
                     }
                 })
             }
@@ -391,8 +480,8 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri) &&
             (root = rootList.find(root => root.uri.fsPath === vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.fsPath))
         ) {
-            // Do not wait for fast forwarding
-            askIfUserWantsToFastForward(root)
+            // Do not wait for optional operation
+            tryToSyncRemoteBranch(root)
         }
 
         if (repoGotUpdated) {
@@ -468,14 +557,14 @@ export function activate(context: vscode.ExtensionContext) {
         })
     })))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', queue(async () => {
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', queue(async (options: { progressLocation: vscode.ProgressLocation }) => {
         if (rootList.length === 0) {
             return null
         }
 
         await saveAllFilesOnlyIfAutoSaveIsOn()
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
+        await vscode.window.withProgress({ location: options.progressLocation === undefined ? vscode.ProgressLocation.Window : options.progressLocation, title: 'Pushing...' }, async (progress) => {
             let repoGotUpdated = false
 
             for (const root of rootList) {
@@ -488,25 +577,17 @@ export function activate(context: vscode.ExtensionContext) {
                     throw `You were not on any branches.`
                 }
 
-                let branchIsOutOfSync = false
-                if (status.remote) {
-                    const result = await git(root.uri, 'rev-list', '--left-right', status.local + '...' + status.remote)
-                    const trails = _.countBy(result.trim().split('\n'), line => line.charAt(0))
-                    branchIsOutOfSync = trails['<'] > 0 && trails['>'] > 0
-
-                    if (branchIsOutOfSync) {
-                        const options: Array<vscode.MessageItem> = [{ title: 'Force Pushing' }, { title: 'Cancel', isCloseAffordance: true }]
-                        const select = await vscode.window.showWarningMessage(
-                            `The current branch on repository "${root.name}" could not be pushed because its remote branch was out-of-sync.`,
-                            { modal: true }, ...options)
-                        if (select !== options[0]) {
-                            return null
-                        }
+                if (status.remote && status.sync === SyncStatus.OutOfSync) {
+                    const select = await vscode.window.showWarningMessage(
+                        `The local branch on repository "${root.name}" could not be pushed because it was out of sync with its remote branch.`,
+                        { modal: true }, 'Force Pushing')
+                    if (!select) {
+                        return null
                     }
                 }
 
                 try {
-                    const result = await git(root.uri, 'push', '--tags', branchIsOutOfSync && '--force-with-lease', 'origin', status.local)
+                    const result = await git(root.uri, 'push', '--tags', status.sync === SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local)
                     if (result.trim() !== 'Everything up-to-date') {
                         repoGotUpdated = true
                     }
@@ -540,11 +621,10 @@ export function activate(context: vscode.ExtensionContext) {
 
         const commit = await getLastCommit(root.uri)
 
-        const options: Array<vscode.MessageItem> = [{ title: 'Amend Last Commit' }, { title: 'Cancel', isCloseAffordance: true }]
         const select = await vscode.window.showWarningMessage(
             `Are you sure you want to amend last commit "${_.truncate(commit.message, { length: 60 })}"?`,
-            { modal: true }, ...options)
-        if (select !== options[0]) {
+            { modal: true }, 'Amend Last Commit')
+        if (!select) {
             return null
         }
 
@@ -558,11 +638,10 @@ export function activate(context: vscode.ExtensionContext) {
             return null
         }
 
-        const options: Array<vscode.MessageItem> = [{ title: 'Create an Empty Commit' }, { title: 'Cancel', isCloseAffordance: true }]
         const select = await vscode.window.showWarningMessage(
             `Are you sure you want to create an empty commit?`,
-            { modal: true }, ...options)
-        if (select !== options[0]) {
+            { modal: true }, 'Create an Empty Commit')
+        if (!select) {
             return null
         }
 
@@ -642,11 +721,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (options && options.prompt) {
-            const options: Array<vscode.MessageItem> = [{ title: 'Restore Work-In-Progress' }]
             const select = await vscode.window.showWarningMessage(
                 `There ${waitList.length === 1 ? 'is' : 'are'} ${waitList.length} work-in-progress found.`,
-                ...options)
-            if (select !== options[0]) {
+                'Restore Work-In-Progress')
+            if (!select) {
                 return null
             }
         }
@@ -731,26 +809,26 @@ export function activate(context: vscode.ExtensionContext) {
 
         const status = await getCurrentBranchStatus(root.uri)
         if (status.dirty) {
-            const options: Array<vscode.MessageItem> = [{ title: 'Stash Now' }, { title: 'Discard All Files' }, { title: 'Cancel', isCloseAffordance: true }]
             const select = await vscode.window.showWarningMessage(
                 `The current repository is dirty.`,
-                { modal: true }, ...options)
-            if (select === options[0]) {
+                { modal: true }, 'Stash Now', 'Discard All Files')
+            if (!select) {
+                return null
+            }
+
+            if (select === 'Stash Now') {
                 const error = await vscode.commands.executeCommand('gitGrace.stash', true)
                 if (error !== undefined) {
                     return null
                 }
 
-            } else if (select === options[1]) {
+            } else if (select === 'Discard All Files') {
                 try {
                     await git(root.uri, 'reset', '--hard')
 
                 } catch (ex) {
                     throw `Cleaning up files failed.`
                 }
-
-            } else {
-                return null
             }
         }
 
@@ -789,10 +867,10 @@ export function activate(context: vscode.ExtensionContext) {
             const options: Array<vscode.MessageItem> = [{ title: 'Create New Branch' }, { title: 'Rename Current Branch' }]
             const select = await vscode.window.showWarningMessage(
                 `You are on the local branch "${status.local}".`,
-                { modal: true }, ...options
-            )
+                { modal: true }, ...options)
             if (select === options[0]) {
                 return vscode.commands.executeCommand('git.branch')
+
             } else if (select === options[1]) {
                 await vscode.commands.executeCommand('git.renameBranch')
 
@@ -808,15 +886,16 @@ export function activate(context: vscode.ExtensionContext) {
         await executeInternalCommand('gitGrace.fetch.internal')
 
         const root = await getCurrentRoot()
-        const oldBranchStatus = await getCurrentBranchStatus(root.uri)
+        const oldStatus = await getCurrentBranchStatus(root.uri)
 
         await vscode.commands.executeCommand('git.refresh')
 
         await vscode.commands.executeCommand('git.checkout')
 
-        const newBranchStatus = await getCurrentBranchStatus(root.uri)
-        if (oldBranchStatus.local !== newBranchStatus.local) {
-            await askIfUserWantsToFastForward(root)
+        const newStatus = await getCurrentBranchStatus(root.uri)
+        if (oldStatus.local !== newStatus.local) {
+            // Do not wait for optional operation
+            tryToSyncRemoteBranch(root)
         }
     })))
 
@@ -847,7 +926,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const status = await getCurrentBranchStatus(repo.root.uri)
-            if (status.local !== '' && status.local !== 'master' && status.remote !== '') {
+            if (status.local && status.local !== 'master' && status.remote) {
                 httpList.push(repo.http + `/tree/${status.local}/` + getHttpPart(rootPath.substring(repo.path.length)))
 
                 if (workPath) {
@@ -906,13 +985,13 @@ export function activate(context: vscode.ExtensionContext) {
         if (status.local === 'master') {
             throw `The current branch is branch "master".`
         }
-        if (status.distance < 0) {
+        if (status.sync === SyncStatus.Behind) {
             throw `The current branch was behind its remote branch.`
         }
-        if (isNaN(status.distance)) {
+        if (status.sync === SyncStatus.OutOfSync) {
             throw `The current branch was out-of-sync with its remote branch.`
         }
-        if (status.remote === '' || status.distance > 0) {
+        if (status.remote === '' || status.sync === SyncStatus.Ahead) {
             const error = await executeInternalCommand('gitGrace.push')
             if (error !== undefined) {
                 return null
@@ -1014,11 +1093,10 @@ export function activate(context: vscode.ExtensionContext) {
             return undefined
         }
 
-        const options: Array<vscode.MessageItem> = [{ title: 'Delete Merged Branches' }, { title: 'Cancel', isCloseAffordance: true }]
         const select = await vscode.window.showInformationMessage(
             `Are you sure you want to delete ${[[mergedLocalBranches, 'local branch'], [mergedRemoteBranches, 'remote branch']].filter(([list, unit]) => list.length > 0).map(([list, unit]) => list.length + ' ' + unit + (list.length > 1 ? 'es' : '')).join(' and ')}?`,
-            { modal: true }, ...options)
-        if (select !== options[0]) {
+            { modal: true }, 'Delete Merged Branches')
+        if (!select) {
             vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
             return undefined
         }

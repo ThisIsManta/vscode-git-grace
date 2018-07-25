@@ -1,3 +1,6 @@
+### 2.4.0
+- Amended "gitGrace.fetch" and "gitGrace.checkout" commands so they ask if users want to sync the local branch with its remote branch.
+
 ### 2.3.0
 - Amended "gitGrace.push" command so it asks for force pushing promptly.
 
