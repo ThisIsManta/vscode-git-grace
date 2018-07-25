@@ -48,17 +48,6 @@ function queue(action: (options?) => Promise<any>) {
     }
 }
 
-const recentlyExecutedInternalCommandHash = new Map<string, number>()
-
-async function executeInternalCommand(command: string, options?: object) {
-    if (recentlyExecutedInternalCommandHash.has(command) && Date.now() - recentlyExecutedInternalCommandHash.get(command) < 60 * 1000) {
-        return undefined
-    }
-    const result = await vscode.commands.executeCommand(command, { bypass: true, ...options })
-    recentlyExecutedInternalCommandHash.set(command, Date.now())
-    return result
-}
-
 enum SyncStatus {
     InSync,
     OutOfSync,
@@ -407,7 +396,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             await abortIfStatusHasChanged()
 
-            await executeInternalCommand('gitGrace.push', { progressLocation: vscode.ProgressLocation.Notification })
+            await vscode.commands.executeCommand('gitGrace.push', { bypass: true, progressLocation: vscode.ProgressLocation.Notification })
 
         } else if (status.sync === SyncStatus.OutOfSync) {
             const select = await vscode.window.showWarningMessage(
@@ -469,7 +458,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
-        const repoGotUpdated = await executeInternalCommand('gitGrace.fetch.internal')
+        const repoGotUpdated = await vscode.commands.executeCommand('gitGrace.fetch.internal', { bypass: true })
         if (repoGotUpdated === null) {
             return null
         }
@@ -832,12 +821,11 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
 
-        await executeInternalCommand('gitGrace.fetch.internal')
+        await vscode.commands.executeCommand('gitGrace.fetch.internal', { bypass: true })
 
         const masterInfo = await git(root.uri, 'rev-parse', 'origin/master')
         const masterHash = masterInfo.trim()
         const commitInfo = await git(root.uri, 'status', '--branch', '--porcelain=2')
-        const commitHash = commitInfo.split('\n').find(line => line.startsWith('# branch.oid ')).substring('# branch.oid '.length).trim()
         if (masterHash === commitInfo) {
             vscode.window.showInformationMessage(`You are on "origin/master" already.`)
             return null
@@ -883,20 +871,36 @@ export function activate(context: vscode.ExtensionContext) {
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkout', queue(async () => {
-        await executeInternalCommand('gitGrace.fetch.internal')
-
         const root = await getCurrentRoot()
         const oldStatus = await getCurrentBranchStatus(root.uri)
 
-        await vscode.commands.executeCommand('git.refresh')
+        let switchingDialogIsClosed = false
+        vscode.commands.executeCommand('git.checkout').then(async () => {
+            switchingDialogIsClosed = true
 
-        await vscode.commands.executeCommand('git.checkout')
+            const newStatus = await getCurrentBranchStatus(root.uri)
+            if (oldStatus.local !== newStatus.local) {
+                // Do not wait for optional operation
+                tryToSyncRemoteBranch(root)
+            }
+        })
 
-        const newStatus = await getCurrentBranchStatus(root.uri)
-        if (oldStatus.local !== newStatus.local) {
-            // Do not wait for optional operation
-            tryToSyncRemoteBranch(root)
-        }
+        // Do lazy fetching
+        vscode.commands.executeCommand('gitGrace.fetch.internal', { bypass: true }).then(async (repoGotUpdated: boolean) => {
+            if (switchingDialogIsClosed || !repoGotUpdated) {
+                return null
+            }
+
+            await vscode.commands.executeCommand('git.refresh')
+
+            await vscode.commands.executeCommand('git.checkout')
+
+            const newStatus = await getCurrentBranchStatus(root.uri)
+            if (oldStatus.local !== newStatus.local) {
+                // Do not wait for optional operation
+                tryToSyncRemoteBranch(root)
+            }
+        })
     })))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.openWeb', queue(async () => {
@@ -992,7 +996,7 @@ export function activate(context: vscode.ExtensionContext) {
             throw `The current branch was out-of-sync with its remote branch.`
         }
         if (status.remote === '' || status.sync === SyncStatus.Ahead) {
-            const error = await executeInternalCommand('gitGrace.push')
+            const error = await vscode.commands.executeCommand('gitGrace.push', { bypass: true })
             if (error !== undefined) {
                 return null
             }
@@ -1053,7 +1057,7 @@ export function activate(context: vscode.ExtensionContext) {
             return undefined
         }
 
-        await executeInternalCommand('gitGrace.fetch.internal')
+        await vscode.commands.executeCommand('gitGrace.fetch.internal', { bypass: true })
 
         syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
         syncingStatusBar.text = `$(clock) Querying merged branches...`
@@ -1190,6 +1194,4 @@ export function deactivate() {
     }
 
     pendingActionList.splice(0, pendingActionList.length)
-
-    recentlyExecutedInternalCommandHash.clear()
 }
