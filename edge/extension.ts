@@ -119,9 +119,11 @@ export function activate(context: vscode.ExtensionContext) {
         if (chunk.includes('...')) {
             const separator = chunk.indexOf('...')
             local = chunk.substring(0, separator)
-            remote = chunk.substring(separator + 3).trim()
-            if (remote.indexOf(' [') > 0) {
-                remote = remote.substring(0, remote.indexOf(' ['))
+            if (chunk.endsWith('[gone]') == false) {
+                remote = chunk.substring(separator + 3).trim()
+                if (remote.indexOf(' [') > 0) {
+                    remote = remote.substring(0, remote.indexOf(' ['))
+                }
             }
 
         } else {

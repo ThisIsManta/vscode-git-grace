@@ -1,6 +1,7 @@
 ### 2.4.0
 - Amended "gitGrace.fetch" and "gitGrace.checkout" commands so they ask if users want to sync the local branch with its remote branch.
 - Amended "gitGrace.checkout" command so it runs `git fetch` in the background.
+- Fixed unexpectedly found the remote branch when it is deleted locally.
 
 ### 2.3.0
 - Amended "gitGrace.push" command so it asks for force pushing promptly.
