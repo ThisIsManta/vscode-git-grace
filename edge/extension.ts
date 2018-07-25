@@ -384,7 +384,8 @@ export function activate(context: vscode.ExtensionContext) {
                 } catch (ex) {
                     setRootAsFailure(root)
 
-                    return vscode.window.showErrorMessage(`Fast forwarding failed.`, { modal: true })
+                    vscode.window.showErrorMessage(`Fast forwarding failed.`, { modal: true })
+                    return false
                 }
             })
 
@@ -430,6 +431,8 @@ export function activate(context: vscode.ExtensionContext) {
                         } else {
                             vscode.window.showErrorMessage(`Rebasing was cancelled due to an unknown error. Please do it manually.`, { modal: true })
                         }
+
+                        return false
                     }
                 })
 
@@ -453,10 +456,14 @@ export function activate(context: vscode.ExtensionContext) {
                         } else {
                             vscode.window.showErrorMessage(`Merging was cancelled due to an unknown error. Please do it manually.`, { modal: true })
                         }
+
+                        return false
                     }
                 })
             }
         }
+
+        return true
     }
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', queue(async () => {
@@ -565,12 +572,12 @@ export function activate(context: vscode.ExtensionContext) {
 
                 const status = await getCurrentBranchStatus(root.uri)
                 if (status.local === '') {
-                    throw `You were not on any branches.`
+                    throw `Workspace "${root.name}" was not on any branch.`
                 }
 
                 if (status.remote && status.sync === SyncStatus.OutOfSync) {
                     const select = await vscode.window.showWarningMessage(
-                        `The local branch on repository "${root.name}" could not be pushed because it was out of sync with its remote branch.`,
+                        `The local branch "${status.local}" could not be pushed because it was out of sync with its remote branch.`,
                         { modal: true }, 'Force Pushing')
                     if (!select) {
                         return null
@@ -578,7 +585,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 try {
-                    const result = await git(root.uri, 'push', '--tags', status.sync === SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local)
+                    const result = await retry(1, () => git(root.uri, 'push', '--tags', status.sync === SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local))
                     if (result.trim() !== 'Everything up-to-date') {
                         repoGotUpdated = true
                     }
@@ -586,11 +593,19 @@ export function activate(context: vscode.ExtensionContext) {
                 } catch (ex) {
                     setRootAsFailure(root)
 
-                    if (rootList.length > 1) {
-                        throw `Pushing "${root.name}" failed.`
-                    } else {
-                        throw `Pushing failed.`
+                    if (ex.includes('Updates were rejected because the tip of your current branch is behind') && ex.includes('its remote counterpart.')) {
+                        await git(root.uri, 'fetch', 'origin', status.local)
+
+                        _.defer(async () => {
+                            await vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
+
+                            tryToSyncRemoteBranch(root)
+                        })
+
+                        return null
                     }
+
+                    throw `Pushing failed.`
                 }
             }
 
