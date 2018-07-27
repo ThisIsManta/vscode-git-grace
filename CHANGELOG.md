@@ -1,3 +1,6 @@
+### 2.6.1
+- Fixed missing progress for "gitGrace.push" command.
+
 ### 2.6.0
 - Added "gitGrace.stashClear" command.
 - Amended progress location back to the status bar.

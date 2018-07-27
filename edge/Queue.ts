@@ -6,7 +6,7 @@ import Log from './Log'
 const pendingActionList: Array<{ action: (options?) => Promise<any>, options?}> = []
 
 export function put(action: (options?: object) => Promise<any>) {
-	return async (options = {}) => {
+	return async (options?: object) => {
 		try {
 			if (_.isEqual(pendingActionList[0], { action, options })) {
 				return undefined
