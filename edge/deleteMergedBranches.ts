@@ -2,6 +2,7 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 import { fetchInternal } from './fetch'
 import Log from './Log'
 
@@ -34,7 +35,7 @@ export default async function () {
 	let mergedRemoteBranches: Array<Branch> = []
 
 	async function getMergedBranchNames(root: vscode.WorkspaceFolder, remote: boolean) {
-		const content = await Shared.git(root.uri, 'branch', '--merged', 'origin/master', remote ? '--remotes' : null)
+		const content = await Git.run(root.uri, 'branch', '--merged', 'origin/master', remote ? '--remotes' : null)
 		return _.chain(content.trim().split('\n'))
 			.map(line => line.trim().split(' -> '))
 			.flatten()
@@ -67,7 +68,7 @@ export default async function () {
 
 	// Remove the merged local branches quickly
 	for (const branch of mergedLocalBranches) {
-		await Shared.retry(1, () => Shared.git(branch.root.uri, 'branch', '--delete', '--force', branch.name))
+		await Shared.retry(1, () => Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name))
 	}
 
 	if (mergedRemoteBranches.length === 0) {
@@ -85,7 +86,7 @@ export default async function () {
 				syncingStatusBar.text = `$(clock) Deleting merged remote branches... (${deletedRemoteBranchCount} of ${mergedRemoteBranches.length})`
 				const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
 				try {
-					await Shared.retry(1, () => Shared.git(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
+					await Shared.retry(1, () => Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
 				} catch (ex) {
 					Shared.setWorkspaceAsFirstTryNextTime(branch.root)
 

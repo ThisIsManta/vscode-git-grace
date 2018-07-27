@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 export default async function () {
 	const workspace = await Shared.getCurrentWorkspace()
@@ -16,7 +17,7 @@ export default async function () {
 	}
 
 	try {
-		await Shared.git(workspace.uri, 'commit', '--allow-empty', '--message=(empty commit)')
+		await Git.run(workspace.uri, 'commit', '--allow-empty', '--message=(empty commit)')
 
 	} catch (ex) {
 		Shared.setWorkspaceAsFirstTryNextTime(workspace)

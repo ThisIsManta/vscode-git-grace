@@ -2,6 +2,7 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 export default async function stash() {
 	const workspace = await Shared.getCurrentWorkspace()
@@ -13,7 +14,7 @@ export default async function stash() {
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Saving Stash...' }, async () => {
 		try {
-			await Shared.git(workspace.uri, 'stash', 'save', '--include-untracked')
+			await Git.run(workspace.uri, 'stash', 'save', '--include-untracked')
 
 		} catch (ex) {
 			Shared.setWorkspaceAsFirstTryNextTime(workspace)
@@ -37,7 +38,7 @@ export async function stashPopLatest() {
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Popping Stash...' }, async () => {
 		try {
-			await Shared.git(workspace.uri, 'stash', 'pop')
+			await Git.run(workspace.uri, 'stash', 'pop')
 
 		} catch (ex) {
 			Shared.setWorkspaceAsFirstTryNextTime(workspace)
@@ -62,7 +63,7 @@ let stashCountBar: vscode.StatusBarItem
 export async function updateStashCountBar() {
 	const workspace = await Shared.getCurrentWorkspace()
 	if (workspace) {
-		const result = await Shared.git(workspace.uri, 'stash', 'list')
+		const result = await Git.run(workspace.uri, 'stash', 'list')
 		const stashList = _.compact(result.split('\n'))
 		if (stashList.length > 0) {
 			if (!stashCountBar) {

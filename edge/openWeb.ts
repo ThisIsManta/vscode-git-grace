@@ -3,39 +3,48 @@ import * as vscode from 'vscode'
 import * as open from 'open'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 export default async function () {
-	const repositoryList = await Shared.getRepositoryList()
+	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
 
 	const httpList: Array<string> = []
-	for (const repository of repositoryList) {
-		if (repository.http.startsWith('https://github.com/') === false) {
+	for (const workspace of workspaceList) {
+		const gitPath = Git.getGitPath(workspace.uri)
+		const httpPath = await Git.getHttpPath(workspace)
+		if (!httpPath) {
 			continue
 		}
 
-		const workspacePath = repository.workspace.uri.fsPath
-		let workPath = _.get(vscode.window.activeTextEditor, 'document.fileName', '') as string
-		if (Shared.getGitPath(workPath) === null) {
-			workPath = null
+		if (httpPath.startsWith('https://github.com/') === false) {
+			continue
 		}
 
-		const remoteBranches = await Shared.getRemoteBranchNames(repository.workspace.uri)
+		const workspacePath = workspace.uri.fsPath
+		let filePath = vscode.window.activeTextEditor
+			? vscode.window.activeTextEditor.document.uri.fsPath
+			: ''
+		if (Git.getGitPath(filePath) === null) {
+			filePath = null
+		}
+
+		const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
 		if (remoteBranches.indexOf('origin/master') >= 0) {
-			if (workspacePath !== repository.path) {
-				httpList.push(repository.http + '/tree/master/' + Shared.getHttpPart(workspacePath.substring(repository.path.length)))
+			if (workspacePath !== gitPath) {
+				httpList.push(httpPath + '/tree/master/' + Shared.getHttpPart(workspacePath.substring(gitPath.length)))
 			}
 
-			if (workPath) {
-				httpList.push(repository.http + '/tree/master/' + Shared.getHttpPart(workPath.substring(repository.path.length)))
+			if (filePath) {
+				httpList.push(httpPath + '/tree/master/' + Shared.getHttpPart(filePath.substring(gitPath.length)))
 			}
 		}
 
-		const status = await Shared.getCurrentBranchStatus(repository.workspace.uri)
+		const status = await Git.getCurrentBranchStatus(workspace.uri)
 		if (status.local && status.local !== 'master' && status.remote) {
-			httpList.push(repository.http + `/tree/${status.local}/` + Shared.getHttpPart(workspacePath.substring(repository.path.length)))
+			httpList.push(httpPath + `/tree/${status.local}/` + Shared.getHttpPart(workspacePath.substring(gitPath.length)))
 
-			if (workPath) {
-				httpList.push(repository.http + `/tree/${status.local}/` + Shared.getHttpPart(workPath.substring(repository.path.length)))
+			if (filePath) {
+				httpList.push(httpPath + `/tree/${status.local}/` + Shared.getHttpPart(filePath.substring(gitPath.length)))
 			}
 		}
 	}

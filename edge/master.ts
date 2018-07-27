@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 import { fetchInternal } from './fetch'
 import stash from './stash'
 
@@ -12,7 +13,7 @@ export default async function () {
 
 	await Shared.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	const status = await Shared.getCurrentBranchStatus(workspace.uri)
+	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.dirty) {
 		const select = await vscode.window.showWarningMessage(
 			`The current repository is dirty.`,
@@ -29,7 +30,7 @@ export default async function () {
 
 		} else if (select === 'Discard All Files') {
 			try {
-				await Shared.git(workspace.uri, 'reset', '--hard')
+				await Git.run(workspace.uri, 'reset', '--hard')
 
 			} catch (ex) {
 				throw `Cleaning up files failed.`
@@ -39,16 +40,16 @@ export default async function () {
 
 	await fetchInternal()
 
-	const masterInfo = await Shared.git(workspace.uri, 'rev-parse', 'origin/master')
+	const masterInfo = await Git.run(workspace.uri, 'rev-parse', 'origin/master')
 	const masterHash = masterInfo.trim()
-	const commitInfo = await Shared.git(workspace.uri, 'status', '--branch', '--porcelain=2')
+	const commitInfo = await Git.run(workspace.uri, 'status', '--branch', '--porcelain=2')
 	if (masterHash === commitInfo) {
 		vscode.window.showInformationMessage(`You are on "origin/master" already.`)
 		return null
 	}
 
 	try {
-		await Shared.git(workspace.uri, 'checkout', '--detach', 'origin/master')
+		await Git.run(workspace.uri, 'checkout', '--detach', 'origin/master')
 
 	} catch (ex) {
 		throw `Checking out "origin/master" failed.`

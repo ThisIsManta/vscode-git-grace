@@ -2,6 +2,7 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 import push from './push'
 
 export default async function () {
@@ -40,7 +41,7 @@ export async function fetchInternal() {
 			}
 
 			try {
-				const result = await Shared.retry(2, () => Shared.git(workspace.uri, 'fetch', '--prune', 'origin'))
+				const result = await Shared.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
 				if (result.trim().length > 0) {
 					updated = true
 				}
@@ -65,13 +66,13 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 		return false
 	}
 
-	const status = await Shared.getCurrentBranchStatus(root.uri)
-	if (status.local === '' || status.remote === '' || status.sync === Shared.SyncStatus.InSync) {
+	const status = await Git.getCurrentBranchStatus(root.uri)
+	if (status.local === '' || status.remote === '' || status.sync === Git.SyncStatus.InSync) {
 		return false
 	}
 
 	async function abortIfStatusHasChanged() {
-		const newStatus = await Shared.getCurrentBranchStatus(root.uri)
+		const newStatus = await Git.getCurrentBranchStatus(root.uri)
 		delete newStatus.distance
 		if (_.isMatch(status, newStatus) === false) {
 			vscode.window.showErrorMessage(`The operation was cancelled because the branch status has changed.`, { modal: true })
@@ -79,7 +80,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 		}
 	}
 
-	if (status.sync === Shared.SyncStatus.Behind) {
+	if (status.sync === Git.SyncStatus.Behind) {
 		const select = await vscode.window.showWarningMessage(
 			`The local branch "${status.local}" is behind its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
 			'Fast Forward')
@@ -91,7 +92,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 
 		await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fast Forwarding...' }, async () => {
 			try {
-				await Shared.git(root.uri, 'rebase', '--autostash', status.remote)
+				await Git.run(root.uri, 'rebase', '--autostash', status.remote)
 
 				await vscode.commands.executeCommand('git.refresh')
 
@@ -105,7 +106,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 			}
 		})
 
-	} else if (status.sync === Shared.SyncStatus.Ahead) {
+	} else if (status.sync === Git.SyncStatus.Ahead) {
 		const select = await vscode.window.showWarningMessage(
 			`The local branch "${status.local}" is ahead of its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
 			'Push Now')
@@ -117,7 +118,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 
 		await push()
 
-	} else if (status.sync === Shared.SyncStatus.OutOfSync) {
+	} else if (status.sync === Git.SyncStatus.OutOfSync) {
 		const select = await vscode.window.showWarningMessage(
 			`The local branch "${status.local}" is out of sync with its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
 			'Rebase Now', 'Merge Now')
@@ -130,7 +131,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 		if (select === 'Rebase Now') {
 			await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Rebasing...' }, async () => {
 				try {
-					await Shared.git(root.uri, 'rebase', '--autostash', status.remote)
+					await Git.run(root.uri, 'rebase', '--autostash', status.remote)
 
 					await vscode.commands.executeCommand('git.refresh')
 
@@ -140,7 +141,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 					Shared.setWorkspaceAsFirstTryNextTime(root)
 
 					if (String(ex).includes('CONFLICT')) {
-						await Shared.git(root.uri, 'rebase', '--abort')
+						await Git.run(root.uri, 'rebase', '--abort')
 
 						vscode.window.showErrorMessage(`Rebasing was cancelled due to conflicts. Please do it manually.`, { modal: true })
 
@@ -155,7 +156,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 		} else {
 			await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Merging...' }, async () => {
 				try {
-					await Shared.git(root.uri, 'merge', status.remote)
+					await Git.run(root.uri, 'merge', status.remote)
 
 					await vscode.commands.executeCommand('git.refresh')
 
@@ -165,7 +166,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 					Shared.setWorkspaceAsFirstTryNextTime(root)
 
 					if (String(ex).includes('CONFLICT')) {
-						await Shared.git(root.uri, 'merge', '--abort')
+						await Git.run(root.uri, 'merge', '--abort')
 
 						vscode.window.showErrorMessage(`Merging was cancelled due to conflicts. Please do it manually.`, { modal: true })
 

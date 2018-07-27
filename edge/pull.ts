@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 export default async function () {
 	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
@@ -11,14 +12,14 @@ export default async function () {
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pulling...' }, async () => {
 		for (const workspace of workspaceList) {
 			try {
-				await Shared.retry(2, () => Shared.git(workspace.uri, 'fetch', '--prune', 'origin'))
+				await Shared.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
 
-				const status = await Shared.getCurrentBranchStatus(workspace.uri)
+				const status = await Git.getCurrentBranchStatus(workspace.uri)
 				if (status.local === '' || status.remote === '') {
 					continue
 				}
 
-				await Shared.git(workspace.uri, 'rebase')
+				await Git.run(workspace.uri, 'rebase')
 
 			} catch (ex) {
 				Shared.setWorkspaceAsFirstTryNextTime(workspace)

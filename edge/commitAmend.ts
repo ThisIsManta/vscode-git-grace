@@ -2,6 +2,7 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 export default async function () {
 	const workspace = await Shared.getCurrentWorkspace()
@@ -9,7 +10,7 @@ export default async function () {
 		return null
 	}
 
-	const commit = await Shared.getLastCommit(workspace.uri)
+	const commit = await Git.getLastCommit(workspace.uri)
 
 	const select = await vscode.window.showWarningMessage(
 		`Are you sure you want to amend last commit "${_.truncate(commit.message, { length: 60 })}"?`,

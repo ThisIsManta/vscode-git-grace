@@ -2,20 +2,14 @@ import * as cp from 'child_process'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 // Slightly modified from https://github.com/mbinic/vscode-tgit/blob/master/src/TGit.ts
 
 export default class TortoiseGit {
-    private getWorkingFile: () => vscode.Uri
-    private getRootFolder: () => Promise<vscode.WorkspaceFolder>
-    private getGitPath: (link: vscode.Uri) => string
     private launcherPath: string
 
     constructor() {
-        this.getWorkingFile = Shared.getCurrentFile
-        this.getRootFolder = Shared.getCurrentWorkspace
-        this.getGitPath = Shared.getGitPath
-
         this.updateConfiguration()
 
         vscode.workspace.onDidChangeConfiguration(() => {
@@ -104,22 +98,22 @@ export default class TortoiseGit {
     }
 
     private async run(command: string, withFilePath: boolean = false, additionalParams: string = null) {
-        if (withFilePath && !this.getWorkingFile()) {
+        if (withFilePath && !Shared.getCurrentFile()) {
             return null
         }
 
-        let folderPath = await this.getRootFolder()
+        let folderPath = await Shared.getCurrentWorkspace()
         if (!folderPath) {
             return null
         }
 
         let executable = `"${this.launcherPath}" /command:${command}`
         if (withFilePath) {
-            executable += ` /path:"${this.getWorkingFile().fsPath}"`
+            executable += ` /path:"${Shared.getCurrentFile().fsPath}"`
         }
         if (additionalParams) {
             executable += ' ' + additionalParams
         }
-        cp.exec(executable, { cwd: this.getGitPath(folderPath.uri) })
+        cp.exec(executable, { cwd: Git.getGitPath(folderPath.uri) })
     }
 }

@@ -2,6 +2,7 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 export default async function urgent() {
 	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
@@ -15,18 +16,18 @@ export default async function urgent() {
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pushing as Work-In-Progress...' }, async () => {
 		for (const workspace of workspaceList) {
-			const status = await Shared.getCurrentBranchStatus(workspace.uri)
+			const status = await Git.getCurrentBranchStatus(workspace.uri)
 			if (!status.dirty) {
 				continue
 			}
 
-			await Shared.git(workspace.uri, 'commit', '--all', '--untracked-files', '--message=(work-in-progress)')
+			await Git.run(workspace.uri, 'commit', '--all', '--untracked-files', '--message=(work-in-progress)')
 
 			const tagName = 'WIP/' + _.compact((new Date().toISOString()).split(/\W/)).join('-')
-			await Shared.git(workspace.uri, 'tag', tagName)
+			await Git.run(workspace.uri, 'tag', tagName)
 
 			try {
-				await Shared.retry(1, () => Shared.git(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName))
+				await Shared.retry(1, () => Git.run(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName))
 			} catch (ex) {
 				throw `Pushing failed.`
 			}
@@ -44,15 +45,15 @@ export async function urgentRestore(options = { prompt: false }) {
 
 	const waitList: Array<{ workspace: vscode.WorkspaceFolder, branchName: string, tagName: string, distance: number }> = []
 	for (const workspace of workspaceList) {
-		const status = await Shared.getCurrentBranchStatus(workspace.uri)
+		const status = await Git.getCurrentBranchStatus(workspace.uri)
 		if (status.dirty || !status.local) {
 			continue
 		}
 
-		const tagNames = _.compact((await Shared.git(workspace.uri, 'tag', '--list')).split('\n')).filter(tagName => tagName.startsWith('WIP/'))
+		const tagNames = _.compact((await Git.run(workspace.uri, 'tag', '--list')).split('\n')).filter(tagName => tagName.startsWith('WIP/'))
 		tagNames.sort().reverse()
 		for (const tagName of tagNames) {
-			const result = await Shared.git(workspace.uri, 'rev-list', '--left-right', '--count', status.local + '...refs/tags/' + tagName)
+			const result = await Git.run(workspace.uri, 'rev-list', '--left-right', '--count', status.local + '...refs/tags/' + tagName)
 			const [base, diff] = result.trim().match(/\d+/g)
 			if (parseInt(base) === 0) {
 				waitList.push({ workspace, branchName: status.local, tagName, distance: parseInt(diff) })
@@ -78,13 +79,13 @@ export async function urgentRestore(options = { prompt: false }) {
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Restoring Work-In-Progress...' }, async () => {
 		for (const { workspace, branchName, tagName, distance } of waitList) {
 			if (distance >= 1) {
-				await Shared.git(workspace.uri, 'checkout', '-B', branchName, 'refs/tags/' + tagName)
+				await Git.run(workspace.uri, 'checkout', '-B', branchName, 'refs/tags/' + tagName)
 			}
 
-			await Shared.git(workspace.uri, 'reset', '--mixed', 'HEAD~1')
+			await Git.run(workspace.uri, 'reset', '--mixed', 'HEAD~1')
 
-			await Shared.git(workspace.uri, 'tag', '--delete', tagName)
-			await Shared.git(workspace.uri, 'push', '--delete', 'origin', 'refs/tags/' + tagName)
+			await Git.run(workspace.uri, 'tag', '--delete', tagName)
+			await Git.run(workspace.uri, 'push', '--delete', 'origin', 'refs/tags/' + tagName)
 		}
 	})
 

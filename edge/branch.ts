@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
+import * as Git from './Git'
 
 export default async function () {
 	const workspace = await Shared.getCurrentWorkspace()
@@ -8,7 +9,7 @@ export default async function () {
 		return null
 	}
 
-	const status = await Shared.getCurrentBranchStatus(workspace.uri)
+	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (!status.local || status.local === 'master') {
 		return vscode.commands.executeCommand('git.branch')
 
@@ -24,8 +25,8 @@ export default async function () {
 			await vscode.commands.executeCommand('git.renameBranch')
 
 			if (status.remote) {
-				const newStatus = await Shared.getCurrentBranchStatus(workspace.uri)
-				await Shared.git(workspace.uri, 'branch', '--unset-upstream', newStatus.local)
+				const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
+				await Git.run(workspace.uri, 'branch', '--unset-upstream', newStatus.local)
 			}
 		}
 	}
