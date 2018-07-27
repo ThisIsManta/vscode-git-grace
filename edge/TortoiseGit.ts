@@ -1,6 +1,8 @@
 import * as cp from 'child_process'
 import * as vscode from 'vscode'
 
+import * as Shared from './shared'
+
 // Slightly modified from https://github.com/mbinic/vscode-tgit/blob/master/src/TGit.ts
 
 export default class TortoiseGit {
@@ -9,10 +11,10 @@ export default class TortoiseGit {
     private getGitPath: (link: vscode.Uri) => string
     private launcherPath: string
 
-    constructor(getWorkingFile: () => vscode.Uri, getRootFolder: () => Promise<vscode.WorkspaceFolder>, getGitPath: (link: vscode.Uri) => string) {
-        this.getWorkingFile = getWorkingFile
-        this.getRootFolder = getRootFolder
-        this.getGitPath = getGitPath
+    constructor() {
+        this.getWorkingFile = Shared.getWorkingFile
+        this.getRootFolder = Shared.getCurrentRoot
+        this.getGitPath = Shared.getGitFolder
 
         this.updateConfiguration()
 
