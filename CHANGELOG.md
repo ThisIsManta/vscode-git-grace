@@ -1,11 +1,12 @@
 ### 2.5.0
 - Added "gitGrace.stashClear" command.
+- Amended progress location back to the status bar.
 
 ### 2.4.0
 - Amended "gitGrace.fetch" and "gitGrace.checkout" commands so they ask if users want to sync the local branch with its remote branch.
 - Amended "gitGrace.checkout" command so it fetches in the background.
 - Amended "gitGrace.push" command so it fetches and asks if users want to rebase/merge the local branch.
-- Amended progress location for some commands.
+- Amended progress location to the notification area.
 - Fixed unexpectedly found the remote branch when it is deleted locally.
 
 ### 2.3.0

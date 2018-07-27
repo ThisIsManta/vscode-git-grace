@@ -5,7 +5,7 @@ import * as Util from './Util'
 import * as Git from './Git'
 import { tryToSyncRemoteBranch } from './fetch'
 
-export default async function () {
+export default async function (options = { location: vscode.ProgressLocation.Window }) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
@@ -13,7 +13,7 @@ export default async function () {
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pushing...' }, async (progress) => {
+	await vscode.window.withProgress({ location: options.location, title: 'Pushing...' }, async (progress) => {
 		let updated = false
 
 		for (const workspace of workspaceList) {

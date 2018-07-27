@@ -12,7 +12,7 @@ export default async function stash() {
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Saving Stash...' }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Saving Stash...' }, async () => {
 		try {
 			await Git.run(workspace.uri, 'stash', 'save', '--include-untracked')
 
@@ -36,7 +36,7 @@ export async function stashPopLatest() {
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Popping Stash...' }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Popping Stash...' }, async () => {
 		try {
 			await Git.run(workspace.uri, 'stash', 'pop')
 

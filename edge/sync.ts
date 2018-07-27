@@ -23,7 +23,7 @@ export default async function () {
 		}
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Syncing...' }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing...' }, async () => {
 		try {
 			if (status.remote === '') {
 				await Git.run(workspace.uri, 'push', 'origin', status.local)

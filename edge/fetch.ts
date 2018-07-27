@@ -34,7 +34,7 @@ export async function fetchInternal() {
 
 	let updated = false
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fetching...' }, async (progress) => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Fetching...' }, async (progress) => {
 		for (const workspace of workspaceList) {
 			if (workspaceList.length > 1) {
 				progress.report({ message: `Fetching "${workspace.name}"...` })
@@ -116,7 +116,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 
 		await abortIfStatusHasChanged()
 
-		await push()
+		await push({ location: vscode.ProgressLocation.Notification })
 
 	} else if (status.sync === Git.SyncStatus.OutOfSync) {
 		const select = await vscode.window.showWarningMessage(

@@ -14,7 +14,7 @@ export default async function urgent() {
 		return null
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pushing as Work-In-Progress...' }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing as Work-In-Progress...' }, async () => {
 		for (const workspace of workspaceList) {
 			const status = await Git.getCurrentBranchStatus(workspace.uri)
 			if (!status.dirty) {
@@ -76,7 +76,7 @@ export async function urgentRestore(options = { prompt: false }) {
 		}
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Restoring Work-In-Progress...' }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Restoring Work-In-Progress...' }, async () => {
 		for (const { workspace, branchName, tagName, distance } of waitList) {
 			if (distance >= 1) {
 				await Git.run(workspace.uri, 'checkout', '-B', branchName, 'refs/tags/' + tagName)

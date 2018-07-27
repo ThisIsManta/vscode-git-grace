@@ -9,7 +9,7 @@ export default async function () {
 		return null
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pulling...' }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async () => {
 		for (const workspace of workspaceList) {
 			try {
 				await Util.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
