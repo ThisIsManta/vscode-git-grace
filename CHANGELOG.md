@@ -1,4 +1,4 @@
-### 2.5.0
+### 2.6.0
 - Added "gitGrace.stashClear" command.
 - Amended progress location back to the status bar.
 - Amended "gitGrace.fetch" and "gitGrace.checkout" commands so they will not ask for a rebase/merge if the remote commits were solely amended.
