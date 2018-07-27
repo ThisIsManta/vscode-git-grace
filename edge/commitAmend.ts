@@ -1,11 +1,11 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 
 export default async function () {
-	const workspace = await Shared.getCurrentWorkspace()
+	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
 		return null
 	}

@@ -2,11 +2,11 @@ import * as _ from 'lodash'
 import * as vscode from 'vscode'
 import * as open from 'open'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 
 export default async function () {
-	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 
 	const httpList: Array<string> = []
 	for (const workspace of workspaceList) {
@@ -31,20 +31,20 @@ export default async function () {
 		const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
 		if (remoteBranches.indexOf('origin/master') >= 0) {
 			if (workspacePath !== gitPath) {
-				httpList.push(httpPath + '/tree/master/' + Shared.getHttpPart(workspacePath.substring(gitPath.length)))
+				httpList.push(httpPath + '/tree/master/' + Util.getHttpPart(workspacePath.substring(gitPath.length)))
 			}
 
 			if (filePath) {
-				httpList.push(httpPath + '/tree/master/' + Shared.getHttpPart(filePath.substring(gitPath.length)))
+				httpList.push(httpPath + '/tree/master/' + Util.getHttpPart(filePath.substring(gitPath.length)))
 			}
 		}
 
 		const status = await Git.getCurrentBranchStatus(workspace.uri)
 		if (status.local && status.local !== 'master' && status.remote) {
-			httpList.push(httpPath + `/tree/${status.local}/` + Shared.getHttpPart(workspacePath.substring(gitPath.length)))
+			httpList.push(httpPath + `/tree/${status.local}/` + Util.getHttpPart(workspacePath.substring(gitPath.length)))
 
 			if (filePath) {
-				httpList.push(httpPath + `/tree/${status.local}/` + Shared.getHttpPart(filePath.substring(gitPath.length)))
+				httpList.push(httpPath + `/tree/${status.local}/` + Util.getHttpPart(filePath.substring(gitPath.length)))
 			}
 		}
 	}

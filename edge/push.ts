@@ -1,17 +1,17 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 import { tryToSyncRemoteBranch } from './fetch'
 
 export default async function () {
-	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}
 
-	await Shared.saveAllFilesOnlyIfAutoSaveIsOn()
+	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pushing...' }, async (progress) => {
 		let updated = false
@@ -36,13 +36,13 @@ export default async function () {
 			}
 
 			try {
-				const result = await Shared.retry(1, () => Git.run(workspace.uri, 'push', '--tags', status.sync === Git.SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local))
+				const result = await Util.retry(1, () => Git.run(workspace.uri, 'push', '--tags', status.sync === Git.SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local))
 				if (result.trim() !== 'Everything up-to-date') {
 					updated = true
 				}
 
 			} catch (ex) {
-				Shared.setWorkspaceAsFirstTryNextTime(workspace)
+				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 				if (ex.includes('Updates were rejected because the tip of your current branch is behind') && ex.includes('its remote counterpart.')) {
 					await Git.run(workspace.uri, 'fetch', 'origin', status.local)

@@ -1,11 +1,11 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 
 export default async function urgent() {
-	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}
@@ -27,7 +27,7 @@ export default async function urgent() {
 			await Git.run(workspace.uri, 'tag', tagName)
 
 			try {
-				await Shared.retry(1, () => Git.run(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName))
+				await Util.retry(1, () => Git.run(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName))
 			} catch (ex) {
 				throw `Pushing failed.`
 			}
@@ -38,7 +38,7 @@ export default async function urgent() {
 }
 
 export async function urgentRestore(options = { prompt: false }) {
-	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}

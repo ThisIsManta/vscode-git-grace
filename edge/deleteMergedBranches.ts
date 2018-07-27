@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 import { fetchInternal } from './fetch'
 import Log from './Log'
@@ -9,7 +9,7 @@ import Log from './Log'
 let syncingStatusBar: vscode.StatusBarItem
 
 export default async function () {
-	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}
@@ -68,7 +68,7 @@ export default async function () {
 
 	// Remove the merged local branches quickly
 	for (const branch of mergedLocalBranches) {
-		await Shared.retry(1, () => Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name))
+		await Util.retry(1, () => Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name))
 	}
 
 	if (mergedRemoteBranches.length === 0) {
@@ -86,9 +86,9 @@ export default async function () {
 				syncingStatusBar.text = `$(clock) Deleting merged remote branches... (${deletedRemoteBranchCount} of ${mergedRemoteBranches.length})`
 				const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
 				try {
-					await Shared.retry(1, () => Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
+					await Util.retry(1, () => Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
 				} catch (ex) {
-					Shared.setWorkspaceAsFirstTryNextTime(branch.root)
+					Util.setWorkspaceAsFirstTryNextTime(branch.root)
 
 					if (typeof ex !== 'string' || ex.includes(`error: unable to delete '${branchNameWithoutOrigin}': remote ref does not exist`) === false) {
 						throw ex

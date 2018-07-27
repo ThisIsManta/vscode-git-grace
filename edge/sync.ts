@@ -1,15 +1,15 @@
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 
 export default async function () {
-	const workspace = await Shared.getCurrentWorkspace()
+	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
 		return null
 	}
 
-	await Shared.saveAllFilesOnlyIfAutoSaveIsOn()
+	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	await vscode.commands.executeCommand('git.refresh')
 
@@ -35,7 +35,7 @@ export default async function () {
 			await Git.run(workspace.uri, 'push', '--tags')
 
 		} catch (ex) {
-			Shared.setWorkspaceAsFirstTryNextTime(workspace)
+			Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 			throw `Syncing failed.`
 		}

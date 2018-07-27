@@ -1,17 +1,17 @@
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 import { fetchInternal } from './fetch'
 import stash from './stash'
 
 export default async function () {
-	const workspace = await Shared.getCurrentWorkspace()
+	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
 		return null
 	}
 
-	await Shared.saveAllFilesOnlyIfAutoSaveIsOn()
+	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.dirty) {

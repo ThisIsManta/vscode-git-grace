@@ -1,7 +1,7 @@
 import * as cp from 'child_process'
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 
 // Slightly modified from https://github.com/mbinic/vscode-tgit/blob/master/src/TGit.ts
@@ -98,18 +98,18 @@ export default class TortoiseGit {
     }
 
     private async run(command: string, withFilePath: boolean = false, additionalParams: string = null) {
-        if (withFilePath && !Shared.getCurrentFile()) {
+        if (withFilePath && !Util.getCurrentFile()) {
             return null
         }
 
-        let folderPath = await Shared.getCurrentWorkspace()
+        let folderPath = await Util.getCurrentWorkspace()
         if (!folderPath) {
             return null
         }
 
         let executable = `"${this.launcherPath}" /command:${command}`
         if (withFilePath) {
-            executable += ` /path:"${Shared.getCurrentFile().fsPath}"`
+            executable += ` /path:"${Util.getCurrentFile().fsPath}"`
         }
         if (additionalParams) {
             executable += ' ' + additionalParams

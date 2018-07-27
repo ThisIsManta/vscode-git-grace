@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Queue from './Queue'
 import fetch from './fetch'
 import pull from './pull'
@@ -22,7 +22,7 @@ import Log from './Log'
 export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
 
-    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(Shared.updateWorkspaceList))
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(Util.updateWorkspaceList))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', Queue.put(fetch)))
 

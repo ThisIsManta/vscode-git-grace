@@ -1,11 +1,11 @@
 import * as open from 'open'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 import push from './push'
 
 export default async function () {
-	const workspace = await Shared.getCurrentWorkspace()
+	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
 		return null
 	}

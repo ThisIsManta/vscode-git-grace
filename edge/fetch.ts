@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 import push from './push'
 
@@ -11,7 +11,7 @@ export default async function () {
 		return null
 	}
 
-	const workspace = await Shared.getCurrentWorkspace()
+	const workspace = await Util.getCurrentWorkspace()
 	if (workspace) {
 		// Do not wait for optional operation
 		tryToSyncRemoteBranch(workspace)
@@ -27,7 +27,7 @@ export default async function () {
 }
 
 export async function fetchInternal() {
-	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}
@@ -41,13 +41,13 @@ export async function fetchInternal() {
 			}
 
 			try {
-				const result = await Shared.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
+				const result = await Util.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
 				if (result.trim().length > 0) {
 					updated = true
 				}
 
 			} catch (ex) {
-				Shared.setWorkspaceAsFirstTryNextTime(workspace)
+				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 				if (workspaceList.length > 1) {
 					throw `Fetching "${workspace.name}" failed.`
@@ -99,7 +99,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 				vscode.window.setStatusBarMessage(`Fast forwarding completed`, 10000)
 
 			} catch (ex) {
-				Shared.setWorkspaceAsFirstTryNextTime(root)
+				Util.setWorkspaceAsFirstTryNextTime(root)
 
 				vscode.window.showErrorMessage(`Fast forwarding failed.`, { modal: true })
 				return false
@@ -138,7 +138,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 					vscode.window.setStatusBarMessage(`Rebasing completed`, 10000)
 
 				} catch (ex) {
-					Shared.setWorkspaceAsFirstTryNextTime(root)
+					Util.setWorkspaceAsFirstTryNextTime(root)
 
 					if (String(ex).includes('CONFLICT')) {
 						await Git.run(root.uri, 'rebase', '--abort')
@@ -163,7 +163,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 					vscode.window.setStatusBarMessage(`Merging completed`, 10000)
 
 				} catch (ex) {
-					Shared.setWorkspaceAsFirstTryNextTime(root)
+					Util.setWorkspaceAsFirstTryNextTime(root)
 
 					if (String(ex).includes('CONFLICT')) {
 						await Git.run(root.uri, 'merge', '--abort')

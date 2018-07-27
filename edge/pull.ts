@@ -1,10 +1,10 @@
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import * as Util from './Util'
 import * as Git from './Git'
 
 export default async function () {
-	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}
@@ -12,7 +12,7 @@ export default async function () {
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pulling...' }, async () => {
 		for (const workspace of workspaceList) {
 			try {
-				await Shared.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
+				await Util.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
 
 				const status = await Git.getCurrentBranchStatus(workspace.uri)
 				if (status.local === '' || status.remote === '') {
@@ -22,7 +22,7 @@ export default async function () {
 				await Git.run(workspace.uri, 'rebase')
 
 			} catch (ex) {
-				Shared.setWorkspaceAsFirstTryNextTime(workspace)
+				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 				throw `Pulling failed.`
 			}
