@@ -3,7 +3,7 @@ import * as vscode from 'vscode'
 
 import * as Util from './Util'
 import * as Git from './Git'
-import { tryToSyncRemoteBranch } from './fetch'
+import { trySyncRemoteBranch } from './fetch'
 
 export default async function (options = { location: vscode.ProgressLocation.Window }) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
@@ -50,7 +50,7 @@ export default async function (options = { location: vscode.ProgressLocation.Win
 					_.defer(async () => {
 						await vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
 
-						tryToSyncRemoteBranch(workspace)
+						trySyncRemoteBranch(workspace)
 					})
 
 					return null

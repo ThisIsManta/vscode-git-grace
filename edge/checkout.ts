@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 
 import * as Util from './Util'
 import * as Git from './Git'
-import { fetchInternal, tryToSyncRemoteBranch } from './fetch'
+import { fetchInternal, trySyncRemoteBranch } from './fetch'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
@@ -19,7 +19,7 @@ export default async function () {
 		const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
 		if (oldStatus.local !== newStatus.local) {
 			// Do not wait for optional operation
-			tryToSyncRemoteBranch(workspace)
+			trySyncRemoteBranch(workspace)
 		}
 	})
 
@@ -36,7 +36,7 @@ export default async function () {
 		const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
 		if (oldStatus.local !== newStatus.local) {
 			// Do not wait for optional operation
-			tryToSyncRemoteBranch(workspace)
+			trySyncRemoteBranch(workspace)
 		}
 	})
 }

@@ -14,7 +14,7 @@ export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
 	if (workspace) {
 		// Do not wait for optional operation
-		tryToSyncRemoteBranch(workspace)
+		trySyncRemoteBranch(workspace)
 	}
 
 	if (updated) {
@@ -61,18 +61,18 @@ export async function fetchInternal() {
 	return updated
 }
 
-export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
-	if (!root) {
+export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
+	if (!workspace) {
 		return false
 	}
 
-	const status = await Git.getCurrentBranchStatus(root.uri)
+	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.local === '' || status.remote === '' || status.sync === Git.SyncStatus.InSync) {
 		return false
 	}
 
 	async function abortIfStatusHasChanged() {
-		const newStatus = await Git.getCurrentBranchStatus(root.uri)
+		const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
 		delete newStatus.distance
 		if (_.isMatch(status, newStatus) === false) {
 			vscode.window.showErrorMessage(`The operation was cancelled because the branch status has changed.`, { modal: true })
@@ -92,14 +92,14 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 
 		await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fast Forwarding...' }, async () => {
 			try {
-				await Git.run(root.uri, 'rebase', '--autostash', status.remote)
+				await Git.run(workspace.uri, 'rebase', '--autostash', status.remote)
 
 				await vscode.commands.executeCommand('git.refresh')
 
 				vscode.window.setStatusBarMessage(`Fast forwarding completed`, 10000)
 
 			} catch (ex) {
-				Util.setWorkspaceAsFirstTryNextTime(root)
+				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 				vscode.window.showErrorMessage(`Fast forwarding failed.`, { modal: true })
 				return false
@@ -119,6 +119,33 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 		await push({ location: vscode.ProgressLocation.Notification })
 
 	} else if (status.sync === Git.SyncStatus.OutOfSync) {
+		// Stop processing if the commits were solely amended
+		const result = await Git.run(workspace.uri, 'rev-list', '--left-right', status.local + '...' + status.remote, '--format=format:%aE%n%f')
+		const commits = _.chunk(result.trim().split('\n'), 3).map(([commit, author, message]) => ({ direction: commit.match(/(<|>){1}/)[1], author, message }))
+		const groups = [[commits[0]]]
+		let index = 0
+		while (++index < commits.length) {
+			if (commits[index].direction === _.last(groups)[0].direction) {
+				_.last(groups).push(commits[index])
+			} else {
+				groups.push([commits[index]])
+			}
+		}
+		if (groups.length === 2) {
+			const [localGroup, remoteGroup] = groups
+			localGroup.reverse()
+			remoteGroup.reverse()
+			if (
+				remoteGroup.length <= localGroup.length &&
+				remoteGroup.every((remoteCommit, index) => {
+					const localCommit = localGroup[index]
+					return remoteCommit.author === localCommit.author && localCommit.message.startsWith(remoteCommit.message)
+				})
+			) {
+				return null
+			}
+		}
+
 		const select = await vscode.window.showWarningMessage(
 			`The local branch "${status.local}" is out of sync with its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
 			'Rebase Now', 'Merge Now')
@@ -131,17 +158,17 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 		if (select === 'Rebase Now') {
 			await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Rebasing...' }, async () => {
 				try {
-					await Git.run(root.uri, 'rebase', '--autostash', status.remote)
+					await Git.run(workspace.uri, 'rebase', '--autostash', status.remote)
 
 					await vscode.commands.executeCommand('git.refresh')
 
 					vscode.window.setStatusBarMessage(`Rebasing completed`, 10000)
 
 				} catch (ex) {
-					Util.setWorkspaceAsFirstTryNextTime(root)
+					Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 					if (String(ex).includes('CONFLICT')) {
-						await Git.run(root.uri, 'rebase', '--abort')
+						await Git.run(workspace.uri, 'rebase', '--abort')
 
 						vscode.window.showErrorMessage(`Rebasing was cancelled due to conflicts. Please do it manually.`, { modal: true })
 
@@ -156,17 +183,17 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 		} else {
 			await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Merging...' }, async () => {
 				try {
-					await Git.run(root.uri, 'merge', status.remote)
+					await Git.run(workspace.uri, 'merge', status.remote)
 
 					await vscode.commands.executeCommand('git.refresh')
 
 					vscode.window.setStatusBarMessage(`Merging completed`, 10000)
 
 				} catch (ex) {
-					Util.setWorkspaceAsFirstTryNextTime(root)
+					Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 					if (String(ex).includes('CONFLICT')) {
-						await Git.run(root.uri, 'merge', '--abort')
+						await Git.run(workspace.uri, 'merge', '--abort')
 
 						vscode.window.showErrorMessage(`Merging was cancelled due to conflicts. Please do it manually.`, { modal: true })
 

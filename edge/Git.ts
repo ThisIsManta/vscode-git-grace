@@ -136,16 +136,16 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 	let sync = SyncStatus.InSync
 	let distance = 0
 	if (local && remote) {
-		const result = await run(link, 'rev-list', '--left-right', local + '...' + remote)
-		const trails = _.countBy(result.trim().split('\n'), line => line.charAt(0))
-		if (trails['<'] && trails['>']) {
+		const result = await run(link, 'rev-list', '--count', '--left-right', local + '...' + remote)
+		const [left, right] = result.match(/(\d+)\s+(\d+)/).slice(1).map(numb => parseInt(numb))
+		if (left > 0 && right > 0) {
 			sync = SyncStatus.OutOfSync
-		} else if (trails['<']) {
+		} else if (left > 0) {
 			sync = SyncStatus.Ahead
-		} else if (trails['>']) {
+		} else if (right > 0) {
 			sync = SyncStatus.Behind
 		}
-		distance = (trails['<'] || 0) + (trails['>'] || 0)
+		distance = left + right
 	}
 
 	return { local, remote, dirty, sync, distance }
