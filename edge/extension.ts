@@ -8,7 +8,7 @@ import push from './push'
 import commitAmend from './commitAmend'
 import commitEmpty from './commitEmpty'
 import urgent, { urgentRestore } from './urgent'
-import stash, { stashPopLatest, stashPop, updateStashCountBar } from './stash'
+import stash, { stashPopLatest, stashPop, stashClear, updateStashCountBar } from './stash'
 import master from './master'
 import branch from './branch'
 import checkout from './checkout'
@@ -43,6 +43,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPopLatest', Queue.put(stashPopLatest)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPop', Queue.put(stashPop)))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashClear', Queue.put(stashClear)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.master', Queue.put(master)))
 

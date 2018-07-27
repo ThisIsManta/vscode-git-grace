@@ -1,3 +1,6 @@
+### 2.5.0
+- Added "gitGrace.stashClear" command.
+
 ### 2.4.0
 - Amended "gitGrace.fetch" and "gitGrace.checkout" commands so they ask if users want to sync the local branch with its remote branch.
 - Amended "gitGrace.checkout" command so it fetches in the background.

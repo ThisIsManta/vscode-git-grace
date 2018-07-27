@@ -87,6 +87,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.stashClear",
+                "title": "Clear Stash",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.master",
                 "title": "Checkout to \"origin/master\"",
                 "category": "Git"
@@ -252,6 +257,10 @@
             {
                 "key": "alt+s l",
                 "command": "gitGrace.stashPop"
+            },
+            {
+                "key": "alt+s c",
+                "command": "gitGrace.stashClear"
             }
         ]
     },

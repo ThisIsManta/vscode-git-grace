@@ -58,6 +58,17 @@ export async function stashPop() {
 	updateStashCountBar()
 }
 
+export async function stashClear() {
+	const workspace = await Util.getCurrentWorkspace()
+	if (!workspace) {
+		return null
+	}
+
+	await Git.run(workspace.uri, 'stash', 'clear')
+
+	updateStashCountBar()
+}
+
 let stashCountBar: vscode.StatusBarItem
 
 export async function updateStashCountBar() {
