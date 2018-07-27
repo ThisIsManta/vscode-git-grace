@@ -1,27 +1,25 @@
-import * as _ from 'lodash'
-import * as vscode from 'vscode'
 import * as open from 'open'
 
 import * as Shared from './shared'
 import push from './push'
 
 export default async function() {
-	const root = await Shared.getCurrentRoot()
-	if (!root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (!workspace) {
 		return null
 	}
 
-	let repoList = await Shared.getRepositoryList()
-	if (repoList.length === 0) {
+	let repositoryList = await Shared.getRepositoryList()
+	if (repositoryList.length === 0) {
 		return null
 	}
 
-	const repo = repoList.find(repo => repo.root.uri.fsPath === root.uri.fsPath)
-	if (repo === undefined) {
+	const repository = repositoryList.find(item => item.workspace.uri.fsPath === workspace.uri.fsPath)
+	if (repository === undefined) {
 		throw `The selected workspace was not a GitHub repository.`
 	}
 
-	const status = await Shared.getCurrentBranchStatus(root.uri)
+	const status = await Shared.getCurrentBranchStatus(workspace.uri)
 	if (status.dirty) {
 		throw `The current repository is dirty.`
 	}
@@ -44,5 +42,5 @@ export default async function() {
 		}
 	}
 
-	open(repo.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+	open(repository.http + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
 }

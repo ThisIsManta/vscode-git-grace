@@ -5,46 +5,34 @@ import * as os from 'os'
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
-let outputChannel: vscode.OutputChannel
-let rootList: Array<vscode.WorkspaceFolder> = []
+import Log from './Log'
 
-export function startUp() {
-	outputChannel = vscode.window.createOutputChannel('Git Grace')
+let workspaceList: Array<vscode.WorkspaceFolder> = null
 
-	if (vscode.workspace.workspaceFolders) {
-		rootList = vscode.workspace.workspaceFolders.filter(root => !!getGitFolder(root.uri))
+export function getWorkspaceListWithGitEnabled() {
+	if (workspaceList === null && vscode.workspace.workspaceFolders) {
+		workspaceList = vscode.workspace.workspaceFolders.filter(item => !!getGitPath(item.uri))
 	}
+	return workspaceList || []
 }
 
-export function cleanUp() {
-	if (outputChannel) {
-		outputChannel.hide()
-		outputChannel.dispose()
-		outputChannel = null
-	}
-}
+export function setWorkspaceAsFirstTryNextTime(workspace: vscode.WorkspaceFolder) {
+	getWorkspaceListWithGitEnabled()
 
-export function getOutputChannel() {
-	return outputChannel
-}
-
-// TODO: rename to "getWorkspaceListWithGitEnabled"
-export function getRootList() {
-	return rootList
-}
-
-export function setRootAsFailure(root: vscode.WorkspaceFolder) {
-	rootList = _.sortBy(rootList, item => item === root ? 0 : 1)
+	workspaceList = _.sortBy(workspaceList, item => item === workspace ? 0 : 1)
 }
 
 export async function updateWorkspaceList(e: vscode.WorkspaceFoldersChangeEvent) {
-	rootList.push(...e.added.filter(root => !!getGitFolder(root.uri)))
-	_.pull(rootList, ...e.removed)
+	getWorkspaceListWithGitEnabled()
+
+	workspaceList.push(...e.added.filter(item => !!getGitPath(item.uri)))
+	_.pull(workspaceList, ...e.removed)
 }
 
-export async function getCurrentRoot() {
+export async function getCurrentWorkspace() {
 	// TODO: add "onErrorThrowError" parameter
-	if (rootList.length === 0) {
+	const workspaceList = getWorkspaceListWithGitEnabled()
+	if (workspaceList.length === 0) {
 		if (!vscode.workspace.workspaceFolders) {
 			vscode.window.showErrorMessage(`There were no folders opened.`, { modal: true })
 			return null
@@ -55,23 +43,23 @@ export async function getCurrentRoot() {
 		}
 	}
 
-	if (vscode.workspace.workspaceFolders.length === 1 && rootList.length === 1) {
-		return rootList[0]
+	if (vscode.workspace.workspaceFolders.length === 1 && workspaceList.length === 1) {
+		return workspaceList[0]
 	}
 
 	if (vscode.window.activeTextEditor) {
-		const currentRoot = rootList.find(root => root.uri.fsPath === vscode.window.activeTextEditor.document.uri.fsPath)
-		if (currentRoot) {
-			return currentRoot
+		const currentWorkspace = workspaceList.find(item => item.uri.fsPath === vscode.window.activeTextEditor.document.uri.fsPath)
+		if (currentWorkspace) {
+			return currentWorkspace
 		}
 	}
 
-	const select = await vscode.window.showQuickPick(rootList.map(item => item.name))
+	const select = await vscode.window.showQuickPick(workspaceList.map(item => item.name))
 	if (!select) {
 		return null
 	}
 
-	return rootList.find(item => select === item.name)
+	return workspaceList.find(item => select === item.name)
 }
 
 export enum SyncStatus {
@@ -100,7 +88,7 @@ const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || 
 export const git = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
 	const actualParameters = formalParameters.filter(parameter => !!parameter)
 
-	outputChannel.appendLine('git ' + actualParameters.join(' '))
+	Log.appendLine('git ' + actualParameters.join(' '))
 
 	const pipe = cp.spawn(gitPath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
 
@@ -108,16 +96,16 @@ export const git = (link: vscode.Uri, ...formalParameters: Array<string>): Promi
 
 	pipe.stdout.on('data', text => {
 		outputBuffer += String(text)
-		outputChannel.append(String(text))
+		Log.append(String(text))
 	})
 
 	pipe.stderr.on('data', text => {
 		outputBuffer += String(text)
-		outputChannel.append(String(text))
+		Log.append(String(text))
 	})
 
 	pipe.on('close', exit => {
-		outputChannel.appendLine('')
+		Log.appendLine('')
 
 		if (exit === 0) {
 			resolve(outputBuffer)
@@ -196,8 +184,8 @@ export async function getRemoteBranchNames(link: vscode.Uri) {
 		.value()
 }
 
-export function setRemoteBranch(link: vscode.Uri, branch: string) {
-	return git(link, 'branch', `--set-upstream-to=origin/${branch}`, branch)
+export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
+	return git(link, 'branch', `--set-upstream-to=origin/${localBranchName}`, localBranchName)
 }
 
 export async function getLastCommit(link: vscode.Uri) {
@@ -212,10 +200,10 @@ const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
 const urlPattern = /^\turl\s*=\s*(.+)\.git$/
 
 export async function getRepositoryList() {
-	const repoList: Array<{ root: vscode.WorkspaceFolder, http: string, path: string }> = []
-	for (const root of rootList) {
-		const gitfPath = getGitFolder(root.uri)
-		const confPath = fp.join(gitfPath, '.git', 'config')
+	const repositoryList: Array<{ workspace: vscode.WorkspaceFolder, http: string, path: string }> = []
+	for (const workspace of getWorkspaceListWithGitEnabled()) {
+		const gitPath = getGitPath(workspace.uri)
+		const confPath = fp.join(gitPath, '.git', 'config')
 		if (!fs.existsSync(confPath)) {
 			continue
 		}
@@ -239,18 +227,18 @@ export async function getRepositoryList() {
 			continue
 		}
 
-		repoList.push({ root, http, path: gitfPath })
+		repositoryList.push({ workspace, http, path: gitPath })
 	}
-	return repoList
+	return repositoryList
 }
 
-export function getWorkingFile() {
+export function getCurrentFile() {
 	if (!vscode.window.activeTextEditor) {
 		vscode.window.showErrorMessage(`There were no files opened.`, { modal: true })
 		return null
 	}
 
-	if (getGitFolder(vscode.window.activeTextEditor.document.uri) === null) {
+	if (getGitPath(vscode.window.activeTextEditor.document.uri) === null) {
 		vscode.window.showErrorMessage(`The current file was not in Git repository.`, { modal: true })
 		return null
 	}
@@ -258,7 +246,7 @@ export function getWorkingFile() {
 	return vscode.window.activeTextEditor.document.uri
 }
 
-export function getGitFolder(link: vscode.Uri | string) {
+export function getGitPath(link: vscode.Uri | string) {
 	if (!link) {
 		return null
 	}

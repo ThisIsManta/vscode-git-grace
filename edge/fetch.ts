@@ -5,18 +5,18 @@ import * as Shared from './shared'
 import push from './push'
 
 export default async function () {
-	const repoGotUpdated = await fetchInternal()
-	if (repoGotUpdated === null) {
+	const updated = await fetchInternal()
+	if (updated === null) {
 		return null
 	}
 
-	const root = await Shared.getCurrentRoot()
-	if (root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (workspace) {
 		// Do not wait for optional operation
-		tryToSyncRemoteBranch(root)
+		tryToSyncRemoteBranch(workspace)
 	}
 
-	if (repoGotUpdated) {
+	if (updated) {
 		vscode.window.setStatusBarMessage(`Fetching completed`, 10000)
 	} else {
 		vscode.window.setStatusBarMessage(`No updates`, 10000)
@@ -26,30 +26,30 @@ export default async function () {
 }
 
 export async function fetchInternal() {
-	const rootList = Shared.getRootList()
-	if (rootList.length === 0) {
+	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	if (workspaceList.length === 0) {
 		return null
 	}
 
-	let repoGotUpdated = false
+	let updated = false
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fetching...' }, async (progress) => {
-		for (const root of rootList) {
-			if (rootList.length > 1) {
-				progress.report({ message: `Fetching "${root.name}"...` })
+		for (const workspace of workspaceList) {
+			if (workspaceList.length > 1) {
+				progress.report({ message: `Fetching "${workspace.name}"...` })
 			}
 
 			try {
-				const result = await Shared.retry(2, () => Shared.git(root.uri, 'fetch', '--prune', 'origin'))
+				const result = await Shared.retry(2, () => Shared.git(workspace.uri, 'fetch', '--prune', 'origin'))
 				if (result.trim().length > 0) {
-					repoGotUpdated = true
+					updated = true
 				}
 
 			} catch (ex) {
-				Shared.setRootAsFailure(root)
+				Shared.setWorkspaceAsFirstTryNextTime(workspace)
 
-				if (rootList.length > 1) {
-					throw `Fetching "${root.name}" failed.`
+				if (workspaceList.length > 1) {
+					throw `Fetching "${workspace.name}" failed.`
 				} else {
 					throw `Fetching failed.`
 				}
@@ -57,7 +57,7 @@ export async function fetchInternal() {
 		}
 	})
 
-	return repoGotUpdated
+	return updated
 }
 
 export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
@@ -98,7 +98,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 				vscode.window.setStatusBarMessage(`Fast forwarding completed`, 10000)
 
 			} catch (ex) {
-				Shared.setRootAsFailure(root)
+				Shared.setWorkspaceAsFirstTryNextTime(root)
 
 				vscode.window.showErrorMessage(`Fast forwarding failed.`, { modal: true })
 				return false
@@ -137,7 +137,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 					vscode.window.setStatusBarMessage(`Rebasing completed`, 10000)
 
 				} catch (ex) {
-					Shared.setRootAsFailure(root)
+					Shared.setWorkspaceAsFirstTryNextTime(root)
 
 					if (String(ex).includes('CONFLICT')) {
 						await Shared.git(root.uri, 'rebase', '--abort')
@@ -162,7 +162,7 @@ export async function tryToSyncRemoteBranch(root: vscode.WorkspaceFolder) {
 					vscode.window.setStatusBarMessage(`Merging completed`, 10000)
 
 				} catch (ex) {
-					Shared.setRootAsFailure(root)
+					Shared.setWorkspaceAsFirstTryNextTime(root)
 
 					if (String(ex).includes('CONFLICT')) {
 						await Shared.git(root.uri, 'merge', '--abort')

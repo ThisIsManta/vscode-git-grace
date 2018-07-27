@@ -1,15 +1,14 @@
-import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
 
 export default async function () {
-	const root = await Shared.getCurrentRoot()
-	if (!root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (!workspace) {
 		return null
 	}
 
-	const status = await Shared.getCurrentBranchStatus(root.uri)
+	const status = await Shared.getCurrentBranchStatus(workspace.uri)
 	if (!status.local || status.local === 'master') {
 		return vscode.commands.executeCommand('git.branch')
 
@@ -25,8 +24,8 @@ export default async function () {
 			await vscode.commands.executeCommand('git.renameBranch')
 
 			if (status.remote) {
-				const newStatus = await Shared.getCurrentBranchStatus(root.uri)
-				await Shared.git(root.uri, 'branch', '--unset-upstream', newStatus.local)
+				const newStatus = await Shared.getCurrentBranchStatus(workspace.uri)
+				await Shared.git(workspace.uri, 'branch', '--unset-upstream', newStatus.local)
 			}
 		}
 	}

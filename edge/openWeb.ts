@@ -5,37 +5,37 @@ import * as open from 'open'
 import * as Shared from './shared'
 
 export default async function () {
-	const repoList = await Shared.getRepositoryList()
+	const repositoryList = await Shared.getRepositoryList()
 
 	const httpList: Array<string> = []
-	for (const repo of repoList) {
-		if (repo.http.startsWith('https://github.com/') === false) {
+	for (const repository of repositoryList) {
+		if (repository.http.startsWith('https://github.com/') === false) {
 			continue
 		}
 
-		const rootPath = repo.root.uri.fsPath
+		const workspacePath = repository.workspace.uri.fsPath
 		let workPath = _.get(vscode.window.activeTextEditor, 'document.fileName', '') as string
-		if (Shared.getGitFolder(workPath) === null) {
+		if (Shared.getGitPath(workPath) === null) {
 			workPath = null
 		}
 
-		const remoteBranches = await Shared.getRemoteBranchNames(repo.root.uri)
+		const remoteBranches = await Shared.getRemoteBranchNames(repository.workspace.uri)
 		if (remoteBranches.indexOf('origin/master') >= 0) {
-			if (rootPath !== repo.path) {
-				httpList.push(repo.http + '/tree/master/' + Shared.getHttpPart(rootPath.substring(repo.path.length)))
+			if (workspacePath !== repository.path) {
+				httpList.push(repository.http + '/tree/master/' + Shared.getHttpPart(workspacePath.substring(repository.path.length)))
 			}
 
 			if (workPath) {
-				httpList.push(repo.http + '/tree/master/' + Shared.getHttpPart(workPath.substring(repo.path.length)))
+				httpList.push(repository.http + '/tree/master/' + Shared.getHttpPart(workPath.substring(repository.path.length)))
 			}
 		}
 
-		const status = await Shared.getCurrentBranchStatus(repo.root.uri)
+		const status = await Shared.getCurrentBranchStatus(repository.workspace.uri)
 		if (status.local && status.local !== 'master' && status.remote) {
-			httpList.push(repo.http + `/tree/${status.local}/` + Shared.getHttpPart(rootPath.substring(repo.path.length)))
+			httpList.push(repository.http + `/tree/${status.local}/` + Shared.getHttpPart(workspacePath.substring(repository.path.length)))
 
 			if (workPath) {
-				httpList.push(repo.http + `/tree/${status.local}/` + Shared.getHttpPart(workPath.substring(repo.path.length)))
+				httpList.push(repository.http + `/tree/${status.local}/` + Shared.getHttpPart(workPath.substring(repository.path.length)))
 			}
 		}
 	}

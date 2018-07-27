@@ -1,11 +1,10 @@
-import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
 
 export default async function () {
-	const root = await Shared.getCurrentRoot()
-	if (!root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (!workspace) {
 		return null
 	}
 
@@ -13,11 +12,11 @@ export default async function () {
 
 	await vscode.commands.executeCommand('git.refresh')
 
-	const status = await Shared.getCurrentBranchStatus(root.uri)
+	const status = await Shared.getCurrentBranchStatus(workspace.uri)
 	if (status.dirty) {
 		await vscode.commands.executeCommand('git.commit')
 
-		const statusAfterCommitCommand = await Shared.getCurrentBranchStatus(root.uri)
+		const statusAfterCommitCommand = await Shared.getCurrentBranchStatus(workspace.uri)
 		if (statusAfterCommitCommand.dirty) {
 			return null
 		}
@@ -26,16 +25,16 @@ export default async function () {
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Syncing...' }, async () => {
 		try {
 			if (status.remote === '') {
-				await Shared.git(root.uri, 'push', 'origin', status.local)
-				await Shared.setRemoteBranch(root.uri, status.local)
+				await Shared.git(workspace.uri, 'push', 'origin', status.local)
+				await Shared.setRemoteBranch(workspace.uri, status.local)
 			}
 
-			await Shared.git(root.uri, 'pull', '--all', '--rebase')
-			await Shared.git(root.uri, 'push', '--all')
-			await Shared.git(root.uri, 'push', '--tags')
+			await Shared.git(workspace.uri, 'pull', '--all', '--rebase')
+			await Shared.git(workspace.uri, 'push', '--all')
+			await Shared.git(workspace.uri, 'push', '--tags')
 
 		} catch (ex) {
-			Shared.setRootAsFailure(root)
+			Shared.setWorkspaceAsFirstTryNextTime(workspace)
 
 			throw `Syncing failed.`
 		}

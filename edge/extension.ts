@@ -17,6 +17,7 @@ import pullRequest from './pullRequest'
 import sync from './sync'
 import deleteMergedBranches, { cancelMergedBranchDeletion } from './deleteMergedBranches'
 import TortoiseGit from './TortoiseGit'
+import Log from './Log'
 
 export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
@@ -60,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', cancelMergedBranchDeletion))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.showOutput', () => {
-        Shared.getOutputChannel().show()
+        Log.show()
     }))
 
     const tortoiseGit = new TortoiseGit()
@@ -68,8 +69,6 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', Queue.put(() => tortoiseGit.showFileLog())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', Queue.put(() => tortoiseGit.commit())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
-
-    Shared.startUp()
 
     await Queue.run(fetch)
     await Queue.run(() => urgentRestore({ prompt: true }))
@@ -82,5 +81,8 @@ export function deactivate() {
 
     Queue.clear()
 
-    Shared.cleanUp()
+    if (Log) {
+        Log.hide()
+        Log.dispose()
+    }
 }

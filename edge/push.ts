@@ -5,24 +5,24 @@ import * as Shared from './shared'
 import { tryToSyncRemoteBranch } from './fetch'
 
 export default async function () {
-	const rootList = Shared.getRootList()
-	if (rootList.length === 0) {
+	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	if (workspaceList.length === 0) {
 		return null
 	}
 
 	await Shared.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Pushing...' }, async (progress) => {
-		let repoGotUpdated = false
+		let updated = false
 
-		for (const root of rootList) {
-			if (rootList.length > 1) {
-				progress.report({ message: `Pushing "${root.name}"...` })
+		for (const workspace of workspaceList) {
+			if (workspaceList.length > 1) {
+				progress.report({ message: `Pushing "${workspace.name}"...` })
 			}
 
-			const status = await Shared.getCurrentBranchStatus(root.uri)
+			const status = await Shared.getCurrentBranchStatus(workspace.uri)
 			if (status.local === '') {
-				throw `Workspace "${root.name}" was not on any branch.`
+				throw `Workspace "${workspace.name}" was not on any branch.`
 			}
 
 			if (status.remote && status.sync === Shared.SyncStatus.OutOfSync) {
@@ -35,21 +35,21 @@ export default async function () {
 			}
 
 			try {
-				const result = await Shared.retry(1, () => Shared.git(root.uri, 'push', '--tags', status.sync === Shared.SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local))
+				const result = await Shared.retry(1, () => Shared.git(workspace.uri, 'push', '--tags', status.sync === Shared.SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local))
 				if (result.trim() !== 'Everything up-to-date') {
-					repoGotUpdated = true
+					updated = true
 				}
 
 			} catch (ex) {
-				Shared.setRootAsFailure(root)
+				Shared.setWorkspaceAsFirstTryNextTime(workspace)
 
 				if (ex.includes('Updates were rejected because the tip of your current branch is behind') && ex.includes('its remote counterpart.')) {
-					await Shared.git(root.uri, 'fetch', 'origin', status.local)
+					await Shared.git(workspace.uri, 'fetch', 'origin', status.local)
 
 					_.defer(async () => {
 						await vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
 
-						tryToSyncRemoteBranch(root)
+						tryToSyncRemoteBranch(workspace)
 					})
 
 					return null
@@ -59,7 +59,7 @@ export default async function () {
 			}
 		}
 
-		if (repoGotUpdated) {
+		if (updated) {
 			vscode.window.setStatusBarMessage(`Pushing completed`, 10000)
 		} else {
 			vscode.window.setStatusBarMessage(`No updates`, 10000)

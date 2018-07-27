@@ -4,8 +4,8 @@ import * as vscode from 'vscode'
 import * as Shared from './shared'
 
 export default async function stash() {
-	const root = await Shared.getCurrentRoot()
-	if (!root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (!workspace) {
 		return null
 	}
 
@@ -13,10 +13,10 @@ export default async function stash() {
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Saving Stash...' }, async () => {
 		try {
-			await Shared.git(root.uri, 'stash', 'save', '--include-untracked')
+			await Shared.git(workspace.uri, 'stash', 'save', '--include-untracked')
 
 		} catch (ex) {
-			Shared.setRootAsFailure(root)
+			Shared.setWorkspaceAsFirstTryNextTime(workspace)
 
 			throw `Saving stash failed.`
 		}
@@ -28,8 +28,8 @@ export default async function stash() {
 }
 
 export async function stashPopLatest() {
-	const root = await Shared.getCurrentRoot()
-	if (!root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (!workspace) {
 		return null
 	}
 
@@ -37,10 +37,10 @@ export async function stashPopLatest() {
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Popping Stash...' }, async () => {
 		try {
-			await Shared.git(root.uri, 'stash', 'pop')
+			await Shared.git(workspace.uri, 'stash', 'pop')
 
 		} catch (ex) {
-			Shared.setRootAsFailure(root)
+			Shared.setWorkspaceAsFirstTryNextTime(workspace)
 
 			throw `Popping stash failed.`
 		}
@@ -60,9 +60,9 @@ export async function stashPop() {
 let stashCountBar: vscode.StatusBarItem
 
 export async function updateStashCountBar() {
-	const root = await Shared.getCurrentRoot()
-	if (root) {
-		const result = await Shared.git(root.uri, 'stash', 'list')
+	const workspace = await Shared.getCurrentWorkspace()
+	if (workspace) {
+		const result = await Shared.git(workspace.uri, 'stash', 'list')
 		const stashList = _.compact(result.split('\n'))
 		if (stashList.length > 0) {
 			if (!stashCountBar) {

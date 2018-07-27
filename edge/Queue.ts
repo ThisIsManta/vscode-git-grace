@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
-import * as Shared from './shared'
+import Log from './Log'
 
 const pendingActionList: Array<{ action: (options?) => Promise<any>, options?}> = []
 
@@ -30,7 +30,7 @@ export function put(action: (options?: object) => Promise<any>) {
 
 			const message = error instanceof Error ? error.message : String(error)
 			if (await vscode.window.showErrorMessage(message, { modal: true }, 'Show Log') === 'Show Log') {
-				Shared.getOutputChannel().show()
+				Log.show()
 			}
 		}
 	}

@@ -1,11 +1,10 @@
-import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import * as Shared from './shared'
 
 export default async function () {
-	const root = await Shared.getCurrentRoot()
-	if (!root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (!workspace) {
 		return null
 	}
 
@@ -17,10 +16,10 @@ export default async function () {
 	}
 
 	try {
-		await Shared.git(root.uri, 'commit', '--allow-empty', '--message=(empty commit)')
+		await Shared.git(workspace.uri, 'commit', '--allow-empty', '--message=(empty commit)')
 
 	} catch (ex) {
-		Shared.setRootAsFailure(root)
+		Shared.setWorkspaceAsFirstTryNextTime(workspace)
 
 		throw `Committing failed.`
 	}

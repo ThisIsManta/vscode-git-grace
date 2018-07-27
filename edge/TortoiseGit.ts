@@ -12,9 +12,9 @@ export default class TortoiseGit {
     private launcherPath: string
 
     constructor() {
-        this.getWorkingFile = Shared.getWorkingFile
-        this.getRootFolder = Shared.getCurrentRoot
-        this.getGitPath = Shared.getGitFolder
+        this.getWorkingFile = Shared.getCurrentFile
+        this.getRootFolder = Shared.getCurrentWorkspace
+        this.getGitPath = Shared.getGitPath
 
         this.updateConfiguration()
 

@@ -4,12 +4,12 @@ import * as vscode from 'vscode'
 import * as Shared from './shared'
 
 export default async function () {
-	const root = await Shared.getCurrentRoot()
-	if (!root) {
+	const workspace = await Shared.getCurrentWorkspace()
+	if (!workspace) {
 		return null
 	}
 
-	const commit = await Shared.getLastCommit(root.uri)
+	const commit = await Shared.getLastCommit(workspace.uri)
 
 	const select = await vscode.window.showWarningMessage(
 		`Are you sure you want to amend last commit "${_.truncate(commit.message, { length: 60 })}"?`,

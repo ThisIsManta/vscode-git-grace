@@ -3,12 +3,13 @@ import * as vscode from 'vscode'
 
 import * as Shared from './shared'
 import { fetchInternal } from './fetch'
+import Log from './Log'
 
 let syncingStatusBar: vscode.StatusBarItem
 
 export default async function () {
-	const rootList = Shared.getRootList()
-	if (rootList.length === 0) {
+	const workspaceList = Shared.getWorkspaceListWithGitEnabled()
+	if (workspaceList.length === 0) {
 		return null
 	}
 
@@ -44,9 +45,9 @@ export default async function () {
 			.value()
 	}
 
-	for (const root of rootList) {
-		mergedLocalBranches = mergedLocalBranches.concat(await getMergedBranchNames(root, false))
-		mergedRemoteBranches = mergedRemoteBranches.concat(await getMergedBranchNames(root, true))
+	for (const workspace of workspaceList) {
+		mergedLocalBranches = mergedLocalBranches.concat(await getMergedBranchNames(workspace, false))
+		mergedRemoteBranches = mergedRemoteBranches.concat(await getMergedBranchNames(workspace, true))
 	}
 
 	if (mergedLocalBranches.length === 0 && mergedRemoteBranches.length === 0) {
@@ -86,7 +87,7 @@ export default async function () {
 				try {
 					await Shared.retry(1, () => Shared.git(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
 				} catch (ex) {
-					Shared.setRootAsFailure(branch.root)
+					Shared.setWorkspaceAsFirstTryNextTime(branch.root)
 
 					if (typeof ex !== 'string' || ex.includes(`error: unable to delete '${branchNameWithoutOrigin}': remote ref does not exist`) === false) {
 						throw ex
@@ -101,7 +102,7 @@ export default async function () {
 
 	} catch (ex) {
 		if (ex instanceof Error) {
-			Shared.getOutputChannel().appendLine(ex.message)
+			Log.appendLine(ex.message)
 		}
 
 		throw `Deleting merged branches failed - only ${deletedRemoteBranchCount === 1 ? `branch "${mergedRemoteBranches[0].name}" has` : `${deletedRemoteBranchCount} branches have`} been deleted.`
