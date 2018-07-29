@@ -22,10 +22,10 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.22.0"
+        "vscode": "^1.25.0"
     },
     "activationEvents": [
-        "*"
+        "workspaceContains:.git"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -268,18 +268,19 @@
         "postinstall": "node ./node_modules/vscode/bin/install",
         "compile": "tsc --watch --project ./",
         "vscode:prepublish": "tsc --skipLibCheck --project ./",
+        "preversion": "git push --dry-run origin master:master",
         "version": "vsce publish",
         "postversion": "git push --tags --quiet origin master:master"
     },
     "devDependencies": {
-        "@types/lodash": "^4.14.105",
-        "@types/node": "^6.0.86",
+        "@types/lodash": "^4.14.115",
+        "@types/node": "^8.0.0",
         "@types/typescript": "^2.0.0",
-        "vscode": "^1.1.13"
+        "vscode": "^1.1.18"
     },
     "dependencies": {
-        "lodash": "^4.17.4",
+        "lodash": "^4.17.10",
         "open": "^0.0.5",
-        "typescript": "~2.7.2"
+        "typescript": "^2.9.2"
     }
 }

@@ -72,10 +72,11 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', Queue.put(() => tortoiseGit.commit())))
     context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
 
-    await Queue.run(fetch)
-    await Queue.run(() => urgentRestore({ prompt: true }))
-
-    await updateStashCountBar()
+    if (vscode.workspace.workspaceFolders) {
+        await Queue.run(fetch)
+        await Queue.run(() => urgentRestore({ prompt: true }))
+        await updateStashCountBar()
+    }
 }
 
 export function deactivate() {

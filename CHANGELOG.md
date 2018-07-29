@@ -1,3 +1,6 @@
+### 2.6.2
+- Fixed unexpected fetching when no workspaces opened.
+
 ### 2.6.1
 - Fixed missing progress for "gitGrace.push" command.
 
