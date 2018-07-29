@@ -14,7 +14,10 @@ export default async function () {
 		return vscode.commands.executeCommand('git.branch')
 
 	} else {
-		const options: Array<vscode.MessageItem> = [{ title: 'Create New Branch' }, { title: 'Rename Current Branch' }]
+		const options: Array<vscode.MessageItem> = [
+			{ title: 'Create New Branch' },
+			{ title: 'Rename Current Branch' },
+		]
 		const select = await vscode.window.showWarningMessage(
 			`You are on the local branch "${status.local}".`,
 			{ modal: true }, ...options)
@@ -24,9 +27,15 @@ export default async function () {
 		} else if (select === options[1]) {
 			await vscode.commands.executeCommand('git.renameBranch')
 
-			if (status.remote) {
+			const oldStatus = status
+			if (oldStatus.remote) {
 				const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
 				await Git.run(workspace.uri, 'branch', '--unset-upstream', newStatus.local)
+
+				await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing Remote Branch...' }, async () => {
+					await Util.retry(1, () => Git.run(workspace.uri, 'push', '--delete', 'origin', oldStatus.local))
+					await Util.retry(1, () => Git.run(workspace.uri, 'push', 'origin', newStatus.local))
+				})
 			}
 		}
 	}

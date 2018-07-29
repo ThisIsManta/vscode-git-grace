@@ -1,5 +1,6 @@
 ### 2.6.2
 - Fixed unexpected fetching when no workspaces opened.
+- Amended "gitGrace.branch" command so it also deletes the remote branch when renaming.
 
 ### 2.6.1
 - Fixed missing progress for "gitGrace.push" command.

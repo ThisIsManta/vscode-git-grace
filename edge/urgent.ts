@@ -14,7 +14,7 @@ export default async function urgent() {
 		return null
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing as Work-In-Progress...' }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing Work-In-Progress...' }, async () => {
 		for (const workspace of workspaceList) {
 			const status = await Git.getCurrentBranchStatus(workspace.uri)
 			if (!status.dirty) {
