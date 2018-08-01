@@ -44,7 +44,10 @@ export default async function (options: { location?: vscode.ProgressLocation } =
 			} catch (ex) {
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-				if (ex.includes('Updates were rejected because the tip of your current branch is behind') && ex.includes('its remote counterpart.')) {
+				if (
+					ex.includes('Updates were rejected because the tip of your current branch is behind') && ex.includes('its remote counterpart.') ||
+					ex.includes('Updates were rejected because the remote contains work that you do') && ex.includes('not have locally.')
+				) {
 					await Git.run(workspace.uri, 'fetch', 'origin', status.local)
 
 					_.defer(async () => {

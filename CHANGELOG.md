@@ -1,3 +1,6 @@
+### 2.6.3
+- Fixed "gitGrace.push" command so it fetches and asks if users want to rebase/merge the local branch.
+
 ### 2.6.2
 - Fixed unexpected fetching when no workspaces opened.
 - Amended "gitGrace.branch" command so it also deletes the remote branch when renaming.
