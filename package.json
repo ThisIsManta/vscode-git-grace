@@ -2,7 +2,7 @@
     "name": "git-grace",
     "displayName": "Manta's Git Grace",
     "description": "Invoke Git commands genuinely.",
-    "version": "2.6.2",
+    "version": "2.6.3",
     "publisher": "thisismanta",
     "categories": [
         "Other"
