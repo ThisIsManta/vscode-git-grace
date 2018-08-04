@@ -20,6 +20,11 @@ import TortoiseGit from './TortoiseGit'
 import Log from './Log'
 
 export async function activate(context: vscode.ExtensionContext) {
+    // Prevent "No Git repository" error throwing from built-in Git extension
+    while (vscode.extensions.getExtension('vscode.git').isActive === false) {
+        await Util.sleep(500)
+    }
+
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
 
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(Util.updateWorkspaceList))

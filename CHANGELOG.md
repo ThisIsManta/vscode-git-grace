@@ -1,3 +1,6 @@
+### 2.7.0
+- Fixed "No Git repository" error throwing from built-in Git extension.
+
 ### 2.6.3
 - Fixed "gitGrace.push" command so it fetches and asks if users want to rebase/merge the local branch.
 
