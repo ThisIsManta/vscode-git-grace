@@ -5,6 +5,7 @@ import * as Queue from './Queue'
 import fetch from './fetch'
 import pull from './pull'
 import push from './push'
+import commitSmart from './commitSmart'
 import commitAmend from './commitAmend'
 import commitEmpty from './commitEmpty'
 import urgent, { urgentRestore } from './urgent'
@@ -34,6 +35,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pull', Queue.put(pull)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.push', Queue.put(push)))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitSmart', commitSmart))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', commitAmend))
 

@@ -1,4 +1,5 @@
 ### 2.7.0
+- Added `gitGrace.commitSmart` command.
 - Fixed "No Git repository" error throwing from built-in Git extension.
 
 ### 2.6.3

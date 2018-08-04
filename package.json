@@ -57,6 +57,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.commitSmart",
+                "title": "Commit Smart",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.commitEmpty",
                 "title": "Commit Empty",
                 "category": "Git"
@@ -184,7 +189,7 @@
             },
             {
                 "key": "alt+g c",
-                "command": "workbench.view.scm"
+                "command": "gitGrace.commitSmart"
             },
             {
                 "key": "alt+g a",
