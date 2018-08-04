@@ -10,7 +10,7 @@ export default async function () {
 
 	const httpList: Array<string> = []
 	for (const workspace of workspaceList) {
-		const gitPath = Git.getGitPath(workspace.uri)
+		const gitPath = Git.getRepositoryPath(workspace.uri)
 		const httpPath = await Git.getHttpPath(workspace)
 		if (!httpPath) {
 			continue
@@ -24,7 +24,7 @@ export default async function () {
 		let filePath = vscode.window.activeTextEditor
 			? vscode.window.activeTextEditor.document.uri.fsPath
 			: ''
-		if (Git.getGitPath(filePath) === null) {
+		if (Git.getRepositoryPath(filePath) === null) {
 			filePath = null
 		}
 

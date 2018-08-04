@@ -7,7 +7,7 @@ let workspaceList: Array<vscode.WorkspaceFolder> = null
 
 export function getWorkspaceListWithGitEnabled() {
 	if (workspaceList === null && vscode.workspace.workspaceFolders) {
-		workspaceList = vscode.workspace.workspaceFolders.filter(item => !!Git.getGitPath(item.uri))
+		workspaceList = vscode.workspace.workspaceFolders.filter(item => !!Git.getRepositoryPath(item.uri))
 	}
 	return workspaceList || []
 }
@@ -21,7 +21,7 @@ export function setWorkspaceAsFirstTryNextTime(workspace: vscode.WorkspaceFolder
 export async function updateWorkspaceList(e: vscode.WorkspaceFoldersChangeEvent) {
 	getWorkspaceListWithGitEnabled()
 
-	workspaceList.push(...e.added.filter(item => !!Git.getGitPath(item.uri)))
+	workspaceList.push(...e.added.filter(item => !!Git.getRepositoryPath(item.uri)))
 	_.pull(workspaceList, ...e.removed)
 }
 
@@ -70,7 +70,7 @@ export function getCurrentFile() {
 		return null
 	}
 
-	if (Git.getGitPath(vscode.window.activeTextEditor.document.uri) === null) {
+	if (Git.getRepositoryPath(vscode.window.activeTextEditor.document.uri) === null) {
 		vscode.window.showErrorMessage(`The current file was not in Git repository.`, { modal: true })
 		return null
 	}

@@ -4,23 +4,13 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 
-interface Repository {
-	readonly rootUri: vscode.Uri;
-	readonly inputBox: vscode.SourceControlInputBox;
-}
-
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
 		return null
 	}
 
-	const builtInExtension = vscode.extensions.getExtension('vscode.git')
-	const repositories = await builtInExtension.exports.getRepositories() as Array<Repository>
-	const sourceControlPanel = repositories.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
-	if (!sourceControlPanel) {
-		return null
-	}
+	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	const email = (await Git.run(workspace.uri, 'config', 'user.email')).trim()
 
@@ -32,7 +22,11 @@ export default async function () {
 	// TODO: change this when QuickPick API accepts free-text input
 	const pick = await vscode.window.showQuickPick(pickList, { ignoreFocusOut: true })
 	if (pick) {
-		sourceControlPanel.inputBox.value = pick
+		const repositoryList = await Git.getBuiltInGitExtension().exports.getRepositories()
+		const sourceControlPanel = repositoryList.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
+		if (sourceControlPanel) {
+			sourceControlPanel.inputBox.value = pick
+		}
 	}
 
 	await vscode.commands.executeCommand('workbench.view.scm')

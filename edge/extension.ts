@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 
+import * as Git from './Git'
 import * as Util from './Util'
 import * as Queue from './Queue'
 import fetch from './fetch'
@@ -22,7 +23,7 @@ import Log from './Log'
 
 export async function activate(context: vscode.ExtensionContext) {
     // Prevent "No Git repository" error throwing from built-in Git extension
-    while (vscode.extensions.getExtension('vscode.git').isActive === false) {
+    while (Git.getBuiltInGitExtension().isActive === false) {
         await Util.sleep(500)
     }
 

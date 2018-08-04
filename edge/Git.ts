@@ -7,14 +7,34 @@ import * as vscode from 'vscode'
 
 import Log from './Log'
 
-const gitPath = vscode.workspace.getConfiguration('git').get<string>('path') || (os.platform() === 'win32' ? 'C:/Program Files/Git/bin/git.exe' : 'git')
+namespace BuiltInGitExtension {
+	export interface Repository {
+		readonly rootUri: vscode.Uri
+		readonly inputBox: vscode.SourceControlInputBox
+	}
 
-export const run = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise((resolve, reject) => {
+	export interface API {
+		getRepositories(): Promise<Repository[]>
+		getGitPath(): Promise<string>
+	}
+}
+
+export function getBuiltInGitExtension() {
+	return vscode.extensions.getExtension<BuiltInGitExtension.API>('vscode.git')
+}
+
+let gitExecutablePath = ''
+
+export const run = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise<string>(async (resolve, reject) => {
 	const actualParameters = formalParameters.filter(parameter => !!parameter)
 
 	Log.appendLine('git ' + actualParameters.join(' '))
 
-	const pipe = cp.spawn(gitPath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
+	if (gitExecutablePath === '') {
+		gitExecutablePath = await getBuiltInGitExtension().exports.getGitPath()
+	}
+
+	const pipe = cp.spawn(gitExecutablePath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
 
 	let outputBuffer = ''
 
@@ -39,7 +59,7 @@ export const run = (link: vscode.Uri, ...formalParameters: Array<string>): Promi
 	})
 })
 
-export function getGitPath(link: vscode.Uri | string) {
+export function getRepositoryPath(link: vscode.Uri | string) {
 	if (!link) {
 		return null
 	}
@@ -155,8 +175,8 @@ const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
 const urlPattern = /^\turl\s*=\s*(.+)\.git$/
 
 export function getHttpPath(workspace: vscode.WorkspaceFolder) {
-	const gitPath = getGitPath(workspace.uri)
-	const confPath = fp.join(gitPath, '.git', 'config')
+	const repositoryPath = getRepositoryPath(workspace.uri)
+	const confPath = fp.join(repositoryPath, '.git', 'config')
 	if (!fs.existsSync(confPath)) {
 		return null
 	}
