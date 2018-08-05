@@ -1,7 +1,7 @@
 {
     "name": "git-grace",
     "displayName": "Manta's Git Grace",
-    "description": "Invoke Git commands genuinely.",
+    "description": "Add persistent Git commands.",
     "version": "2.6.3",
     "publisher": "thisismanta",
     "categories": [
