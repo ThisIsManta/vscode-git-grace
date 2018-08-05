@@ -26,7 +26,7 @@ export default async function (options: { location?: vscode.ProgressLocation } =
 				throw `Workspace "${workspace.name}" was not on any branch.`
 			}
 
-			if (status.remote && status.sync === Git.SyncStatus.OutOfSync) {
+			if (status.remote && status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
 				const select = await vscode.window.showWarningMessage(
 					`The local branch "${status.local}" could not be pushed because it was out of sync with its remote branch.`,
 					{ modal: true }, 'Force Pushing')
@@ -36,7 +36,7 @@ export default async function (options: { location?: vscode.ProgressLocation } =
 			}
 
 			try {
-				const result = await Util.retry(1, () => Git.run(workspace.uri, 'push', '--tags', status.sync === Git.SyncStatus.OutOfSync && '--force-with-lease', 'origin', status.local))
+				const result = await Util.retry(1, () => Git.run(workspace.uri, 'push', '--tags', status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote && '--force-with-lease', 'origin', status.local))
 				if (result.trim() !== 'Everything up-to-date') {
 					updated = true
 				}

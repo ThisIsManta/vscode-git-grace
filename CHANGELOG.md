@@ -1,5 +1,6 @@
 ### 2.7.0
 - Added `gitGrace.commitSmart` command.
+- Amended `gitGrace.fetch` and `gitGrace.checkout` commands so they will ask for a hard reset if the remote commits were solely rebased.
 - Fixed "No Git repository" error throwing from built-in Git extension.
 
 ### 2.6.3

@@ -25,13 +25,13 @@ export default async function () {
 	if (status.local === 'master') {
 		throw `The current branch is branch "master".`
 	}
-	if (status.sync === Git.SyncStatus.Behind) {
+	if (status.sync === Git.SyncStatus.LocalIsBehindRemote) {
 		throw `The current branch was behind its remote branch.`
 	}
-	if (status.sync === Git.SyncStatus.OutOfSync) {
+	if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
 		throw `The current branch was out-of-sync with its remote branch.`
 	}
-	if (status.remote === '' || status.sync === Git.SyncStatus.Ahead) {
+	if (status.remote === '' || status.sync === Git.SyncStatus.LocalIsAheadOfRemote) {
 		const error = await push()
 		if (error !== undefined) {
 			return null

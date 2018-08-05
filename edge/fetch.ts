@@ -67,7 +67,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 	}
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (status.local === '' || status.remote === '' || status.sync === Git.SyncStatus.InSync) {
+	if (status.local === '' || status.remote === '' || status.sync === Git.SyncStatus.LocalIsInSyncWithRemote) {
 		return false
 	}
 
@@ -80,7 +80,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 		}
 	}
 
-	if (status.sync === Git.SyncStatus.Behind) {
+	if (status.sync === Git.SyncStatus.LocalIsBehindRemote) {
 		const select = await vscode.window.showWarningMessage(
 			`The local branch "${status.local}" is behind its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
 			'Fast Forward')
@@ -106,9 +106,9 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 			}
 		})
 
-	} else if (status.sync === Git.SyncStatus.Ahead) {
+	} else if (status.sync === Git.SyncStatus.LocalIsAheadOfRemote) {
 		const select = await vscode.window.showWarningMessage(
-			`The local branch "${status.local}" is ahead of its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
+			`The local branch "${status.local}" can be safely pushed ${status.distance} commit${status.distance === 1 ? '' : 's'} to its remote branch.`,
 			'Push Now')
 		if (!select) {
 			return null
@@ -118,30 +118,30 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 
 		await push({ location: vscode.ProgressLocation.Notification })
 
-	} else if (status.sync === Git.SyncStatus.OutOfSync) {
-		// Stop processing if the commits were solely amended
-		const result = await Git.run(workspace.uri, 'rev-list', '--left-right', status.local + '...' + status.remote, '--format=format:%aE%n%f')
-		const commits = _.chunk(result.trim().split('\n'), 3).map(([commit, author, message]) => ({ direction: commit.match(/(<|>){1}/)[1], author, message }))
-		const groups = [[commits[0]]]
-		let index = 0
-		while (++index < commits.length) {
-			if (commits[index].direction === _.last(groups)[0].direction) {
-				_.last(groups).push(commits[index])
-			} else {
-				groups.push([commits[index]])
-			}
-		}
-		if (groups.length === 2) {
+	} else if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
+		// Check if the local branch can be safely reset to its remote branch
+		const groups = await Git.getBranchTopology(workspace.uri, status)
+		if (groups.length === 2 && status.dirty === false) {
 			const [localGroup, remoteGroup] = groups
-			localGroup.reverse()
-			remoteGroup.reverse()
 			if (
-				remoteGroup.length <= localGroup.length &&
-				remoteGroup.every((remoteCommit, index) => {
-					const localCommit = localGroup[index]
-					return remoteCommit.author === localCommit.author && localCommit.message.startsWith(remoteCommit.message)
-				})
+				remoteGroup.length >= localGroup.length &&
+				localGroup.every((localCommit, index) => {
+					const remoteCommit = remoteGroup[index]
+					return remoteCommit.author === localCommit.author && localCommit.message === remoteCommit.message
+				}) &&
+				_.isEqual(
+					await Git.run(workspace.uri, '--no-pager', 'diff', '--raw', localGroup[0].parentHash, localGroup[localGroup.length - 1].commitHash),
+					await Git.run(workspace.uri, '--no-pager', 'diff', '--raw', remoteGroup[0].parentHash, remoteGroup[localGroup.length - 1].commitHash)
+				)
 			) {
+				const select = await vscode.window.showWarningMessage(
+					`The local branch "${status.local}" can be safely reset to its remote branch.`,
+					'Reset Branch')
+				if (select) {
+					await abortIfStatusHasChanged()
+
+					await Git.run(workspace.uri, 'reset', '--hard', _.last(remoteGroup).commitHash)
+				}
 				return null
 			}
 		}

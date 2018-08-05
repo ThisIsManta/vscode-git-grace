@@ -107,10 +107,10 @@ export async function getLastCommit(link: vscode.Uri) {
 }
 
 export enum SyncStatus {
-	InSync,
-	OutOfSync,
-	Behind,
-	Ahead,
+	LocalIsInSyncWithRemote,
+	LocalIsNotInSyncWithRemote,
+	LocalIsBehindRemote,
+	LocalIsAheadOfRemote,
 }
 
 interface BranchStatus {
@@ -128,7 +128,7 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 	const dirty = status.trim().split('\n').length > 1
 
 	if (chunk.includes('(no branch)')) {
-		return { local: '', remote: '', dirty, sync: SyncStatus.InSync, distance: 0 }
+		return { local: '', remote: '', dirty, sync: SyncStatus.LocalIsInSyncWithRemote, distance: 0 }
 	}
 
 	let local = chunk
@@ -153,22 +153,40 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 		}
 	}
 
-	let sync = SyncStatus.InSync
+	let sync = SyncStatus.LocalIsInSyncWithRemote
 	let distance = 0
 	if (local && remote) {
-		const result = await run(link, 'rev-list', '--count', '--left-right', local + '...' + remote)
+		const result = await run(link, 'rev-list', '--left-right', '--count', local + '...' + remote)
 		const [left, right] = result.match(/(\d+)\s+(\d+)/).slice(1).map(numb => parseInt(numb))
 		if (left > 0 && right > 0) {
-			sync = SyncStatus.OutOfSync
+			sync = SyncStatus.LocalIsNotInSyncWithRemote
 		} else if (left > 0) {
-			sync = SyncStatus.Ahead
+			sync = SyncStatus.LocalIsAheadOfRemote
 		} else if (right > 0) {
-			sync = SyncStatus.Behind
+			sync = SyncStatus.LocalIsBehindRemote
 		}
 		distance = left + right
 	}
 
 	return { local, remote, dirty, sync, distance }
+}
+
+export async function getBranchTopology(link: vscode.Uri, status: BranchStatus) {
+	const result = await run(link, '--no-pager', 'rev-list', '--topo-order', '--left-right', status.local + '...' + status.remote, '--format=format:%P%n%aE%n%f')
+	const commits = _.chunk(result.trim().split('\n'), 4).map(([commit, parentHash, author, message]) => {
+		const directionAndCommitHash = commit.match(/(<|>)(\w{40})/)
+		return { commitHash: directionAndCommitHash[2], parentHash, direction: directionAndCommitHash[1], author, message }
+	})
+	const groups = [[commits[0]]]
+	let index = 0
+	while (++index < commits.length) {
+		if (commits[index].direction === _.last(groups)[0].direction) {
+			_.last(groups).push(commits[index])
+		} else {
+			groups.push([commits[index]])
+		}
+	}
+	return groups
 }
 
 const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
