@@ -14,7 +14,7 @@ export default async function () {
 
 	const email = (await Git.run(workspace.uri, 'config', 'user.email')).trim()
 
-	const messages = await Git.run(workspace.uri, '--no-pager', 'log', '--max-count=500', '--no-merges', '--format=%s', '--author=' + email)
+	const messages = await Git.run(workspace.uri, 'log', '--max-count=500', '--no-merges', '--format=%s', '--author=' + email)
 	const messageList = messages.trim().split('\n')
 	const messageStat = _.countBy(messageList)
 	const pickList = _.sortBy(_.uniq(messageList), message => -messageStat[message])

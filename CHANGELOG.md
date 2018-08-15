@@ -1,3 +1,6 @@
+### 2.7.1
+- Added _--no-pager_ for all Git commands.
+
 ### 2.7.0
 - Added `gitGrace.commitSmart` command.
 - Amended `gitGrace.fetch` and `gitGrace.checkout` commands so they will ask for a hard reset if the remote commits were solely rebased.

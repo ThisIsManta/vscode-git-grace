@@ -130,8 +130,8 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 					return remoteCommit.author === localCommit.author && localCommit.message === remoteCommit.message
 				}) &&
 				_.isEqual(
-					await Git.run(workspace.uri, '--no-pager', 'diff', '--raw', localGroup[0].parentHash, localGroup[localGroup.length - 1].commitHash),
-					await Git.run(workspace.uri, '--no-pager', 'diff', '--raw', remoteGroup[0].parentHash, remoteGroup[localGroup.length - 1].commitHash)
+					await Git.run(workspace.uri, 'diff', '--raw', localGroup[0].parentHash, localGroup[localGroup.length - 1].commitHash),
+					await Git.run(workspace.uri, 'diff', '--raw', remoteGroup[0].parentHash, remoteGroup[localGroup.length - 1].commitHash)
 				)
 			) {
 				const select = await vscode.window.showWarningMessage(

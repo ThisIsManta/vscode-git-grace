@@ -26,7 +26,7 @@ export function getBuiltInGitExtension() {
 let gitExecutablePath = ''
 
 export const run = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise<string>(async (resolve, reject) => {
-	const actualParameters = formalParameters.filter(parameter => !!parameter)
+	const actualParameters = ['--no-pager', ...formalParameters.filter(parameter => !!parameter)]
 
 	Log.appendLine('git ' + actualParameters.join(' '))
 
@@ -172,7 +172,7 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 }
 
 export async function getBranchTopology(link: vscode.Uri, status: BranchStatus) {
-	const result = await run(link, '--no-pager', 'rev-list', '--topo-order', '--left-right', status.local + '...' + status.remote, '--format=format:%P%n%aE%n%f')
+	const result = await run(link, 'rev-list', '--topo-order', '--left-right', status.local + '...' + status.remote, '--format=format:%P%n%aE%n%f')
 	const commits = _.chunk(result.trim().split('\n'), 4).map(([commit, parentHash, author, message]) => {
 		const directionAndCommitHash = commit.match(/(<|>)(\w{40})/)
 		return { commitHash: directionAndCommitHash[2], parentHash, direction: directionAndCommitHash[1], author, message }
