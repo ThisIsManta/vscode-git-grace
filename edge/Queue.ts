@@ -25,10 +25,10 @@ export function put(action: (options?: object) => Promise<any>) {
 				}
 			}
 
-		} catch (error) {
+		} catch (ex) {
 			clear()
 
-			const message = error instanceof Error ? error.message : String(error)
+			const message = ex instanceof Error ? ex.message : String(ex)
 			if (await vscode.window.showErrorMessage(message, { modal: true }, 'Show Log') === 'Show Log') {
 				Log.show()
 			}

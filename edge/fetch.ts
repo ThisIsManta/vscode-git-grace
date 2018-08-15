@@ -13,7 +13,7 @@ export default async function () {
 
 	const workspace = await Util.getCurrentWorkspace()
 	if (workspace) {
-		// Do not wait for optional operation
+		// Do not wait for the optional operation
 		trySyncRemoteBranch(workspace)
 	}
 

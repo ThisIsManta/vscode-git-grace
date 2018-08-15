@@ -3,7 +3,7 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 import { fetchInternal } from './fetch'
-import stash from './stash'
+import { tryCleanUpRepository } from './checkout'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
@@ -14,28 +14,8 @@ export default async function () {
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (status.dirty) {
-		const select = await vscode.window.showWarningMessage(
-			`The current repository is dirty.`,
-			{ modal: true }, 'Stash Now', 'Discard All Files')
-		if (!select) {
-			return null
-		}
-
-		if (select === 'Stash Now') {
-			const error = await stash()
-			if (error !== undefined) {
-				return null
-			}
-
-		} else if (select === 'Discard All Files') {
-			try {
-				await Git.run(workspace.uri, 'reset', '--hard')
-
-			} catch (ex) {
-				throw `Cleaning up files failed.`
-			}
-		}
+	if (status.dirty && await tryCleanUpRepository(workspace.uri) !== true) {
+		return null
 	}
 
 	await fetchInternal()
