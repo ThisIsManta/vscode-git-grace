@@ -278,10 +278,10 @@
         "postversion": "git push --tags --quiet origin master:master"
     },
     "devDependencies": {
-        "@types/lodash": "^4.14.115",
+        "@types/lodash": "^4.14.116",
         "@types/node": "^8.0.0",
         "@types/typescript": "^2.0.0",
-        "vscode": "^1.1.18"
+        "vscode": "^1.1.21"
     },
     "dependencies": {
         "lodash": "^4.17.10",
