@@ -5,8 +5,8 @@ import * as Util from './Util'
 import * as Git from './Git'
 import push from './push'
 
-export default async function () {
-	const updated = await fetchInternal()
+export default async function (options: { token: vscode.CancellationToken }) {
+	const updated = await fetchInternal(options.token)
 	if (updated === null) {
 		return null
 	}
@@ -26,7 +26,7 @@ export default async function () {
 	vscode.commands.executeCommand('git.refresh')
 }
 
-export async function fetchInternal() {
+export async function fetchInternal(token?: vscode.CancellationToken) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
@@ -41,7 +41,10 @@ export async function fetchInternal() {
 			}
 
 			try {
-				const result = await Util.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
+				const result = await Git.run(workspace.uri, 'fetch', '--prune', 'origin', { token, retry: 2 })
+				if (token && token.isCancellationRequested) {
+					break
+				}
 				if (result.trim().length > 0) {
 					updated = true
 				}
@@ -57,6 +60,10 @@ export async function fetchInternal() {
 			}
 		}
 	})
+
+	if (token && token.isCancellationRequested) {
+		return null
+	}
 
 	return updated
 }

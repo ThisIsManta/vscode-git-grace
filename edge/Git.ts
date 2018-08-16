@@ -1,11 +1,11 @@
 import * as fs from 'fs'
 import * as fp from 'path'
 import * as cp from 'child_process'
-import * as os from 'os'
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
 import Log from './Log'
+import sleep from './sleep'
 
 namespace BuiltInGitExtension {
 	export interface Repository {
@@ -25,8 +25,38 @@ export function getBuiltInGitExtension() {
 
 let gitExecutablePath = ''
 
-export const run = (link: vscode.Uri, ...formalParameters: Array<string>): Promise<string> => new Promise<string>(async (resolve, reject) => {
-	const actualParameters = ['--no-pager', ...formalParameters.filter(parameter => !!parameter)]
+interface Options {
+	retry?: number
+	token?: vscode.CancellationToken
+}
+
+export async function run(link: vscode.Uri, ...formalParameters: Array<string | Options>) {
+	const parameters = formalParameters.filter(parameter => typeof parameter === 'string' && parameter.trim().length > 0) as Array<string>
+	const options = (formalParameters.find(parameter => typeof parameter === 'object' && parameter !== null) || {}) as Options
+
+	let count = options.retry || 0
+	while (true) {
+		if (options.token && options.token.isCancellationRequested) {
+			return ''
+		}
+
+		try {
+			return await runInternal(link, parameters, options.token)
+
+		} catch (ex) {
+			if (count > 0) {
+				count -= 1
+				await sleep(1500)
+				continue
+			}
+
+			throw ex
+		}
+	}
+}
+
+const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: vscode.CancellationToken) => new Promise<string>(async (resolve, reject) => {
+	const actualParameters = ['--no-pager', ...formalParameters]
 
 	Log.appendLine('git ' + actualParameters.join(' '))
 
@@ -35,6 +65,12 @@ export const run = (link: vscode.Uri, ...formalParameters: Array<string>): Promi
 	}
 
 	const pipe = cp.spawn(gitExecutablePath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
+
+	if (token) {
+		token.onCancellationRequested(() => {
+			pipe.kill()
+		})
+	}
 
 	let outputBuffer = ''
 
@@ -51,7 +87,7 @@ export const run = (link: vscode.Uri, ...formalParameters: Array<string>): Promi
 	pipe.on('close', exit => {
 		Log.appendLine('')
 
-		if (exit === 0) {
+		if (exit === 0 || exit === null) {
 			resolve(outputBuffer)
 		} else {
 			reject(outputBuffer)

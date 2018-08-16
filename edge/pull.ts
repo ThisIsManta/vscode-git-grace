@@ -12,7 +12,7 @@ export default async function () {
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async () => {
 		for (const workspace of workspaceList) {
 			try {
-				await Util.retry(2, () => Git.run(workspace.uri, 'fetch', '--prune', 'origin'))
+				await Git.run(workspace.uri, 'fetch', '--prune', 'origin', { retry: 2 })
 
 				const status = await Git.getCurrentBranchStatus(workspace.uri)
 				if (status.local === '' || status.remote === '') {

@@ -18,13 +18,14 @@ import openWeb from './openWeb'
 import pullRequest from './pullRequest'
 import sync from './sync'
 import deleteMergedBranches, { cancelMergedBranchDeletion } from './deleteMergedBranches'
+import sleep from './sleep'
 import TortoiseGit from './TortoiseGit'
 import Log from './Log'
 
 export async function activate(context: vscode.ExtensionContext) {
     // Prevent "No Git repository" error throwing from built-in Git extension
     while (Git.getBuiltInGitExtension().isActive === false) {
-        await Util.sleep(500)
+        await sleep(500)
     }
 
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
@@ -55,15 +56,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashClear', Queue.put(stashClear)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.master', Queue.put(master)))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.master', Queue.put(master, [fetch])))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.branch', Queue.put(branch)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkout', Queue.put(checkout)))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.checkout', Queue.put(checkout, [fetch])))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.openWeb', Queue.put(openWeb)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', Queue.put(pullRequest)))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', Queue.put(pullRequest, [push])))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', Queue.put(sync)))
 

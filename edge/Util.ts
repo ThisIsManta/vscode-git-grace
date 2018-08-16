@@ -81,28 +81,3 @@ export function getCurrentFile() {
 export function getHttpPart(path: string) {
 	return _.trim(path.replace(/\\|\//g, '/'), '/')
 }
-
-export async function retry<T>(count: number, action: () => Promise<T>): Promise<T> {
-	while (true) {
-		try {
-			return await action()
-
-		} catch (ex) {
-			if (count > 0) {
-				count -= 1
-				await sleep(1500)
-				continue
-			}
-
-			throw ex
-		}
-	}
-}
-
-export async function sleep(time: number) {
-	return new Promise(resolve => {
-		setTimeout(() => {
-			resolve()
-		}, time)
-	})
-}

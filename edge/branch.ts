@@ -33,8 +33,8 @@ export default async function () {
 				await Git.run(workspace.uri, 'branch', '--unset-upstream', newStatus.local)
 
 				await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing Remote Branch...' }, async () => {
-					await Util.retry(1, () => Git.run(workspace.uri, 'push', '--delete', 'origin', oldStatus.local))
-					await Util.retry(1, () => Git.run(workspace.uri, 'push', 'origin', newStatus.local))
+					await Git.run(workspace.uri, 'push', '--delete', 'origin', oldStatus.local, { retry: 1 })
+					await Git.run(workspace.uri, 'push', 'origin', newStatus.local, { retry: 1 })
 				})
 			}
 		}

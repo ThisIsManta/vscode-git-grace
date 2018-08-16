@@ -68,7 +68,7 @@ export default async function () {
 
 	// Remove the merged local branches quickly
 	for (const branch of mergedLocalBranches) {
-		await Util.retry(1, () => Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name))
+		await Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name, { retry: 1 })
 	}
 
 	if (mergedRemoteBranches.length === 0) {
@@ -86,7 +86,7 @@ export default async function () {
 				syncingStatusBar.text = `$(clock) Deleting merged remote branches... (${deletedRemoteBranchCount} of ${mergedRemoteBranches.length})`
 				const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
 				try {
-					await Util.retry(1, () => Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin))
+					await Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin, { retry: 1 })
 				} catch (ex) {
 					Util.setWorkspaceAsFirstTryNextTime(branch.root)
 

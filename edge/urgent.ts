@@ -27,7 +27,7 @@ export default async function urgent() {
 			await Git.run(workspace.uri, 'tag', tagName)
 
 			try {
-				await Util.retry(1, () => Git.run(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName))
+				await Git.run(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName, { retry: 1 })
 			} catch (ex) {
 				throw `Pushing failed.`
 			}
