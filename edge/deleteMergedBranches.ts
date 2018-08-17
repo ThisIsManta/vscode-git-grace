@@ -8,28 +8,24 @@ import Log from './Log'
 
 let syncingStatusBar: vscode.StatusBarItem
 
-export default async function () {
+interface Branch {
+	root: vscode.WorkspaceFolder
+	name: string
+}
+
+export default async function ({ token }: { token: vscode.CancellationToken }) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}
 
-	if (syncingStatusBar !== undefined) {
-		return undefined
-	}
-
-	await fetchInternal()
+	await fetchInternal(token)
 
 	syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
 	syncingStatusBar.text = `$(clock) Querying merged branches...`
 	syncingStatusBar.tooltip = 'Click to cancel the operation'
 	syncingStatusBar.command = 'gitGrace.deleteMergedBranches.cancel'
 	syncingStatusBar.show()
-
-	interface Branch {
-		root: vscode.WorkspaceFolder
-		name: string
-	}
 
 	let mergedLocalBranches: Array<Branch> = []
 	let mergedRemoteBranches: Array<Branch> = []
@@ -51,11 +47,16 @@ export default async function () {
 		mergedRemoteBranches = mergedRemoteBranches.concat(await getMergedBranchNames(workspace, true))
 	}
 
+	if (token.isCancellationRequested) {
+		cancelMergedBranchDeletion()
+		return null
+	}
+
 	if (mergedLocalBranches.length === 0 && mergedRemoteBranches.length === 0) {
 		vscode.window.showInformationMessage(`There were no merged branches to be deleted.`)
 
 		cancelMergedBranchDeletion()
-		return undefined
+		return null
 	}
 
 	const select = await vscode.window.showInformationMessage(
@@ -63,19 +64,24 @@ export default async function () {
 		{ modal: true }, 'Delete Merged Branches')
 	if (!select) {
 		cancelMergedBranchDeletion()
-		return undefined
+		return null
 	}
 
 	// Remove the merged local branches quickly
 	for (const branch of mergedLocalBranches) {
-		await Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name, { retry: 1 })
+		if (token.isCancellationRequested) {
+			cancelMergedBranchDeletion()
+			return null
+		}
+
+		await Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name, { retry: 1, token })
 	}
 
 	if (mergedRemoteBranches.length === 0) {
 		vscode.window.showInformationMessage(`${mergedLocalBranches.length} merged local branch${mergedLocalBranches.length > 1 ? 'es have' : ' has'} been deleted.`)
 
 		cancelMergedBranchDeletion()
-		return undefined
+		return null
 	}
 
 	// Remove the merged remote branches with the progress bar
@@ -86,7 +92,7 @@ export default async function () {
 				syncingStatusBar.text = `$(clock) Deleting merged remote branches... (${deletedRemoteBranchCount} of ${mergedRemoteBranches.length})`
 				const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
 				try {
-					await Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin, { retry: 1 })
+					await Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin, { retry: 1, token })
 				} catch (ex) {
 					Util.setWorkspaceAsFirstTryNextTime(branch.root)
 
@@ -95,9 +101,19 @@ export default async function () {
 					}
 				}
 				deletedRemoteBranchCount += 1
+
+				if (token.isCancellationRequested) {
+					cancelMergedBranchDeletion()
+					return null
+				}
 			}
 		})
 		deletedRemoteBranchCount -= 1 // Compensate the initial count of 1
+
+		if (token.isCancellationRequested) {
+			cancelMergedBranchDeletion()
+			return null
+		}
 
 		vscode.window.showInformationMessage(`${mergedLocalBranches.length + mergedRemoteBranches.length} merged branch${mergedLocalBranches.length + mergedRemoteBranches.length ? 'es have' : 'has'} been deleted.`)
 
@@ -112,7 +128,7 @@ export default async function () {
 	cancelMergedBranchDeletion()
 }
 
-export function cancelMergedBranchDeletion() {
+function cancelMergedBranchDeletion() {
 	if (syncingStatusBar) {
 		syncingStatusBar.hide()
 		syncingStatusBar.dispose()

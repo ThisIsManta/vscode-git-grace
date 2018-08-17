@@ -17,7 +17,7 @@ import checkout from './checkout'
 import openWeb from './openWeb'
 import pullRequest from './pullRequest'
 import sync from './sync'
-import deleteMergedBranches, { cancelMergedBranchDeletion } from './deleteMergedBranches'
+import deleteMergedBranches from './deleteMergedBranches'
 import sleep from './sleep'
 import TortoiseGit from './TortoiseGit'
 import Log from './Log'
@@ -70,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches', Queue.put(deleteMergedBranches)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', cancelMergedBranchDeletion))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', Queue.put(async () => { /* Cancellation will be done by the second parameter of this `Queue.put()` */ }, [async () => {}, fetch, deleteMergedBranches])))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.showOutput', () => {
         Log.show()
@@ -89,8 +89,8 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 }
 
-export function deactivate() {
-    cancelMergedBranchDeletion()
+export async function deactivate() {
+    await vscode.commands.executeCommand('gitGrace.deleteMergedBranches.cancel')
 
     Queue.clear()
 

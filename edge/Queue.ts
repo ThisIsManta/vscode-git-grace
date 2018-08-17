@@ -9,7 +9,7 @@ const pendingActionList: Array<{ action: Action, options: object }> = []
 
 let cancellationService: vscode.CancellationTokenSource
 
-export function put(action: Action, bypassActionList?: Array<Action>) {
+export function put(action: Action, cancellableActionList?: Array<Action>) {
 	return async (options: object = {}) => {
 		try {
 			// Do not enqueue the same operation
@@ -18,14 +18,14 @@ export function put(action: Action, bypassActionList?: Array<Action>) {
 			}
 
 			// Cancel the active operation if the new pending operation requests cancellation
-			if (pendingActionList.length > 0 && _.includes(bypassActionList, _.last(pendingActionList).action)) {
+			if (pendingActionList.length > 0 && _.includes(cancellableActionList, _.last(pendingActionList).action)) {
 				if (cancellationService) {
 					cancellationService.cancel()
 					cancellationService = null
 				}
 				pendingActionList.pop()
 
-				while (pendingActionList.length > 0 && _.includes(bypassActionList, _.last(pendingActionList).action)) {
+				while (pendingActionList.length > 0 && _.includes(cancellableActionList, _.last(pendingActionList).action)) {
 					pendingActionList.pop()
 				}
 			}

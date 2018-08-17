@@ -2,6 +2,7 @@
 - Added _--no-pager_ for all Git commands.
 - Amended `gitGrace.checkout` command so it uses the new _QuickPick_ API from _vscode_.
 - Amended `gitGrace.checkout` command so it cancels the pending `gitGrace.fetch` command.
+- Refactored `gitGrace.deleteMergedBranches` command.
 
 ### 2.7.0
 - Added `gitGrace.commitSmart` command.
