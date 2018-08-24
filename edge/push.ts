@@ -22,7 +22,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 			}
 
 			if (options.token && options.token.isCancellationRequested) {
-				return false
+				return null
 			}
 
 			const status = await Git.getCurrentBranchStatus(workspace.uri)
@@ -31,7 +31,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 			}
 
 			if (options.token && options.token.isCancellationRequested) {
-				return false
+				return null
 			}
 
 			if (status.remote && status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
@@ -46,7 +46,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 			try {
 				const result = await Git.run(workspace.uri, 'push', '--tags', status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote && '--force-with-lease', 'origin', status.local, { token: options.token })
 				if (options.token && options.token.isCancellationRequested) {
-					return false
+					return null
 				}
 				if (result.trim() !== 'Everything up-to-date') {
 					updated = true
@@ -54,7 +54,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 
 			} catch (ex) {
 				if (options.token && options.token.isCancellationRequested) {
-					return false
+					return null
 				}
 
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
@@ -64,6 +64,10 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 					ex.includes('Updates were rejected because the remote contains work that you do') && ex.includes('not have locally.')
 				) {
 					await Git.run(workspace.uri, 'fetch', 'origin', status.local, { token: options.token })
+
+					if (options.token && options.token.isCancellationRequested) {
+						return null
+					}
 
 					_.defer(async () => {
 						await vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
@@ -86,6 +90,6 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 
 		await vscode.commands.executeCommand('git.refresh')
 
-		return true
+		return updated
 	})
 }

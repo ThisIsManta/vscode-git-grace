@@ -123,7 +123,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 
 		await abortIfStatusHasChanged()
 
-		await push({ location: vscode.ProgressLocation.Notification })
+		return await push({ location: vscode.ProgressLocation.Notification })
 
 	} else if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
 		// Check if the local branch can be safely reset to its remote branch

@@ -1,3 +1,6 @@
+### 2.8.1
+- Fixed `gitGrace.pullRequest` command so it opens the web after push.
+
 ### 2.8.0
 - Added _--no-pager_ for all Git commands.
 - Amended `gitGrace.checkout` command so it uses the new _QuickPick_ API from _vscode_.
