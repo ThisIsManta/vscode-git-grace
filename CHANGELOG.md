@@ -1,3 +1,7 @@
+### 2.9.0
+- Amended `gitGrace.commitSmart` command so it accepts free-text input.
+- Amended `gitGrace.commitSmart` command so it sorts the recent messages by chronological order.
+
 ### 2.8.1
 - Fixed `gitGrace.pullRequest` command so it opens the web after push.
 

@@ -49,12 +49,12 @@ export async function getCurrentWorkspace() {
 		}
 	}
 
-	const select = await vscode.window.showQuickPick(workspaceList.map(item => item.name))
-	if (!select) {
+	const pick = await vscode.window.showQuickPick(workspaceList.map(item => item.name))
+	if (!pick) {
 		return null
 	}
 
-	return workspaceList.find(item => select === item.name)
+	return workspaceList.find(item => pick === item.name)
 }
 
 export function saveAllFilesOnlyIfAutoSaveIsOn() {
