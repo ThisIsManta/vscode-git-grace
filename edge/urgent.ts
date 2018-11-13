@@ -46,7 +46,7 @@ export async function urgentRestore(options = { prompt: false }) {
 	const waitList: Array<{ workspace: vscode.WorkspaceFolder, branchName: string, tagName: string, distance: number }> = []
 	for (const workspace of workspaceList) {
 		const status = await Git.getCurrentBranchStatus(workspace.uri)
-		if (status.dirty || !status.local) {
+		if (status.dirty || status.local === '') {
 			continue
 		}
 

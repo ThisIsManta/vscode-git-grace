@@ -10,7 +10,7 @@ export default async function () {
 	}
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (!status.local || status.local === 'master') {
+	if (status.local === '' || status.local === 'master') {
 		return vscode.commands.executeCommand('git.branch')
 
 	} else {
