@@ -111,6 +111,10 @@ export function getRepositoryPath(link: vscode.Uri | string) {
 	return null
 }
 
+export async function getCommitHash(link: vscode.Uri, branchName: string = 'HEAD') {
+	return (await run(link, 'rev-parse', branchName)).trim()
+}
+
 export async function getLocalBranchNames(link: vscode.Uri) {
 	const content = await run(link, 'branch', '--list')
 	return _.chain(content.split('\n'))

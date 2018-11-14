@@ -13,7 +13,11 @@ export default async function () {
 	}
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (status.dirty && await tryCleanUpRepository(workspace.uri) !== true) {
+	if (status.dirty && await tryAbortBecauseOfDirtyFiles(workspace.uri)) {
+		return null
+	}
+
+	if (status.local === '' && await tryAbortBecauseOfDanglingCommits(workspace.uri, 'another branch')) {
 		return null
 	}
 
@@ -44,7 +48,7 @@ export default async function () {
 			try {
 				await Git.run(workspace.uri, 'checkout', '-B', select.label.replace(/^origin\//, ''), '--track', select.label)
 			} catch (ex) {
-				throw `Checking out "${select.label}" failed`
+				throw `Checking out "${select.label}" failed.`
 			}
 
 			await vscode.commands.executeCommand('git.refresh')
@@ -71,18 +75,18 @@ async function setPickerItems(picker: vscode.QuickPick<vscode.QuickPickItem>, li
 	}
 }
 
-export async function tryCleanUpRepository(link: vscode.Uri) {
+export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri) {
 	const select = await vscode.window.showWarningMessage(
 		`The current repository is dirty.`,
 		{ modal: true }, 'Stash Now', 'Discard All Files')
 	if (!select) {
-		return null
+		return true
 	}
 
 	if (select === 'Stash Now') {
 		const error = await stash()
 		if (error !== undefined) {
-			return null
+			return true
 		}
 
 	} else if (select === 'Discard All Files') {
@@ -94,5 +98,28 @@ export async function tryCleanUpRepository(link: vscode.Uri) {
 		}
 	}
 
-	return true
+	return false
+}
+
+export async function tryAbortBecauseOfDanglingCommits(link: vscode.Uri, branchName: string) {
+	const commitHash = await Git.getCommitHash(link)
+
+	const containingLocalBranches = await Git.run(link, 'branch', '--contains', commitHash)
+	if (/^\*\s/.test(containingLocalBranches.trim()) === false) {
+		return false
+	}
+
+	const containingRemoteBranches = await Git.run(link, 'branch', '--remote', '--contains', commitHash)
+	if (containingRemoteBranches.trim().length > 0) {
+		return false
+	}
+
+	const select = await vscode.window.showWarningMessage(
+		`Checking out ${branchName} will make you lose the changes made on this detached head.`,
+		{ modal: true }, 'Discard Dangling Commits')
+	if (!select) {
+		return true
+	}
+
+	return false
 }

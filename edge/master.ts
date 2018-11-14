@@ -3,7 +3,7 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 import { fetchInternal } from './fetch'
-import { tryCleanUpRepository } from './checkout'
+import { tryAbortBecauseOfDirtyFiles, tryAbortBecauseOfDanglingCommits } from './checkout'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
@@ -14,17 +14,20 @@ export default async function () {
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (status.dirty && await tryCleanUpRepository(workspace.uri) !== true) {
+	if (status.dirty && await tryAbortBecauseOfDirtyFiles(workspace.uri)) {
 		return null
 	}
 
 	await fetchInternal()
 
-	const masterInfo = await Git.run(workspace.uri, 'rev-parse', 'origin/master')
-	const masterHash = masterInfo.trim()
-	const commitInfo = await Git.run(workspace.uri, 'status', '--branch', '--porcelain=2')
-	if (masterHash === commitInfo) {
+	const currentHash = await Git.getCommitHash(workspace.uri)
+	const masterHash = await Git.getCommitHash(workspace.uri, 'origin/master')
+	if (currentHash === masterHash) {
 		vscode.window.showInformationMessage(`You are on "origin/master" already.`)
+		return null
+	}
+
+	if (status.local === '' && await tryAbortBecauseOfDanglingCommits(workspace.uri, '"origin/master"')) {
 		return null
 	}
 
