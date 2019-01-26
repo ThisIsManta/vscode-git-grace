@@ -21,27 +21,28 @@ export default async function () {
 		return null
 	}
 
-	const picker = vscode.window.createQuickPick()
-	picker.placeholder = 'Select a branch to checkout'
-	await setPickerItems()
-	picker.show()
-
+	let localBranches: string[]
+	let remoteBranches: string[]
 	async function setPickerItems() {
-		const localBranches = await Git.getLocalBranchNames(workspace.uri)
-		const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
+		localBranches = await Git.getLocalBranchNames(workspace.uri)
+		remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
 
-		picker.items = localBranches.concat(remoteBranches).map(name => ({ label: name }))
+		picker.items = [...localBranches, ...remoteBranches].map(name => ({ label: name }))
 		if (status.local) {
 			picker.activeItems = [picker.items.find(item => item.label === status.local)]
 		}
 	}
 
+	const picker = vscode.window.createQuickPick()
+	picker.placeholder = 'Select a branch to checkout'
+	await setPickerItems()
+	picker.show()
+
 	// Do lazy fetching
-	const fetchPromise = fetchInternal().then(updated => {
+	const fetchPromise = fetchInternal().then(async updated => {
 		if (updated) {
-			setPickerItems()
+			await setPickerItems()
 		}
-		return updated
 	})
 
 	return new Promise(resolve => {
@@ -50,10 +51,29 @@ export default async function () {
 			picker.hide()
 			picker.dispose()
 
-			try {
-				await Git.run(workspace.uri, 'checkout', '-B', select.label.replace(/^origin\//, ''), '--track', select.label)
-			} catch (ex) {
-				throw `Checking out "${select.label}" failed.`
+			if (localBranches.indexOf(select.label) >= 0) {
+				await checkoutInternal(workspace.uri, select.label)
+
+			} else if (remoteBranches.indexOf(select.label) >= 0) {
+				const remoteBranchName = select.label
+				const localBranchName = remoteBranchName.replace(/^origin\//, '')
+
+				if (localBranches.indexOf(localBranchName) >= 0) {
+					const groups = await Git.getBranchTopology(workspace.uri, localBranchName, remoteBranchName)
+					if (groups.length === 1 && groups[0][0].direction === '>') {
+						await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
+
+					} else {
+						await checkoutInternal(workspace.uri, localBranchName)
+					}
+
+				} else {
+					await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
+				}
+
+			} else {
+				resolve()
+				return null
 			}
 
 			await vscode.commands.executeCommand('git.refresh')
@@ -68,6 +88,15 @@ export default async function () {
 			resolve()
 		})
 	})
+}
+
+async function checkoutInternal(link: vscode.Uri, localBranchName: string, remoteBranchName?: string) {
+	if (remoteBranchName) {
+		await Git.run(link, 'checkout', '-B', localBranchName, '--track', remoteBranchName)
+
+	} else {
+		await Git.run(link, 'checkout', localBranchName)
+	}
 }
 
 export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri) {
