@@ -4,6 +4,7 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 
+const versionMatcher = /^\d+\.\d+\.\d+$/
 const endWithParenthesisMatcher = /\s*\(.+\)\s*$/
 
 export default async function () {
@@ -18,6 +19,7 @@ export default async function () {
 
 	const messages = await Git.run(workspace.uri, 'log', '--max-count=500', '--no-merges', '--format=%s', '--author=' + email)
 	const pickList = _.chain(messages.trim().split('\n'))
+		.reject(message => versionMatcher.test(message))
 		.map(message => message.replace(endWithParenthesisMatcher, ''))
 		.uniq()
 		.compact()
