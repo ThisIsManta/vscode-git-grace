@@ -1,4 +1,5 @@
-### 2.9.1
+### 2.10.0
+- Amended `gitGrace.openWeb` command so it lists the current commit hash and branch names instead of the partial URLs.
 - Fixed `gitGrace.checkout` command so it prompts syncing the remote branch even after the local branch has been selected.
 
 ### 2.9.0

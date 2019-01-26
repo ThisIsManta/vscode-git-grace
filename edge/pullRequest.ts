@@ -10,8 +10,8 @@ export default async function () {
 		return null
 	}
 
-	let httpPath = Git.getHttpPath(workspace)
-	if (!httpPath) {
+	const webOrigin = Git.getWebOrigin(workspace)
+	if (!webOrigin) {
 		throw `The selected workspace was not a GitHub repository.`
 	}
 
@@ -39,5 +39,5 @@ export default async function () {
 		}
 	}
 
-	open(httpPath + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+	open(webOrigin + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
 }

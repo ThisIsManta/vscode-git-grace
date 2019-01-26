@@ -77,7 +77,3 @@ export function getCurrentFile() {
 
 	return vscode.window.activeTextEditor.document.uri
 }
-
-export function getHttpPart(path: string) {
-	return _.trim(path.replace(/\\|\//g, '/'), '/')
-}

@@ -232,7 +232,7 @@ export async function getBranchTopology(link: vscode.Uri, status: BranchStatus) 
 const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
 const urlPattern = /^\turl\s*=\s*(.+)\.git$/
 
-export function getHttpPath(workspace: vscode.WorkspaceFolder) {
+export function getWebOrigin(workspace: vscode.WorkspaceFolder) {
 	const repositoryPath = getRepositoryPath(workspace.uri)
 	const confPath = fp.join(repositoryPath, '.git', 'config')
 	if (!fs.existsSync(confPath)) {

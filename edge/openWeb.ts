@@ -6,69 +6,100 @@ import * as Util from './Util'
 import * as Git from './Git'
 
 export default async function () {
-	const workspaceList = Util.getWorkspaceListWithGitEnabled()
+	const workspace = await Util.getCurrentWorkspace()
+	if (!workspace) {
+		return null
+	}
+	const workspacePath = workspace.uri.fsPath
 
-	const httpList: Array<string> = []
-	for (const workspace of workspaceList) {
-		const gitPath = Git.getRepositoryPath(workspace.uri)
-		const httpPath = await Git.getHttpPath(workspace)
-		if (!httpPath) {
-			continue
-		}
-
-		if (httpPath.startsWith('https://github.com/') === false) {
-			continue
-		}
-
-		const workspacePath = workspace.uri.fsPath
-		let filePath = vscode.window.activeTextEditor
-			? vscode.window.activeTextEditor.document.uri.fsPath
-			: ''
-		if (Git.getRepositoryPath(filePath) === null) {
-			filePath = null
-		}
-
-		const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
-		if (remoteBranches.indexOf('origin/master') >= 0) {
-			if (workspacePath !== gitPath) {
-				httpList.push(httpPath + '/tree/master/' + Util.getHttpPart(workspacePath.substring(gitPath.length)))
-			}
-
-			if (filePath) {
-				httpList.push(httpPath + '/tree/master/' + Util.getHttpPart(filePath.substring(gitPath.length)))
-			}
-		}
-
-		const status = await Git.getCurrentBranchStatus(workspace.uri)
-		if (status.local && status.local !== 'master' && status.remote) {
-			httpList.push(httpPath + `/tree/${status.local}/` + Util.getHttpPart(workspacePath.substring(gitPath.length)))
-
-			if (filePath) {
-				httpList.push(httpPath + `/tree/${status.local}/` + Util.getHttpPart(filePath.substring(gitPath.length)))
-			}
-		}
+	const gitPath = Git.getRepositoryPath(workspace.uri)
+	function normalizeWebLocation(path: string) {
+		return _.trim(path.substring(gitPath.length).replace(/\\/g, '/'), '/')
 	}
 
-	if (httpList.length === 0) {
+	const webOrigin = await Git.getWebOrigin(workspace)
+	if (!webOrigin || webOrigin.startsWith('https://github.com/') === false) {
 		return null
 	}
 
-	if (httpList.length === 1) {
-		open(httpList[0])
+	const filePath = vscode.window.activeTextEditor && Git.getRepositoryPath(vscode.window.activeTextEditor.document.uri.fsPath)
+		? vscode.window.activeTextEditor.document.uri.fsPath
+		: ''
+
+	const pickList: Array<vscode.QuickPickItem & { url: string }> = []
+
+	const commitHash = await Git.getCommitHash(workspace.uri)
+	if (commitHash) {
+		if (filePath) {
+			pickList.push({
+				label: commitHash,
+				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath)
+			})
+
+		} else {
+			pickList.push({
+				label: commitHash,
+				url: webOrigin + `/commit/${commitHash}`
+			})
+		}
+	}
+
+	const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
+	if (remoteBranches.indexOf('origin/master') >= 0) {
+		if (filePath) {
+			pickList.push({
+				label: 'origin/master',
+				url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath)
+			})
+
+		} else if (workspacePath === gitPath) {
+			pickList.push({
+				label: 'origin/master',
+				url: webOrigin
+			})
+
+		} else {
+			pickList.push({
+				label: 'origin/master',
+				url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath)
+			})
+		}
+	}
+
+	const status = await Git.getCurrentBranchStatus(workspace.uri)
+	if (status.local && status.local !== 'master' && status.remote) {
+		if (filePath) {
+			pickList.push({
+				label: status.remote,
+				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath)
+			})
+
+		} else if (workspacePath === gitPath) {
+			pickList.push({
+				label: status.remote,
+				url: webOrigin + `/tree/${status.local}`
+			})
+
+		} else {
+			pickList.push({
+				label: status.remote,
+				url: webOrigin + `/tree/${status.local}/` + normalizeWebLocation(workspacePath)
+			})
+		}
+	}
+
+	if (pickList.length === 0) {
 		return null
 	}
 
-	const pickList = httpList.map(http => {
-		const host = http.match(/^https?:\/\/[\w.]+\//)[0]
-		return {
-			label: _.trimEnd(http.substring(host.length), '/'),
-			description: _.trimEnd(host, '/'),
-		}
-	})
+	if (pickList.length === 1) {
+		open(pickList[0].url)
+		return null
+	}
 
-	const pick = await vscode.window.showQuickPick(pickList)
+	const pick = await vscode.window.showQuickPick(pickList.map(pick => ({ ...pick, description: workspace.name })))
 	if (pick) {
-		open(pick.description + '/' + pick.label)
+		open(pick.url)
 		return null
 	}
 }
