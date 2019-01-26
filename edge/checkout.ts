@@ -23,24 +23,29 @@ export default async function () {
 
 	const picker = vscode.window.createQuickPick()
 	picker.placeholder = 'Select a branch to checkout'
-	await setPickerItems(picker, workspace.uri, status.local)
+	await setPickerItems()
 	picker.show()
 
-	let pickerIsClosed = false
+	async function setPickerItems() {
+		const localBranches = await Git.getLocalBranchNames(workspace.uri)
+		const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
+
+		picker.items = localBranches.concat(remoteBranches).map(name => ({ label: name }))
+		if (status.local) {
+			picker.activeItems = [picker.items.find(item => item.label === status.local)]
+		}
+	}
 
 	// Do lazy fetching
-	fetchInternal().then(async (updated: boolean) => {
-		if (pickerIsClosed || !updated) {
-			return null
+	const fetchPromise = fetchInternal().then(updated => {
+		if (updated) {
+			setPickerItems()
 		}
-
-		await setPickerItems(picker, workspace.uri, status.local)
+		return updated
 	})
 
 	return new Promise(resolve => {
 		picker.onDidAccept(async () => {
-			pickerIsClosed = true
-
 			const [select] = picker.selectedItems
 			picker.hide()
 			picker.dispose()
@@ -53,8 +58,8 @@ export default async function () {
 
 			await vscode.commands.executeCommand('git.refresh')
 
-			// Do not wait for the optional operation
-			trySyncRemoteBranch(workspace)
+			await fetchPromise
+			await trySyncRemoteBranch(workspace)
 
 			resolve()
 		})
@@ -63,16 +68,6 @@ export default async function () {
 			resolve()
 		})
 	})
-}
-
-async function setPickerItems(picker: vscode.QuickPick<vscode.QuickPickItem>, link: vscode.Uri, currentLocalBranch: string) {
-	const localBranches = await Git.getLocalBranchNames(link)
-	const remoteBranches = await Git.getRemoteBranchNames(link)
-
-	picker.items = [...localBranches, ...remoteBranches].map(name => ({ label: name }))
-	if (currentLocalBranch) {
-		picker.activeItems = [picker.items.find(item => item.label === currentLocalBranch)]
-	}
 }
 
 export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri) {

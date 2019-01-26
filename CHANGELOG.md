@@ -1,3 +1,6 @@
+### 2.9.1
+- Fixed `gitGrace.checkout` command so it prompts syncing the remote branch even after the local branch has been selected.
+
 ### 2.9.0
 - Amended `gitGrace.commitSmart` command so it accepts free-text input.
 - Amended `gitGrace.commitSmart` command so it sorts the recent messages by chronological order.
