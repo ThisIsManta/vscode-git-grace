@@ -127,7 +127,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 
 	} else if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
 		// Check if the local branch can be safely reset to its remote branch
-		const groups = await Git.getBranchTopology(workspace.uri, status)
+		const groups = await Git.getBranchTopology(workspace.uri, status.local, status.remote)
 		if (groups.length === 2 && status.dirty === false) {
 			const [localGroup, remoteGroup] = groups
 			if (

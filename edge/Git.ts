@@ -116,17 +116,17 @@ export async function getCommitHash(link: vscode.Uri, branchName: string = 'HEAD
 }
 
 export async function getLocalBranchNames(link: vscode.Uri) {
-	const content = await run(link, 'branch', '--list')
-	return _.chain(content.split('\n'))
+	const result = await run(link, 'branch', '--list')
+	return _.chain(result.split('\n'))
 		.map(line => line.startsWith('*') ? line.substring(1) : line)
-		.map(_.trim)
+		.map(line => line.trim())
 		.compact()
 		.value()
 }
 
 export async function getRemoteBranchNames(link: vscode.Uri) {
-	const content = await run(link, 'branch', '--list', '--remotes')
-	return _.chain(content.split('\n'))
+	const result = await run(link, 'branch', '--list', '--remotes')
+	return _.chain(result.split('\n'))
 		.map(line => line.trim())
 		.map(line => line.split(' -> '))
 		.flatten()
@@ -138,11 +138,22 @@ export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
 	return run(link, 'branch', `--set-upstream-to=origin/${localBranchName}`, localBranchName)
 }
 
+export async function getBranchCounterparts(link: vscode.Uri) {
+	const result = await run(link, 'for-each-ref', '--format="%(refname)|%(upstream)"', 'refs/heads/')
+	return _.chain(result.split('\n'))
+		.compact()
+		.map(line => _.trim(line, '"').split('|'))
+		.map(([local, remote]) => ({ local: local.replace(/^refs\/heads\//, ''), remote: remote.replace(/^refs\/remotes\//, '') || null }))
+		.value()
+}
+
 export async function getLastCommit(link: vscode.Uri) {
-	const result = await run(link, 'log', '--max-count', '1', '--oneline')
+	const result = await run(link, 'log', '--max-count', '1', '--format=format:%H%n%aI%n%s')
+	const chunks = result.trim().split('\n')
 	return {
-		sha1: result.substring(0, result.indexOf(' ')).trim(),
-		message: result.substring(result.indexOf(' ') + 1).trim().split('\n')[0],
+		sha1: chunks[0],
+		date: new Date(chunks[1]),
+		message: chunks[2],
 	}
 }
 
@@ -211,11 +222,21 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 	return { local, remote, dirty, sync, distance }
 }
 
-export async function getBranchTopology(link: vscode.Uri, status: BranchStatus) {
-	const result = await run(link, 'rev-list', '--topo-order', '--left-right', status.local + '...' + status.remote, '--format=format:%P%n%aE%n%f')
-	const commits = _.chunk(result.trim().split('\n'), 4).map(([commit, parentHash, author, message]) => {
-		const directionAndCommitHash = commit.match(/(<|>)(\w{40})/)
-		return { commitHash: directionAndCommitHash[2], parentHash, direction: directionAndCommitHash[1], author, message }
+export async function getBranchTopology(link: vscode.Uri, localBranchName: string, remoteBranchName: string) {
+	const result = await run(link, 'rev-list', '--topo-order', '--left-right', localBranchName + '...' + remoteBranchName, '--format=format:%P%n%aE%n%aI%n%f')
+	if (result.trim() === '') {
+		return []
+	}
+	const commits = _.chunk(result.trim().split('\n'), 5).map(([commit, parentHash, author, date, message]) => {
+		const directionAndCommitHash = commit.match(/(<|>)(\w{40})/) // First line is always be "commit >X" where X is a 40-character-long commit hash
+		return {
+			author,
+			date: new Date(date),
+			message,
+			parentHash,
+			direction: directionAndCommitHash[1],
+			commitHash: directionAndCommitHash[2],
+		}
 	})
 	const groups = [[commits[0]]]
 	let index = 0

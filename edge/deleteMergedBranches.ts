@@ -13,13 +13,13 @@ interface Branch {
 	name: string
 }
 
-export default async function ({ token }: { token: vscode.CancellationToken }) {
+export default async function (options: { token: vscode.CancellationToken }) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return null
 	}
 
-	await fetchInternal(token)
+	await fetchInternal(options.token)
 
 	syncingStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10)
 	syncingStatusBar.text = `$(clock) Querying merged branches...`
@@ -27,40 +27,35 @@ export default async function ({ token }: { token: vscode.CancellationToken }) {
 	syncingStatusBar.command = 'gitGrace.deleteMergedBranches.cancel'
 	syncingStatusBar.show()
 
-	let mergedLocalBranches: Array<Branch> = []
-	let mergedRemoteBranches: Array<Branch> = []
-
-	async function getMergedBranchNames(root: vscode.WorkspaceFolder, remote: boolean) {
-		const content = await Git.run(root.uri, 'branch', '--merged', 'origin/master', remote ? '--remotes' : null)
-		return _.chain(content.trim().split('\n'))
-			.map(line => line.trim().split(' -> '))
-			.flatten()
-			.difference(['origin/HEAD', 'origin/master'])
-			.reject(name => name.startsWith('*'))
-			.compact()
-			.map(name => ({ root, name }))
-			.value()
-	}
+	const mergedLocalBranches: Array<Branch> = []
+	const mergedRemoteBranches: Array<Branch> = []
 
 	for (const workspace of workspaceList) {
-		mergedLocalBranches = mergedLocalBranches.concat(await getMergedBranchNames(workspace, false))
-		mergedRemoteBranches = mergedRemoteBranches.concat(await getMergedBranchNames(workspace, true))
+		mergedLocalBranches.push(...(await getMergedBranchNames(workspace.uri, false)).map(name => ({ root: workspace, name })))
+		mergedRemoteBranches.push(...(await getMergedBranchNames(workspace.uri, true)).map(name => ({ root: workspace, name })))
 	}
 
-	if (token.isCancellationRequested) {
+	if (options.token.isCancellationRequested) {
 		cancelMergedBranchDeletion()
 		return null
 	}
 
-	if (mergedLocalBranches.length === 0 && mergedRemoteBranches.length === 0) {
+	if (mergedLocalBranches.length + mergedRemoteBranches.length === 0) {
 		vscode.window.showInformationMessage(`There were no merged branches to be deleted.`)
 
 		cancelMergedBranchDeletion()
 		return null
 	}
 
+	const branchNameList = [
+		[mergedLocalBranches, 'local branch'],
+		[mergedRemoteBranches, 'remote branch']
+	]
+		.filter(([list, unit]) => list.length > 0)
+		.map(([list, unit]) => list.length + ' ' + unit + (list.length > 1 ? 'es' : ''))
+		.join(' and ')
 	const select = await vscode.window.showInformationMessage(
-		`Are you sure you want to delete ${[[mergedLocalBranches, 'local branch'], [mergedRemoteBranches, 'remote branch']].filter(([list, unit]) => list.length > 0).map(([list, unit]) => list.length + ' ' + unit + (list.length > 1 ? 'es' : '')).join(' and ')}?`,
+		`Are you sure you want to delete ${branchNameList}?`,
 		{ modal: true }, 'Delete Merged Branches')
 	if (!select) {
 		cancelMergedBranchDeletion()
@@ -69,12 +64,12 @@ export default async function ({ token }: { token: vscode.CancellationToken }) {
 
 	// Remove the merged local branches quickly
 	for (const branch of mergedLocalBranches) {
-		if (token.isCancellationRequested) {
+		if (options.token.isCancellationRequested) {
 			cancelMergedBranchDeletion()
 			return null
 		}
 
-		await Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name, { retry: 1, token })
+		await Git.run(branch.root.uri, 'branch', '--delete', '--force', branch.name, { retry: 1, token: options.token })
 	}
 
 	if (mergedRemoteBranches.length === 0) {
@@ -92,7 +87,7 @@ export default async function ({ token }: { token: vscode.CancellationToken }) {
 				syncingStatusBar.text = `$(clock) Deleting merged remote branches... (${deletedRemoteBranchCount} of ${mergedRemoteBranches.length})`
 				const branchNameWithoutOrigin = branch.name.substring(branch.name.indexOf('/') + 1)
 				try {
-					await Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin, { retry: 1, token })
+					await Git.run(branch.root.uri, 'push', '--delete', 'origin', branchNameWithoutOrigin, { retry: 1, token: options.token })
 				} catch (ex) {
 					Util.setWorkspaceAsFirstTryNextTime(branch.root)
 
@@ -102,7 +97,7 @@ export default async function ({ token }: { token: vscode.CancellationToken }) {
 				}
 				deletedRemoteBranchCount += 1
 
-				if (token.isCancellationRequested) {
+				if (options.token.isCancellationRequested) {
 					cancelMergedBranchDeletion()
 					return null
 				}
@@ -110,7 +105,7 @@ export default async function ({ token }: { token: vscode.CancellationToken }) {
 		})
 		deletedRemoteBranchCount -= 1 // Compensate the initial count of 1
 
-		if (token.isCancellationRequested) {
+		if (options.token.isCancellationRequested) {
 			cancelMergedBranchDeletion()
 			return null
 		}
@@ -126,6 +121,17 @@ export default async function ({ token }: { token: vscode.CancellationToken }) {
 	}
 
 	cancelMergedBranchDeletion()
+}
+
+export async function getMergedBranchNames(link: vscode.Uri, remote: boolean) {
+	const content = await Git.run(link, 'branch', '--merged', 'origin/master', remote ? '--remotes' : null)
+	return _.chain(content.trim().split('\n'))
+		.map(line => line.trim().split(' -> '))
+		.flatten()
+		.without('origin/HEAD', 'origin/master')
+		.reject(name => name.startsWith('*'))
+		.compact()
+		.value()
 }
 
 function cancelMergedBranchDeletion() {

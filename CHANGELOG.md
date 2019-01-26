@@ -1,5 +1,6 @@
 ### 2.10.0
 - Amended `gitGrace.openWeb` command so it lists the current commit hash and branch names instead of the partial URLs.
+- Amended `gitGrace.sync` command so it deletes merged local branches and pushes the local branches that have no remote counterparts.
 - Fixed `gitGrace.checkout` command so it prompts syncing the remote branch even after the local branch has been selected.
 
 ### 2.9.0
