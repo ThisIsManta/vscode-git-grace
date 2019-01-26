@@ -4,8 +4,9 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 import { getMergedBranchNames } from './deleteMergedBranches'
+import Log from './Log'
 
-export default async function (options: { token: vscode.CancellationToken }) {
+export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
 		return null
@@ -25,29 +26,29 @@ export default async function (options: { token: vscode.CancellationToken }) {
 		}
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing...' }, async ({ report }) => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing...' }, async () => {
 		try {
-			if (status.remote === '') {
-				await Git.run(workspace.uri, 'push', 'origin', status.local, { retry: 1 })
-				await Git.setRemoteBranch(workspace.uri, status.local)
-			}
+			await Git.run(workspace.uri, 'fetch', '--prune', 'origin', { retry: 2 })
 
-			await Git.run(workspace.uri, 'push', '--tags', { retry: 1 })
-
-			await Git.run(workspace.uri, 'pull', '--all', '--rebase')
-
-			const counterparts = await Git.getBranchCounterparts(workspace.uri)
+			const counterparts = _.sortBy(await Git.getBranchCounterparts(workspace.uri), ({ local }) => local === status.local ? 0 : 1)
 			const remoteBranches = new Set(await Git.getRemoteBranchNames(workspace.uri))
 			const mergedBranches = new Set(await getMergedBranchNames(workspace.uri, false))
 			for (const { local, remote } of counterparts) {
-				if (local === status.local) {
-					continue
-				}
-
 				if (remoteBranches.has(remote)) {
 					const groups = await Git.getBranchTopology(workspace.uri, local, remote)
-					if (groups.length === 2) {
-						await Git.run(workspace.uri, 'push', 'origin', local, { retry: 1 })
+					if (groups.length === 0) {
+						continue
+
+					} else if (groups.length === 1) {
+						if (groups[0][0].direction === '<') {
+							await Git.run(workspace.uri, 'push', 'origin', local, { retry: 1 })
+
+						} else {
+							await Git.run(workspace.uri, 'pull', '--ff-only', 'origin', local)
+						}
+
+					} else {
+						await Git.run(workspace.uri, 'rebase', '--no-stat')
 					}
 
 				} else if (mergedBranches.has(local)) {
@@ -58,6 +59,8 @@ export default async function (options: { token: vscode.CancellationToken }) {
 					await Git.setRemoteBranch(workspace.uri, local)
 				}
 			}
+
+			await Git.run(workspace.uri, 'push', '--tags', { retry: 1 })
 
 		} catch (ex) {
 			Util.setWorkspaceAsFirstTryNextTime(workspace)

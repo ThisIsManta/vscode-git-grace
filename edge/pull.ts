@@ -19,7 +19,7 @@ export default async function () {
 					continue
 				}
 
-				await Git.run(workspace.uri, 'rebase')
+				await Git.run(workspace.uri, 'rebase', '--no-stat')
 
 			} catch (ex) {
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
