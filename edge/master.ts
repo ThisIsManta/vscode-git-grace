@@ -2,7 +2,6 @@ import * as vscode from 'vscode'
 
 import * as Util from './Util'
 import * as Git from './Git'
-import { fetchInternal } from './fetch'
 import { tryAbortBecauseOfDirtyFiles, tryAbortBecauseOfDanglingCommits } from './checkout'
 
 export default async function () {
@@ -18,7 +17,7 @@ export default async function () {
 		return null
 	}
 
-	await fetchInternal()
+	await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
 
 	const currentHash = await Git.getCommitHash(workspace.uri)
 	const masterHash = await Git.getCommitHash(workspace.uri, 'origin/master')
