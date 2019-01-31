@@ -11,6 +11,8 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 		return null
 	}
 
+	let force = false
+
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	return await vscode.window.withProgress({ location: options.location || vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
@@ -41,6 +43,8 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 				if (!select) {
 					return null
 				}
+
+				force = true
 			}
 
 			try {
@@ -89,6 +93,8 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 		}
 
 		await vscode.commands.executeCommand('git.refresh')
+
+		track('push', { force })
 
 		return updated
 	})

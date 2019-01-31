@@ -117,8 +117,12 @@ export default async function (options: { token: vscode.CancellationToken }) {
 			Log.appendLine(ex.message)
 		}
 
+		track('delete-merged-branches', { success: false })
+
 		throw `Deleting merged branches failed - only ${deletedRemoteBranchCount === 1 ? `branch "${mergedRemoteBranches[0].name}" has` : `${deletedRemoteBranchCount} branches have`} been deleted.`
 	}
+
+	track('delete-merged-branches', { success: true })
 
 	cancelMergedBranchDeletion()
 }

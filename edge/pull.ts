@@ -22,11 +22,15 @@ export default async function () {
 				await Git.run(workspace.uri, 'rebase', '--no-stat')
 
 			} catch (ex) {
+				track('pull', { success: false })
+
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 				throw `Pulling failed.`
 			}
 		}
+
+		track('pull', { success: true })
 
 		vscode.window.setStatusBarMessage(`Pulling completed`, 10000)
 

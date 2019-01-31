@@ -52,6 +52,8 @@ export default async function () {
 			picker.dispose()
 
 			if (localBranches.indexOf(select.label) >= 0) {
+				track('checkout:local')
+
 				await checkoutInternal(workspace.uri, select.label)
 
 			} else if (remoteBranches.indexOf(select.label) >= 0) {
@@ -61,13 +63,19 @@ export default async function () {
 				if (localBranches.indexOf(localBranchName) >= 0) {
 					const groups = await Git.getBranchTopology(workspace.uri, localBranchName, remoteBranchName)
 					if (groups.length === 1 && groups[0][0].direction === '>') {
+						track('checkout:remote', { safe: true })
+
 						await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
 
 					} else {
+						track('checkout:remote', { safe: false })
+
 						await checkoutInternal(workspace.uri, localBranchName)
 					}
 
 				} else {
+					track('checkout:remote', { safe: true })
+
 					await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
 				}
 

@@ -19,6 +19,8 @@ export default async function () {
 		return null
 	}
 
+	track('commit-amend')
+
 	await vscode.commands.executeCommand('git.undoCommit')
 	await vscode.commands.executeCommand('workbench.view.scm')
 }

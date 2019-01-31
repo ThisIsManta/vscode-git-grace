@@ -30,6 +30,8 @@ export default async function () {
 		return null
 	}
 
+	track('master')
+
 	try {
 		await Git.run(workspace.uri, 'checkout', '--detach', 'origin/master')
 

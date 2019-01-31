@@ -10,6 +10,8 @@ export default async function stash() {
 		return null
 	}
 
+	track('stash')
+
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Saving Stash...' }, async () => {
@@ -40,7 +42,11 @@ export async function stashPopLatest() {
 		try {
 			await Git.run(workspace.uri, 'stash', 'pop')
 
+			track('stash-pop-latest', { success: true })
+
 		} catch (ex) {
+			track('stash-pop-latest', { success: false })
+
 			Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 			throw `Popping stash failed.`
@@ -53,6 +59,8 @@ export async function stashPopLatest() {
 }
 
 export async function stashPop() {
+	track('stash-pop')
+
 	await vscode.commands.executeCommand('git.stashPop')
 
 	updateStashCountBar()
@@ -63,6 +71,8 @@ export async function stashClear() {
 	if (!workspace) {
 		return null
 	}
+
+	track('stash-clear')
 
 	await Git.run(workspace.uri, 'stash', 'clear')
 

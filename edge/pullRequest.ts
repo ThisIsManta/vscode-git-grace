@@ -39,5 +39,7 @@ export default async function () {
 		}
 	}
 
+	track('pull-request')
+
 	open(webOrigin + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
 }

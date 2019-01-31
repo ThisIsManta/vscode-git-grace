@@ -6,6 +6,8 @@ import * as Git from './Git'
 import push from './push'
 
 export default async function (options: { token: vscode.CancellationToken }) {
+	track('fetch')
+
 	const updated = await fetchInternal(options.token)
 	if (updated === null) {
 		return null
@@ -95,6 +97,8 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 			return null
 		}
 
+		track('fetch:fast-forward')
+
 		await abortIfStatusHasChanged()
 
 		await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Fast Forwarding...' }, async () => {
@@ -120,6 +124,8 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 		if (!select) {
 			return null
 		}
+
+		track('fetch:push-now')
 
 		await abortIfStatusHasChanged()
 
@@ -163,6 +169,8 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 		await abortIfStatusHasChanged()
 
 		if (select === 'Rebase Now') {
+			track('fetch:rebase-now')
+
 			await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Rebasing...' }, async () => {
 				try {
 					await Git.run(workspace.uri, 'rebase', '--autostash', status.remote)
@@ -188,6 +196,8 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 			})
 
 		} else {
+			track('fetch:merge-now')
+
 			await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Merging...' }, async () => {
 				try {
 					await Git.run(workspace.uri, 'merge', status.remote)

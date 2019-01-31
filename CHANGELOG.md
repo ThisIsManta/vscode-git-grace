@@ -1,4 +1,5 @@
 ### 2.10.0
+- Added usage tracking.
 - Amended `gitGrace.openWeb` command so it lists the current commit hash and branch names instead of the partial URLs.
 - Amended `gitGrace.sync` command so it does push before pull.
 - Amended `gitGrace.sync` command so it deletes merged local branches that have no remote counterparts.

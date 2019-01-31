@@ -4,10 +4,10 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 import { getMergedBranchNames } from './deleteMergedBranches'
-import { trySyncRemoteBranch } from './fetch'
-import Log from './Log'
 
 export default async function () {
+	track('sync')
+
 	const errorCount = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Syncing...', cancellable: true }, async (progress, token) => {
 		const workspaceList = await Util.getWorkspaceListWithGitEnabled()
 		if (workspaceList.length === 0) {

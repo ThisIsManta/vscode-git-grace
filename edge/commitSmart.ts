@@ -43,6 +43,8 @@ export default async function () {
 			sourceControlPanel.inputBox.value = pick.activeItems.length > 0 ? pick.activeItems[0].label : _.upperFirst(pick.value)
 		}
 
+		track('commit-smart')
+
 		await vscode.commands.executeCommand('workbench.view.scm')
 	})
 	pick.show()

@@ -11,6 +11,8 @@ export default async function () {
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.local === '' || status.local === 'master') {
+		track('branch:new')
+
 		return vscode.commands.executeCommand('git.branch')
 
 	} else {
@@ -22,9 +24,13 @@ export default async function () {
 			`You are on the local branch "${status.local}".`,
 			{ modal: true }, ...options)
 		if (select === options[0]) {
+			track('branch:new')
+
 			return vscode.commands.executeCommand('git.branch')
 
 		} else if (select === options[1]) {
+			track('branch:rename')
+
 			await vscode.commands.executeCommand('git.renameBranch')
 
 			const oldStatus = status

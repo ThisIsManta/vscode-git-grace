@@ -14,25 +14,34 @@ export default async function urgent() {
 		return null
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing Work-In-Progress...' }, async () => {
-		for (const workspace of workspaceList) {
-			const status = await Git.getCurrentBranchStatus(workspace.uri)
-			if (!status.dirty) {
-				continue
+	try {
+		await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pushing Work-In-Progress...' }, async () => {
+			for (const workspace of workspaceList) {
+				const status = await Git.getCurrentBranchStatus(workspace.uri)
+				if (!status.dirty) {
+					continue
+				}
+
+				await Git.run(workspace.uri, 'commit', '--all', '--untracked-files', '--message=(work-in-progress)')
+
+				const tagName = 'WIP/' + _.compact((new Date().toISOString()).split(/\W/)).join('-')
+				await Git.run(workspace.uri, 'tag', tagName)
+
+				try {
+					await Git.run(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName, { retry: 1 })
+				} catch (ex) {
+					throw `Pushing failed.`
+				}
 			}
+		})
 
-			await Git.run(workspace.uri, 'commit', '--all', '--untracked-files', '--message=(work-in-progress)')
+		track('urgent', { success: true })
 
-			const tagName = 'WIP/' + _.compact((new Date().toISOString()).split(/\W/)).join('-')
-			await Git.run(workspace.uri, 'tag', tagName)
+	} catch (ex) {
+		track('urgent', { success: false })
 
-			try {
-				await Git.run(workspace.uri, 'push', '--no-verify', 'origin', 'refs/tags/' + tagName, { retry: 1 })
-			} catch (ex) {
-				throw `Pushing failed.`
-			}
-		}
-	})
+		throw ex
+	}
 
 	vscode.commands.executeCommand('workbench.action.quit')
 }
@@ -75,6 +84,8 @@ export async function urgentRestore(options = { prompt: false }) {
 			return null
 		}
 	}
+
+	track('urgent-restore')
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Restoring Work-In-Progress...' }, async () => {
 		for (const { workspace, branchName, tagName, distance } of waitList) {

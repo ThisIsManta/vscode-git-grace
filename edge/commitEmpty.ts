@@ -25,6 +25,8 @@ export default async function () {
 		throw `Committing failed.`
 	}
 
+	track('commit-empty')
+
 	vscode.window.setStatusBarMessage(`Committing completed`, 10000)
 
 	vscode.commands.executeCommand('git.refresh')

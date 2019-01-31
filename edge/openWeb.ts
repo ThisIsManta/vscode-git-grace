@@ -26,20 +26,22 @@ export default async function () {
 		? vscode.window.activeTextEditor.document.uri.fsPath
 		: ''
 
-	const pickList: Array<vscode.QuickPickItem & { url: string }> = []
+	const pickList: Array<vscode.QuickPickItem & { url: string, kind: number }> = []
 
 	const commitHash = await Git.getCommitHash(workspace.uri)
 	if (commitHash) {
 		if (filePath) {
 			pickList.push({
 				label: commitHash,
-				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath)
+				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath),
+				kind: 1,
 			})
 
 		} else {
 			pickList.push({
 				label: commitHash,
-				url: webOrigin + `/commit/${commitHash}`
+				url: webOrigin + `/commit/${commitHash}`,
+				kind: 2,
 			})
 		}
 	}
@@ -49,19 +51,22 @@ export default async function () {
 		if (filePath) {
 			pickList.push({
 				label: 'origin/master',
-				url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath)
+				url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath),
+				kind: 3,
 			})
 
 		} else if (workspacePath === gitPath) {
 			pickList.push({
 				label: 'origin/master',
-				url: webOrigin
+				url: webOrigin,
+				kind: 4,
 			})
 
 		} else {
 			pickList.push({
 				label: 'origin/master',
-				url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath)
+				url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath),
+				kind: 5,
 			})
 		}
 	}
@@ -71,19 +76,22 @@ export default async function () {
 		if (filePath) {
 			pickList.push({
 				label: status.remote,
-				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath)
+				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath),
+				kind: 6,
 			})
 
 		} else if (workspacePath === gitPath) {
 			pickList.push({
 				label: status.remote,
-				url: webOrigin + `/tree/${status.local}`
+				url: webOrigin + `/tree/${status.local}`,
+				kind: 7,
 			})
 
 		} else {
 			pickList.push({
 				label: status.remote,
-				url: webOrigin + `/tree/${status.local}/` + normalizeWebLocation(workspacePath)
+				url: webOrigin + `/tree/${status.local}/` + normalizeWebLocation(workspacePath),
+				kind: 8,
 			})
 		}
 	}
@@ -100,6 +108,9 @@ export default async function () {
 	const pick = await vscode.window.showQuickPick(pickList.map(pick => ({ ...pick, description: workspace.name })))
 	if (pick) {
 		open(pick.url)
+
+		track('open-web', { kind: pick.kind })
+
 		return null
 	}
 }
