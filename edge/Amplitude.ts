@@ -5,7 +5,7 @@ import * as vscode from 'vscode'
 
 const queue: Array<object> = []
 
-function trackExternal(eventName: string, eventData?: object) {
+export function track(eventName: string, eventData?: object) {
 	queue.push({
 		device_id: vscode.env.machineId,
 		event_type: eventName,
@@ -26,9 +26,3 @@ const trackInternal = _.debounce(() => {
 	})
 	queue.splice(0, queue.length)
 }, 30000)
-
-declare global {
-	const track: typeof trackExternal
-}
-
-(global as any).track = trackExternal

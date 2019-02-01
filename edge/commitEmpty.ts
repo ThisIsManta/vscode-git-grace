@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 
 import * as Util from './Util'
 import * as Git from './Git'
+import { track } from './Amplitude'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()

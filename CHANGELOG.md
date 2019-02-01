@@ -1,3 +1,6 @@
+### 2.10.1
+- Fixed could not find usage tracking function.
+
 ### 2.10.0
 - Added usage tracking.
 - Amended `gitGrace.openWeb` command so it lists the current commit hash and branch names instead of the partial URLs.

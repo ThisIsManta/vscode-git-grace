@@ -3,6 +3,7 @@ import * as vscode from 'vscode'
 
 import * as Util from './Util'
 import * as Git from './Git'
+import { track } from './Amplitude'
 
 const versionMatcher = /^\d+\.\d+\.\d+$/
 const endWithParenthesisMatcher = /\s*\(.+\)\s*$/

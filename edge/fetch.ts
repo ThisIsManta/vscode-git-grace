@@ -4,6 +4,7 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 import push from './push'
+import { track } from './Amplitude'
 
 export default async function (options: { token: vscode.CancellationToken }) {
 	track('fetch')

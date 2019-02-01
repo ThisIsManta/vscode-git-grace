@@ -4,6 +4,7 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 import { trySyncRemoteBranch } from './fetch'
+import { track } from './Amplitude'
 
 export default async function (options: { location?: vscode.ProgressLocation, token?: vscode.CancellationToken } = {}) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()

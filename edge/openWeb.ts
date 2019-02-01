@@ -4,6 +4,7 @@ import * as open from 'open'
 
 import * as Util from './Util'
 import * as Git from './Git'
+import { track } from './Amplitude'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
