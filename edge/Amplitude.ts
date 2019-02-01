@@ -10,7 +10,7 @@ export function track(eventName: string, eventData?: object) {
 		device_id: vscode.env.machineId,
 		event_type: eventName,
 		event_properties: eventData,
-		app_version: vscode.extensions.getExtension('thisismanta.vscode-git-grace').packageJSON.version,
+		app_version: vscode.extensions.getExtension('thisismanta.git-grace').packageJSON.version,
 		os_name: os.platform(),
 		language: vscode.env.language,
 	})
