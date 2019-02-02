@@ -1,3 +1,6 @@
+### 2.10.3
+- Fixed usage tracking function.
+
 ### 2.10.2
 - Fixed wrong extension identifier in the usage tracking function.
 
