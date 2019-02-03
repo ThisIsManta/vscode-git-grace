@@ -22,7 +22,7 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.26.0"
+        "vscode": "^1.30.2"
     },
     "activationEvents": [
         "workspaceContains:.git"
