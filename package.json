@@ -132,6 +132,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.deleteBranch",
+                "title": "Delete Branch... (Persistent)",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.deleteMergedBranches",
                 "title": "Delete Merged Branches...",
                 "category": "Git"
@@ -231,6 +236,10 @@
             {
                 "key": "alt+g g",
                 "command": "gitGrace.sync"
+            },
+            {
+                "key": "alt+g x",
+                "command": "gitGrace.deleteBranch"
             },
             {
                 "key": "alt+g o",

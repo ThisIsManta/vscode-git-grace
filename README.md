@@ -49,6 +49,7 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+s p_|`gitGrace.stashPopLatest`|Restore the last stash without hassle.|
 |_alt+s l_|`gitGrace.stashPop`|Open the stash list and restore the selected stash.|
 |_alt+s c_|`gitGrace.stashClear`|Clear the stash list.|
+|_alt+s x_|`gitGrace.deleteBranch`|Similar to `git.deleteBranch`.|
 ||`gitGrace.deleteMergedBranches`|Delete all the branches that have been merged to _origin/master_. This command is available in the command palette as _Delete Merged Branches_.|
 
 **TortoiseGit** integration (Windows exclusive) is slightly modified from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension. By default, the path to **TortoiseGit** executable is `C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe`, but it can be changed later at `gitGrace.tortoiseGitPath` setting.

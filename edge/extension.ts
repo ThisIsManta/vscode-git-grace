@@ -71,6 +71,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', Queue.put(sync)))
 
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteBranch', Queue.put(async () => vscode.commands.executeCommand('git.deleteBranch'))))
+
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches', Queue.put(deleteMergedBranches)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', Queue.put(async () => { /* Cancellation will be done by the second parameter of this `Queue.put()` */ }, [async () => {}, fetch, deleteMergedBranches])))
