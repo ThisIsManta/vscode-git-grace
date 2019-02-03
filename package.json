@@ -2,7 +2,7 @@
     "name": "git-grace",
     "displayName": "Manta's Git Grace",
     "description": "Add persistent Git commands.",
-    "version": "2.10.3",
+    "version": "2.11.0",
     "publisher": "thisismanta",
     "categories": [
         "Other"
