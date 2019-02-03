@@ -30,8 +30,8 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g r_|`git.cleanAll`|Revert dirty files.|
 |_alt+g c_|`gitGrace.commitSmart`|Open **Visual Studio Code** built-in **Git** source control panel and prompt last 500 commit messages that were written by the current user.|
 |_alt+g a_|`gitGrace.commitAmend`|Similar to `git.undoCommit` but prompt a confirmation dialog beforehand.|
-|_alt+g q_|`gitGrace.commitSquash`|Commit with _--allow-empty_ and the message of _"(empty commit)"_.|
 |_alt+g e_|`gitGrace.commitEmpty`|Commit with _--allow-empty_ and the message of _"(empty commit)"_.|
+|_alt+g q_|`gitGrace.squash`|Modify the selected commit in the current path with the current staged files. There is a chance of conflicts; use at your own risk.|
 |_alt+g n_|`gitGrace.branch`|Create a new branch at the current commit, or rename the current non-master local branch. You will be asked to type a branch name.|
 |_alt+g s_|`gitGrace.checkout`|Checkout an existing branch while fetching the remote branches in the background. You will be asked if you want to stash/discard the dirty files and discard the dangling commits beforehand.|
 |_alt+g m_|`gitGrace.master`|Checkout the commit at _origin/master_ without creating a branch (detached head). You will be asked if you want to stash/discard the dirty files and discard the dangling commits beforehand.|
