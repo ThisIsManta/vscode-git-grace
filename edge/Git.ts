@@ -128,10 +128,10 @@ export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
 }
 
 export async function getBranchCounterparts(link: vscode.Uri) {
-	const result = await run(link, 'for-each-ref', '--format="%(refname)|%(upstream)"', 'refs/heads/')
+	const result = await run(link, 'for-each-ref', '--format=%(refname)|%(upstream)', 'refs/heads/')
 	return _.chain(result.split('\n'))
 		.compact()
-		.map(line => _.trim(line, '"').split('|'))
+		.map(line => line.split('|'))
 		.map(([local, remote]) => ({ local: local.replace(/^refs\/heads\//, ''), remote: remote.replace(/^refs\/remotes\//, '') || null }))
 		.value()
 }

@@ -106,11 +106,14 @@ export default async function () {
 		return null
 	}
 
-	const pick = await vscode.window.showQuickPick(pickList.map(pick => ({ ...pick, description: workspace.name })))
-	if (pick) {
-		open(pick.url)
+	const select = await vscode.window.showQuickPick(
+		pickList.map(pick => ({ ...pick, description: workspace.name })),
+		{ placeHolder: 'Select a reference to open in GitHub' }
+	)
+	if (select) {
+		open(select.url)
 
-		track('open-web', { kind: pick.kind })
+		track('open-web', { kind: select.kind })
 
 		return null
 	}
