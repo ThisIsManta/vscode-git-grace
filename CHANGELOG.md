@@ -1,3 +1,7 @@
+### 2.11.0
+- Added `gitGrace.squash` command.
+- Removed the keybindings for `gitGrace.urgent` and `gitGrace.urgentRestore` commands.
+
 ### 2.10.4
 - Fixed deprecated Git built-in extension API.
 

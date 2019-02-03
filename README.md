@@ -30,6 +30,7 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g r_|`git.cleanAll`|Revert dirty files.|
 |_alt+g c_|`gitGrace.commitSmart`|Open **Visual Studio Code** built-in **Git** source control panel and prompt last 500 commit messages that were written by the current user.|
 |_alt+g a_|`gitGrace.commitAmend`|Similar to `git.undoCommit` but prompt a confirmation dialog beforehand.|
+|_alt+g q_|`gitGrace.commitSquash`|Commit with _--allow-empty_ and the message of _"(empty commit)"_.|
 |_alt+g e_|`gitGrace.commitEmpty`|Commit with _--allow-empty_ and the message of _"(empty commit)"_.|
 |_alt+g n_|`gitGrace.branch`|Create a new branch at the current commit, or rename the current non-master local branch. You will be asked to type a branch name.|
 |_alt+g s_|`gitGrace.checkout`|Checkout an existing branch while fetching the remote branches in the background. You will be asked if you want to stash/discard the dirty files and discard the dangling commits beforehand.|
@@ -38,8 +39,8 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g j_|`gitGrace.pullRequest`|Push and open the link to GitHub pull-request creation page in your web browser, which is something like _http://github.com/user/repository/compare/master...branch_.|
 |_alt+g g_|`gitGrace.sync`|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.|
 |_alt+g o_|`gitGrace.showOutput`|Open the output channel for **Git Grace** extension.|
-|_alt+g q_|`gitGrace.urgent`|Commit all files with the message of _"(work-in-progress)"_, create _WIP_ tag, and push only the tag. This command is useful when you want to leave your computer and continue where you left off on another computer.|
-|_alt+g w_|`gitGrace.urgentRestore`|Checkout and delete WIP tag that corresponding to the current local branch.|
+||`gitGrace.urgent`|Commit all files with the message of _"(work-in-progress)"_, create _WIP_ tag, and push only the tag. This command is useful when you want to leave your computer and continue where you left off on another computer.|
+||`gitGrace.urgentRestore`|Checkout and delete WIP tag that corresponding to the current local branch.|
 |_alt+g l_|`tortoiseGit.showLog`|Show the log messages for the whole repository.|
 |_alt+g k_|`tortoiseGit.showFileLog`|Show the log messages for the current active file.|
 |_alt+g v_|`tortoiseGit.commit`|Commit with **TortoiseGit**.|

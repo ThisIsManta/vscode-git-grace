@@ -67,6 +67,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.squash",
+                "title": "Squash",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.urgent",
                 "title": "Push as Work-In-Progress",
                 "category": "Git"
@@ -201,11 +206,7 @@
             },
             {
                 "key": "alt+g q",
-                "command": "gitGrace.urgent"
-            },
-            {
-                "key": "alt+g w",
-                "command": "gitGrace.urgentRestore"
+                "command": "gitGrace.squash"
             },
             {
                 "key": "alt+g m",
