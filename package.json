@@ -270,7 +270,7 @@
         ]
     },
     "scripts": {
-        "postinstall": "node ./node_modules/vscode/bin/install",
+        "postinstall": "node ./node_modules/vscode/bin/install && node ./edge/postinstall",
         "compile": "tsc --watch --project ./",
         "vscode:prepublish": "tsc --skipLibCheck --project ./",
         "preversion": "git push --dry-run origin master:master",

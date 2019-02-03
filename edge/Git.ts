@@ -4,23 +4,12 @@ import * as cp from 'child_process'
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
 
+import * as GitBuiltInExtension from './GitBuiltInExtension.d'
 import Log from './Log'
 import sleep from './sleep'
 
-namespace BuiltInGitExtension {
-	export interface Repository {
-		readonly rootUri: vscode.Uri
-		readonly inputBox: vscode.SourceControlInputBox
-	}
-
-	export interface API {
-		getRepositories(): Promise<Repository[]>
-		getGitPath(): Promise<string>
-	}
-}
-
-export function getBuiltInGitExtension() {
-	return vscode.extensions.getExtension<BuiltInGitExtension.API>('vscode.git')
+export function getGitBuiltInExtension() {
+	return vscode.extensions.getExtension<GitBuiltInExtension.GitExtension>('vscode.git')
 }
 
 let gitExecutablePath = ''
@@ -61,7 +50,7 @@ const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: 
 	Log.appendLine('git ' + actualParameters.join(' '))
 
 	if (gitExecutablePath === '') {
-		gitExecutablePath = await getBuiltInGitExtension().exports.getGitPath()
+		gitExecutablePath = await getGitBuiltInExtension().exports.getAPI(1).git.path
 	}
 
 	const pipe = cp.spawn(gitExecutablePath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })

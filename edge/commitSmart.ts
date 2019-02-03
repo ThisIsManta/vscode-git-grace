@@ -38,7 +38,7 @@ export default async function () {
 	pick.onDidAccept(async () => {
 		pick.hide()
 
-		const repositoryList = await Git.getBuiltInGitExtension().exports.getRepositories()
+		const repositoryList = await Git.getGitBuiltInExtension().exports.getAPI(1).repositories
 		const sourceControlPanel = repositoryList.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
 		if (sourceControlPanel) {
 			sourceControlPanel.inputBox.value = pick.activeItems.length > 0 ? pick.activeItems[0].label : _.upperFirst(pick.value)

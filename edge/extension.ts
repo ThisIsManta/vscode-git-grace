@@ -21,11 +21,10 @@ import deleteMergedBranches from './deleteMergedBranches'
 import sleep from './sleep'
 import TortoiseGit from './TortoiseGit'
 import Log from './Log'
-import { track } from './Amplitude'
 
 export async function activate(context: vscode.ExtensionContext) {
     // Prevent "No Git repository" error throwing from built-in Git extension
-    while (Git.getBuiltInGitExtension().isActive === false) {
+    while (Git.getGitBuiltInExtension().isActive === false) {
         await sleep(500)
     }
 
