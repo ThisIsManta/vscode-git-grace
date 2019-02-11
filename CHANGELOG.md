@@ -1,5 +1,6 @@
 ### 2.11.1
 - Amended `gitGrace.master` command so it shows the loading status.
+- Amended `gitGrace.branch` command so it stops calling `git.branch` command.
 
 ### 2.11.0
 - Added `gitGrace.squash` command.
