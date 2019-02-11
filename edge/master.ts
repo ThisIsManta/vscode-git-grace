@@ -18,27 +18,31 @@ export default async function () {
 		return null
 	}
 
-	await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Switching to origin/master...' }, async () => {
+		await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
 
-	const currentHash = await Git.getCommitHash(workspace.uri)
-	const masterHash = await Git.getCommitHash(workspace.uri, 'origin/master')
-	if (currentHash === masterHash) {
-		vscode.window.showInformationMessage(`You are on "origin/master" already.`)
-		return null
-	}
+		if (status.local === '') {
+			const currentHash = await Git.getCommitHash(workspace.uri)
+			const masterHash = await Git.getCommitHash(workspace.uri, 'origin/master')
+			if (currentHash === masterHash) {
+				vscode.window.showInformationMessage(`You are on "origin/master" already.`)
+				return null
+			}
 
-	if (status.local === '' && await tryAbortBecauseOfDanglingCommits(workspace.uri, '"origin/master"')) {
-		return null
-	}
+			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, '"origin/master"')) {
+				return null
+			}
+		}
 
-	track('master')
+		track('master')
 
-	try {
-		await Git.run(workspace.uri, 'checkout', '--detach', 'origin/master')
+		try {
+			await Git.run(workspace.uri, 'checkout', '--detach', 'origin/master')
 
-	} catch (ex) {
-		throw `Checking out "origin/master" failed.`
-	}
+		} catch (ex) {
+			throw `Checking out "origin/master" failed.`
+		}
 
-	vscode.commands.executeCommand('git.refresh')
+		vscode.commands.executeCommand('git.refresh')
+	})
 }

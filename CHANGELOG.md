@@ -1,3 +1,6 @@
+### 2.11.1
+- Amended `gitGrace.master` command so it shows the loading status.
+
 ### 2.11.0
 - Added `gitGrace.squash` command.
 - Added `gitGrace.deleteBranch` command.
