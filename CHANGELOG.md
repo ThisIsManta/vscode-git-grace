@@ -1,5 +1,6 @@
 ### 2.12.0
 - Added `gitGrace.blame` command in favor of `tortoiseGit.blame` command.
+- Amended `gitGrace.openWeb` command so it scrolls to the current line.
 
 ### 2.11.1
 - Amended `gitGrace.master` command so it shows the loading status.

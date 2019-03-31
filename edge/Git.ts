@@ -53,7 +53,7 @@ const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: 
 		gitExecutablePath = await getGitBuiltInExtension().exports.getAPI(1).git.path
 	}
 
-	const pipe = cp.spawn(gitExecutablePath, actualParameters, { cwd: link.fsPath.replace(/\\/g, fp.posix.sep) })
+	const pipe = cp.spawn(gitExecutablePath, actualParameters, { cwd: getRepositoryLink(link).fsPath.replace(/\\/g, fp.posix.sep) })
 
 	if (token) {
 		token.onCancellationRequested(() => {
@@ -84,16 +84,25 @@ const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: 
 	})
 })
 
+const repositoryCache = new Map<string, vscode.Uri>()
+
 export function getRepositoryLink(link: vscode.Uri) {
 	if (!link) {
 		return null
+	}
+
+	const directoryPath = fp.dirname(link.fsPath)
+	if (repositoryCache.has(directoryPath)) {
+		return repositoryCache.get(directoryPath)
 	}
 
 	const pathList = (typeof link === 'string' ? link : link.fsPath).split(/\\|\//)
 	for (let rank = pathList.length; rank > 0; rank--) {
 		const path = [...pathList.slice(0, rank), '.git'].join(fp.sep)
 		if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
-			return vscode.Uri.file(fp.dirname(path))
+			const repositoryLink = vscode.Uri.file(fp.dirname(path))
+			repositoryCache.set(directoryPath, repositoryLink)
+			return repositoryLink
 		}
 	}
 
@@ -212,14 +221,17 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 }
 
 export async function getFileStatus(link: vscode.Uri) {
+	const repositoryLink = await getRepositoryLink(link)
+
 	const status = await run(link, 'status', '--short')
 	return status.split('\n')
 		.filter(line => line.trim().length > 0)
 		.map(line => ({
-			status: line.substring(0, 2).trim(),
-			currentPath: _.last(line.substring(3).split('->')).trim(),
-			originalPath: _.first(line.substring(3).split('->')).trim(),
+			symbol: line.substring(0, 2).trim(),
+			currentLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, _.last(line.substring(3).split('->')).trim())),
+			originalLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, _.first(line.substring(3).split('->')).trim())),
 		}))
+		.find(file => file.currentLink.fsPath === link.fsPath)
 }
 
 export async function getBranchTopology(link: vscode.Uri, localBranchName: string, remoteBranchName: string) {
@@ -275,4 +287,25 @@ export function getWebOrigin(workspace: vscode.WorkspaceFolder) {
 	}
 
 	return dict.get('[remote "origin"]') || null
+}
+
+export async function getFileBeforeRenamed(link: vscode.Uri) {
+	const repositoryLink = getRepositoryLink(link)
+	const relativeCurrentFilePath = _.trim(link.fsPath.substring(repositoryLink.fsPath.length), fp.sep)
+
+	let status = await getFileStatus(link)
+	if (status === undefined) {
+		return null
+	}
+
+	if (status.symbol === '??') {
+		await run(link, 'add', relativeCurrentFilePath.replace(/\\/g, '/'))
+		status = await getFileStatus(link)
+	}
+
+	if (status.symbol === 'R' && status.currentLink.fsPath === link.fsPath) {
+		return status.originalLink
+	}
+
+	return null
 }

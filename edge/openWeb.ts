@@ -23,9 +23,13 @@ export default async function () {
 		return _.trim(path.substring(repositoryPath.length).replace(/\\/g, '/'), '/')
 	}
 
-	const filePath = Git.getRepositoryLink(Util.getCurrentFile())
-		? Util.getCurrentFile().fsPath
+	const currentFile = Util.getCurrentFile()
+	const renamedFile = await Git.getFileBeforeRenamed(currentFile)
+	const filePath = Git.getRepositoryLink(currentFile)
+		? (renamedFile || currentFile).fsPath
 		: ''
+
+	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor)
 
 	const pickList: Array<vscode.QuickPickItem & { url: string, kind: number }> = []
 
@@ -34,7 +38,7 @@ export default async function () {
 		if (filePath) {
 			pickList.push({
 				label: commitHash,
-				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath),
+				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath) + lineHash,
 				kind: 1,
 			})
 
@@ -52,7 +56,7 @@ export default async function () {
 		if (filePath) {
 			pickList.push({
 				label: 'origin/master',
-				url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath),
+				url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath) + lineHash,
 				kind: 3,
 			})
 
@@ -77,7 +81,7 @@ export default async function () {
 		if (filePath) {
 			pickList.push({
 				label: status.remote,
-				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath),
+				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath) + lineHash,
 				kind: 6,
 			})
 
@@ -117,4 +121,15 @@ export default async function () {
 
 		return null
 	}
+}
+
+export async function getLineHashForGitHub(editor: vscode.TextEditor) {
+	if (await Git.getFileStatus(editor.document.uri)) {
+		return ''
+	}
+
+	return '#' + _.uniq([
+		_.first(editor.selections).start.line,
+		_.last(editor.selections).end.line,
+	]).map(no => 'L' + (no + 1)).join('-')
 }

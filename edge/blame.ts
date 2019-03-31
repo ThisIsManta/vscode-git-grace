@@ -5,6 +5,7 @@ import * as open from 'open'
 import * as Util from './Util'
 import * as Git from './Git'
 import { track } from './Amplitude'
+import { getLineHashForGitHub } from './openWeb'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
@@ -19,12 +20,13 @@ export default async function () {
 
 	track('blame')
 
-	const commitHash = await Git.getCommitHash(workspace.uri)
-
 	const currentFile = Util.getCurrentFile()
-	const renamedFile = await Util.getCurrentFileBeforeRenamed()
-	const repositoryPath = Git.getRepositoryLink(currentFile).fsPath
-	const relativeFilePath = _.trim((renamedFile || currentFile).fsPath.substring(repositoryPath.length).replace(/\\/g, '/'), '/')
+	const renamedFile = await Git.getFileBeforeRenamed(currentFile)
+	const repositoryLink = Git.getRepositoryLink(currentFile)
+	const relativeFilePath = _.trim((renamedFile || currentFile).fsPath.substring(repositoryLink.fsPath.length).replace(/\\/g, '/'), '/')
 
-	open(webOrigin + '/blame/' + commitHash + '/' + relativeFilePath)
+	const commitHash = await Git.getCommitHash(workspace.uri)
+	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor)
+
+	open(webOrigin + '/blame/' + commitHash + '/' + relativeFilePath + lineHash)
 }
