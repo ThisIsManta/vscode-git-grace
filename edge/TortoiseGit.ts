@@ -114,6 +114,6 @@ export default class TortoiseGit {
         if (additionalParams) {
             executable += ' ' + additionalParams
         }
-        cp.exec(executable, { cwd: Git.getRepositoryPath(folderPath.uri) })
+        cp.exec(executable, { cwd: Git.getRepositoryLink(folderPath.uri).fsPath })
     }
 }

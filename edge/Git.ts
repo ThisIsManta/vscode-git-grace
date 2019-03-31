@@ -84,7 +84,7 @@ const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: 
 	})
 })
 
-export function getRepositoryPath(link: vscode.Uri | string) {
+export function getRepositoryLink(link: vscode.Uri) {
 	if (!link) {
 		return null
 	}
@@ -93,7 +93,7 @@ export function getRepositoryPath(link: vscode.Uri | string) {
 	for (let rank = pathList.length; rank > 0; rank--) {
 		const path = [...pathList.slice(0, rank), '.git'].join(fp.sep)
 		if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
-			return fp.dirname(path)
+			return vscode.Uri.file(fp.dirname(path))
 		}
 	}
 
@@ -243,7 +243,7 @@ const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
 const urlPattern = /^\turl\s*=\s*(.+)\.git$/
 
 export function getWebOrigin(workspace: vscode.WorkspaceFolder) {
-	const repositoryPath = getRepositoryPath(workspace.uri)
+	const repositoryPath = getRepositoryLink(workspace.uri).fsPath
 	const confPath = fp.join(repositoryPath, '.git', 'config')
 	if (!fs.existsSync(confPath)) {
 		return null

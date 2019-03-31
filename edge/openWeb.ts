@@ -13,18 +13,18 @@ export default async function () {
 	}
 	const workspacePath = workspace.uri.fsPath
 
-	const gitPath = Git.getRepositoryPath(workspace.uri)
-	function normalizeWebLocation(path: string) {
-		return _.trim(path.substring(gitPath.length).replace(/\\/g, '/'), '/')
-	}
-
 	const webOrigin = await Git.getWebOrigin(workspace)
 	if (!webOrigin || webOrigin.startsWith('https://github.com/') === false) {
 		return null
 	}
 
-	const filePath = vscode.window.activeTextEditor && Git.getRepositoryPath(vscode.window.activeTextEditor.document.uri.fsPath)
-		? vscode.window.activeTextEditor.document.uri.fsPath
+	const repositoryPath = Git.getRepositoryLink(workspace.uri).fsPath
+	function normalizeWebLocation(path: string) {
+		return _.trim(path.substring(repositoryPath.length).replace(/\\/g, '/'), '/')
+	}
+
+	const filePath = Git.getRepositoryLink(Util.getCurrentFile())
+		? Util.getCurrentFile().fsPath
 		: ''
 
 	const pickList: Array<vscode.QuickPickItem & { url: string, kind: number }> = []
@@ -56,7 +56,7 @@ export default async function () {
 				kind: 3,
 			})
 
-		} else if (workspacePath === gitPath) {
+		} else if (workspacePath === repositoryPath) {
 			pickList.push({
 				label: 'origin/master',
 				url: webOrigin,
@@ -81,7 +81,7 @@ export default async function () {
 				kind: 6,
 			})
 
-		} else if (workspacePath === gitPath) {
+		} else if (workspacePath === repositoryPath) {
 			pickList.push({
 				label: status.remote,
 				url: webOrigin + `/tree/${status.local}`,
