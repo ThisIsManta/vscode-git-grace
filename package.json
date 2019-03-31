@@ -127,6 +127,11 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.blame",
+                "title": "Blame...",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.sync",
                 "title": "Sync (Gracefully)",
                 "category": "Git"
@@ -259,7 +264,7 @@
             },
             {
                 "key": "alt+g b",
-                "command": "tortoiseGit.blame"
+                "command": "gitGrace.blame"
             },
             {
                 "key": "alt+s s",

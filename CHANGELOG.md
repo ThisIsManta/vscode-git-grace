@@ -1,3 +1,6 @@
+### 2.12.0
+- Added `gitGrace.blame` command in favor of `tortoiseGit.blame` command.
+
 ### 2.11.1
 - Amended `gitGrace.master` command so it shows the loading status.
 - Amended `gitGrace.branch` command so it stops calling `git.branch` command.

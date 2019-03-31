@@ -211,6 +211,17 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 	return { local, remote, dirty, sync, distance }
 }
 
+export async function getFileStatus(link: vscode.Uri) {
+	const status = await run(link, 'status', '--short')
+	return status.split('\n')
+		.filter(line => line.trim().length > 0)
+		.map(line => ({
+			status: line.substring(0, 2).trim(),
+			currentPath: _.last(line.substring(3).split('->')).trim(),
+			originalPath: _.first(line.substring(3).split('->')).trim(),
+		}))
+}
+
 export async function getBranchTopology(link: vscode.Uri, localBranchName: string, remoteBranchName: string) {
 	const result = await run(link, 'rev-list', '--topo-order', '--left-right', localBranchName + '...' + remoteBranchName, '--format=format:%P%n%aE%n%aI%n%f')
 	if (result.trim() === '') {

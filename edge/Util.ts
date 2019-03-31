@@ -81,3 +81,23 @@ export function getCurrentFile() {
 
 	return vscode.window.activeTextEditor.document.uri
 }
+
+export async function getCurrentFileBeforeRenamed() {
+	const currentFile = getCurrentFile()
+	const repositoryLink = Git.getRepositoryLink(currentFile)
+	const relativeCurrentFilePath = _.trim(currentFile.fsPath.substring(repositoryLink.fsPath.length).replace(/\\/g, '/'), '/')
+
+	let fileStatusList = await Git.getFileStatus(repositoryLink)
+
+	if (fileStatusList.some(file => file.status === '??' && file.currentPath === relativeCurrentFilePath)) {
+		await Git.run(repositoryLink, 'add', relativeCurrentFilePath)
+		fileStatusList = await Git.getFileStatus(repositoryLink)
+	}
+
+	const renamedFile = fileStatusList.find(file => file.status === 'R' && file.currentPath === relativeCurrentFilePath)
+	if (renamedFile) {
+		return vscode.Uri.file(fp.join(repositoryLink.fsPath, renamedFile.originalPath.replace(/\//g, fp.sep)))
+	}
+
+	return null
+}

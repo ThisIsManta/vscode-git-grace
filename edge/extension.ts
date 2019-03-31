@@ -17,6 +17,7 @@ import branch from './branch'
 import checkout from './checkout'
 import openWeb from './openWeb'
 import pullRequest from './pullRequest'
+import blame from './blame'
 import sync from './sync'
 import deleteMergedBranches from './deleteMergedBranches'
 import sleep from './sleep'
@@ -68,6 +69,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.openWeb', Queue.put(openWeb)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', Queue.put(pullRequest, [push])))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.blame', Queue.put(blame)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', Queue.put(sync)))
 
