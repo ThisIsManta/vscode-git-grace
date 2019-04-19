@@ -195,6 +195,10 @@
                 "command": "git.openChange"
             },
             {
+                "key": "alt+g y",
+                "command": "git.stageAll"
+            },
+            {
                 "key": "alt+g z",
                 "command": "git.unstageAll"
             },
