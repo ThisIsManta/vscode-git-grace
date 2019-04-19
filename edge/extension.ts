@@ -68,7 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.openWeb', Queue.put(openWeb)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', Queue.put(pullRequest, [push])))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.pullRequest', Queue.put(pullRequest)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.blame', Queue.put(blame)))
 

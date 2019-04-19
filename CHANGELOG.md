@@ -1,3 +1,7 @@
+### 2.12.1
+- Added keybinding of `git.stageAll` command.
+- Amended `gitGrace.pullRequest` command so it does wait for `gitGrace.push` to be finished beforehand.
+
 ### 2.12.0
 - Added `gitGrace.blame` command in favor of `tortoiseGit.blame` command.
 - Amended `gitGrace.openWeb` command so it scrolls to the current line.
