@@ -33,7 +33,7 @@ export default async function () {
 
 	const pickList: Array<vscode.QuickPickItem & { url: string, kind: number }> = []
 
-	const commitHash = await Git.getCommitHash(workspace.uri)
+	const commitHash = await Git.getPushedCommitHash(workspace.uri)
 	if (commitHash) {
 		if (filePath) {
 			pickList.push({

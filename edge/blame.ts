@@ -25,7 +25,7 @@ export default async function () {
 	const repositoryLink = Git.getRepositoryLink(currentFile)
 	const relativeFilePath = _.trim((renamedFile || currentFile).fsPath.substring(repositoryLink.fsPath.length).replace(/\\/g, '/'), '/')
 
-	const commitHash = await Git.getCommitHash(workspace.uri)
+	const commitHash = await Git.getPushedCommitHash(workspace.uri)
 	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor)
 
 	open(webOrigin + '/blame/' + commitHash + '/' + relativeFilePath + lineHash)

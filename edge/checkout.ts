@@ -135,7 +135,7 @@ export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri) {
 }
 
 export async function tryAbortBecauseOfDanglingCommits(link: vscode.Uri, branchName: string) {
-	const commitHash = await Git.getCommitHash(link)
+	const commitHash = await Git.getCurrentCommitHash(link)
 
 	const containingLocalBranches = await Git.run(link, 'branch', '--contains', commitHash)
 	if (/^\*\s/.test(containingLocalBranches.trim()) === false) {

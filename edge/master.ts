@@ -22,8 +22,8 @@ export default async function () {
 		await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
 
 		if (status.local === '') {
-			const currentHash = await Git.getCommitHash(workspace.uri)
-			const masterHash = await Git.getCommitHash(workspace.uri, 'origin/master')
+			const currentHash = await Git.getCurrentCommitHash(workspace.uri)
+			const masterHash = await Git.getCurrentCommitHash(workspace.uri, 'origin/master')
 			if (currentHash === masterHash) {
 				vscode.window.showInformationMessage(`You are on "origin/master" already.`)
 				return null

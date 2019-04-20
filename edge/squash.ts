@@ -15,7 +15,7 @@ export default async function () {
 		throw `Nothing is to be squashed.`
 	}
 
-	const originalCommitHash = await Git.getCommitHash(workspace.uri)
+	const originalCommitHash = await Git.getCurrentCommitHash(workspace.uri)
 
 	const lastCommitText = await Git.run(workspace.uri, 'log', '--pretty=format:%H %s', '--no-merges', '--max-count=50', 'HEAD')
 	const lastCommitList = _.trimEnd(lastCommitText).split('\n')
@@ -42,7 +42,7 @@ export default async function () {
 			const filesHaveBeenPartiallyStaged = fileStatusList.some(file => file.staged) && !fileStatusList.every(file => file.staged)
 			await Git.run(workspace.uri, 'checkout', '--detach', 'HEAD')
 			await Git.run(workspace.uri, 'commit', '--no-verify', filesHaveBeenPartiallyStaged ? '' : '--all', '--message=(squash commit)')
-			const squashCommitHash = await Git.getCommitHash(workspace.uri)
+			const squashCommitHash = await Git.getCurrentCommitHash(workspace.uri)
 
 			if (filesHaveBeenPartiallyStaged) {
 				await Git.run(workspace.uri, 'stash', 'push', '--include-untracked')
