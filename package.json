@@ -57,6 +57,21 @@
                 "category": "Git"
             },
             {
+                "command": "gitGrace.stageAll",
+                "title": "Stage All Changes (Persistent)",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.unstageAll",
+                "title": "Unstage All Changes (Persistent)",
+                "category": "Git"
+            },
+            {
+                "command": "gitGrace.cleanAll",
+                "title": "Discard All Changes (Persistent)",
+                "category": "Git"
+            },
+            {
                 "command": "gitGrace.commitSmart",
                 "title": "Commit Smart",
                 "category": "Git"
@@ -196,15 +211,15 @@
             },
             {
                 "key": "alt+g y",
-                "command": "git.stageAll"
+                "command": "gitGrace.stageAll"
             },
             {
                 "key": "alt+g z",
-                "command": "git.unstageAll"
+                "command": "gitGrace.unstageAll"
             },
             {
                 "key": "alt+g r",
-                "command": "git.cleanAll"
+                "command": "gitGrace.cleanAll"
             },
             {
                 "key": "alt+g c",

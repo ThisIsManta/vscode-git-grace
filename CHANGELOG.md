@@ -1,3 +1,6 @@
+### 2.12.2
+- Added `gitGrace.stageAll`, `gitGrace.unstageAll`, and `gitGrace.cleanAll` commands in favor of the built-in commands.
+
 ### 2.12.1
 - Added keybinding of `git.stageAll` command.
 - Amended `gitGrace.pullRequest` command so it does wait for `gitGrace.push` to be finished beforehand.

@@ -18,11 +18,14 @@ import checkout from './checkout'
 import openWeb from './openWeb'
 import pullRequest from './pullRequest'
 import blame from './blame'
+import cleanAll from './cleanAll'
 import sync from './sync'
 import deleteMergedBranches from './deleteMergedBranches'
 import sleep from './sleep'
 import TortoiseGit from './TortoiseGit'
 import Log from './Log'
+import stageAll from './stageAll'
+import unstageAll from './unstageAll'
 
 export async function activate(context: vscode.ExtensionContext) {
     // Prevent "No Git repository" error throwing from built-in Git extension
@@ -33,6 +36,12 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
 
     context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(Util.updateWorkspaceList))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stageAll', Queue.put(stageAll)))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.unstageAll', Queue.put(unstageAll)))
+
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.cleanAll', Queue.put(cleanAll)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.fetch', Queue.put(fetch)))
 
@@ -78,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches', Queue.put(deleteMergedBranches)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', Queue.put(async () => { /* Cancellation will be done by the second parameter of this `Queue.put()` */ }, [async () => {}, fetch, deleteMergedBranches])))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches.cancel', Queue.put(async () => { /* Cancellation will be done by the second parameter of this `Queue.put()` */ }, [async () => { }, fetch, deleteMergedBranches])))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.showOutput', () => {
         Log.show()

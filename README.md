@@ -26,8 +26,9 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |_alt+g u_|`gitGrace.pull`|Fetch from _origin_ with _--prune_ then rebase normally.|
 |_alt+g p_|`gitGrace.push`|Push to _origin_ with _--tags_. You will be asked if _--force-with-lease_ is needed when the current local branch and its remote counterpart are out of sync.|
 |_alt+g d_|`git.openChange`|Open the diff window for the active file.|
-|_alt+g z_|`git.unstageAll`|Remove added files from the stage.|
-|_alt+g r_|`git.cleanAll`|Revert dirty files.|
+|_alt+g y_|`gitGrace.stageAll`|Add files to the stage.|
+|_alt+g z_|`gitGrace.unstageAll`|Remove added files from the stage.|
+|_alt+g r_|`gitGrace.cleanAll`|Revert dirty files.|
 |_alt+g c_|`gitGrace.commitSmart`|Open **Visual Studio Code** built-in **Git** source control panel and prompt last 500 commit messages that were written by the current user.|
 |_alt+g a_|`gitGrace.commitAmend`|Similar to `git.undoCommit` but prompt a confirmation dialog beforehand.|
 |_alt+g e_|`gitGrace.commitEmpty`|Commit with _--allow-empty_ and the message of _"(empty commit)"_.|
