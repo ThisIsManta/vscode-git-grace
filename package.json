@@ -152,11 +152,6 @@
                 "category": "Git"
             },
             {
-                "command": "gitGrace.deleteMergedBranches.cancel",
-                "title": "Delete Merged Branches (Cancel)",
-                "category": "Git"
-            },
-            {
                 "command": "gitGrace.showOutput",
                 "title": "Show Output (Git Grace)",
                 "category": "Git"

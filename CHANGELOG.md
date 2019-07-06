@@ -1,5 +1,6 @@
 ### 2.13.0
 - Removed `gitGrace.urgent` and `gitGrace.urgentRestore` commands due to low usage.
+- Amended `gitGrace.deleteMergedBranches` command so it reports its progress as a notification window instead of the status bar.
 
 ### 2.12.2
 - Added `gitGrace.stageAll`, `gitGrace.unstageAll`, and `gitGrace.cleanAll` commands in favor of the built-in commands.

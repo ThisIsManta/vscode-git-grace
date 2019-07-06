@@ -106,7 +106,7 @@ export default async function () {
 			}
 		}
 
-		const increment = Math.floor(100 / automatedWorkers.length)
+		const increment = 100 / automatedWorkers.length
 		let errorCount = 0
 		for (const worker of automatedWorkers) {
 			if (token.isCancellationRequested) {
