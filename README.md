@@ -21,7 +21,7 @@ Here are the solutions to the problems above:
 As soon as **Git Grace** is installed, the extension provides the following keybindings and commands:
 
 |Command/<br>Keybinding|Description|
-|---|---|---|
+|---|---|
 |`gitGrace.fetch`<br>(alt+g f)|Fetch from _origin_ with _--prune_. You will be asked if you want to fast forward/push/rebase/merge when the current local branch and its remote counterpart are out of sync.|
 |`gitGrace.pull`<br>(alt+g u)|Fetch from _origin_ with _--prune_ then rebase normally.|
 |`gitGrace.push`<br>(alt+g p)|Push to _origin_ with _--tags_. You will be asked if _--force-with-lease_ is needed when the current local branch and its remote counterpart are out of sync.|
