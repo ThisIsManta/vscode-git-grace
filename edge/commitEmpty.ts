@@ -14,21 +14,21 @@ export default async function () {
 		`Are you sure you want to create an empty commit?`,
 		{ modal: true }, 'Create an Empty Commit')
 	if (!select) {
-		return null
+		throw null
 	}
 
-	try {
-		await Git.run(workspace.uri, 'commit', '--allow-empty', '--message=(empty commit)')
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.SourceControl }, async () => {
+		try {
+			await Git.run(workspace.uri, 'commit', '--allow-empty', '--message=(empty commit)')
 
-	} catch (ex) {
-		Util.setWorkspaceAsFirstTryNextTime(workspace)
+		} catch (ex) {
+			Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-		throw `Committing failed.`
-	}
+			throw `Committing failed.`
+		}
+	})
 
 	track('commit-empty')
 
-	vscode.window.setStatusBarMessage(`Committing completed`, 10000)
-
-	vscode.commands.executeCommand('git.refresh')
+	await vscode.commands.executeCommand('git.refresh')
 }

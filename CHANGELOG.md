@@ -2,7 +2,7 @@
 - Removed `gitGrace.urgent` and `gitGrace.urgentRestore` commands due to low usage.
 - Amended `gitGrace.deleteMergedBranches` command so it reports its progress as a notification window instead of the status bar.
 - Amended `gitGrace.commitSmart` command so it triggers immediately after the commit message prompt.
-- Amended `gitGrace.commitSmart` command so it waits in the command queue.
+- Amended `gitGrace.commitSmart`, `gitGrace.commitAmend`, and `gitGrace.commitEmpty` commands so they wait in the command queue.
 
 ### 2.12.2
 - Added `gitGrace.stageAll`, `gitGrace.unstageAll`, and `gitGrace.cleanAll` commands in favor of the built-in commands.

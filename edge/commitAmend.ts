@@ -17,7 +17,7 @@ export default async function () {
 		`Are you sure you want to amend last commit "${_.truncate(commit.message, { length: 60 })}"?`,
 		{ modal: true }, 'Amend Last Commit')
 	if (!select) {
-		return null
+		throw null
 	}
 
 	track('commit-amend')

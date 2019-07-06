@@ -50,9 +50,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitSmart', Queue.put(commitSmart)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', commitAmend))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitAmend', Queue.put(commitAmend)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitEmpty', commitEmpty))
+    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitEmpty', Queue.put(commitEmpty)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stash', Queue.put(stash)))
 
