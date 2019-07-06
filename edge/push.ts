@@ -9,14 +9,14 @@ import { track } from './Amplitude'
 export default async function (options: { location?: vscode.ProgressLocation, token?: vscode.CancellationToken } = {}) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
-		return null
+		return false
 	}
-
-	let force = false
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	return await vscode.window.withProgress({ location: options.location || vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
+	let force = false
+
+	const updated = await vscode.window.withProgress({ location: options.location || vscode.ProgressLocation.Window, title: 'Pushing...' }, async (progress) => {
 		let updated = false
 
 		for (const workspace of workspaceList) {
@@ -25,7 +25,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 			}
 
 			if (options.token && options.token.isCancellationRequested) {
-				return null
+				throw null
 			}
 
 			const status = await Git.getCurrentBranchStatus(workspace.uri)
@@ -34,7 +34,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 			}
 
 			if (options.token && options.token.isCancellationRequested) {
-				return null
+				throw null
 			}
 
 			if (status.remote && status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
@@ -42,7 +42,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 					`The local branch "${status.local}" could not be pushed because it was out of sync with its remote branch.`,
 					{ modal: true }, 'Force Pushing')
 				if (!select) {
-					return null
+					throw null
 				}
 
 				force = true
@@ -51,7 +51,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 			try {
 				const result = await Git.run(workspace.uri, 'push', '--tags', status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote && '--force-with-lease', 'origin', status.local, { token: options.token })
 				if (options.token && options.token.isCancellationRequested) {
-					return null
+					throw null
 				}
 				if (result.trim() !== 'Everything up-to-date') {
 					updated = true
@@ -59,7 +59,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 
 			} catch (ex) {
 				if (options.token && options.token.isCancellationRequested) {
-					return null
+					throw null
 				}
 
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
@@ -71,7 +71,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 					await Git.run(workspace.uri, 'fetch', 'origin', status.local, { token: options.token })
 
 					if (options.token && options.token.isCancellationRequested) {
-						return null
+						throw null
 					}
 
 					_.defer(async () => {
@@ -80,23 +80,25 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 						trySyncRemoteBranch(workspace)
 					})
 
-					return null
+					throw null
 				}
 
 				throw `Pushing failed.`
 			}
 		}
 
-		if (updated) {
-			vscode.window.setStatusBarMessage(`Pushing completed`, 10000)
-		} else {
-			vscode.window.setStatusBarMessage(`No updates`, 10000)
-		}
-
-		await vscode.commands.executeCommand('git.refresh')
-
-		track('push', { force })
-
 		return updated
 	})
+
+	await vscode.commands.executeCommand('git.refresh')
+
+	track('push', { force })
+
+	if (updated) {
+		vscode.window.setStatusBarMessage(`Pushing completed`, 10000)
+	} else {
+		vscode.window.setStatusBarMessage(`No updates`, 10000)
+	}
+
+	return updated
 }

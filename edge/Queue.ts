@@ -50,6 +50,10 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 		} catch (ex) {
 			clear()
 
+			if (!ex) {
+				return
+			}
+
 			const message = ex instanceof Error ? ex.message : String(ex)
 			if (await vscode.window.showErrorMessage(message, { modal: true }, 'Show Log') === 'Show Log') {
 				Log.show()

@@ -31,10 +31,11 @@ export default async function () {
 			}
 		}
 
-		track('pull', { success: true })
-
-		vscode.window.setStatusBarMessage(`Pulling completed`, 10000)
-
-		vscode.commands.executeCommand('git.refresh')
 	})
+
+	await vscode.commands.executeCommand('git.refresh')
+
+	track('pull', { success: true })
+
+	vscode.window.setStatusBarMessage(`Pulling completed`, 10000)
 }

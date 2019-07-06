@@ -33,11 +33,7 @@ export default async function () {
 		throw `The current branch was out-of-sync with its remote branch.`
 	}
 	if (status.remote === '' || status.sync === Git.SyncStatus.LocalIsAheadOfRemote) {
-		const updated = await push()
-		if (updated === null) {
-			// Stop processing if the push operation is aborted
-			return null
-		}
+		await push()
 	}
 
 	track('pull-request')
