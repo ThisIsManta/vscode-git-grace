@@ -29,24 +29,37 @@ export default async function () {
 
 	await vscode.commands.executeCommand('workbench.view.scm')
 
-	const picker = vscode.window.createQuickPick()
-	picker.items = pickList
-	picker.activeItems = []
-	picker.onDidChangeValue(() => {
+	return new Promise((resolve, reject) => {
+		let resolved = false
+
+		const picker = vscode.window.createQuickPick()
+		picker.ignoreFocusOut = true
+		picker.items = pickList
 		picker.activeItems = []
+		picker.onDidChangeValue(() => {
+			picker.activeItems = []
+		})
+		picker.onDidAccept(async () => {
+			const repositoryList = await Git.getGitBuiltInExtension().exports.getAPI(1).repositories
+			const sourceControlPanel = repositoryList.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
+			if (sourceControlPanel) {
+				sourceControlPanel.inputBox.value = picker.activeItems.length > 0 ? picker.activeItems[0].label : _.upperFirst(picker.value)
+			}
+
+			resolved = true
+			picker.dispose()
+
+			track('commit-smart')
+
+			await vscode.commands.executeCommand('git.commit')
+
+			resolve()
+		})
+		picker.onDidHide(() => {
+			if (!resolved) {
+				reject(null)
+			}
+		})
+		picker.show()
 	})
-	picker.onDidAccept(async () => {
-		picker.hide()
-
-		const repositoryList = await Git.getGitBuiltInExtension().exports.getAPI(1).repositories
-		const sourceControlPanel = repositoryList.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
-		if (sourceControlPanel) {
-			sourceControlPanel.inputBox.value = picker.activeItems.length > 0 ? picker.activeItems[0].label : _.upperFirst(picker.value)
-		}
-
-		track('commit-smart')
-
-		await vscode.commands.executeCommand('workbench.view.scm')
-	})
-	picker.show()
 }
