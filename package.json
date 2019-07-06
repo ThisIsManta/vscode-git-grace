@@ -22,7 +22,7 @@
         "theme": "dark"
     },
     "engines": {
-        "vscode": "^1.30.2"
+        "vscode": "^1.36.0"
     },
     "activationEvents": [
         "workspaceContains:.git"
@@ -294,7 +294,7 @@
         ]
     },
     "scripts": {
-        "postinstall": "node ./node_modules/vscode/bin/install && node ./edge/postinstall",
+        "postinstall": "node ./edge/postinstall",
         "compile": "tsc --watch --project ./",
         "vscode:prepublish": "tsc --skipLibCheck --project ./",
         "preversion": "git push --dry-run origin master:master",
@@ -304,12 +304,13 @@
     "devDependencies": {
         "@types/lodash": "^4.14.123",
         "@types/node": "^10.0.0",
-        "vscode": "^1.1.33"
+        "@types/vscode": "^1.36.0",
+        "vscode": "^1.1.35"
     },
     "dependencies": {
         "lodash": "^4.17.11",
         "node-fetch": "^2.3.0",
-        "open": "^0.0.5",
-        "typescript": "^3.4.1"
+        "open": "^6.4.0",
+        "typescript": "^3.5.0"
     }
 }
