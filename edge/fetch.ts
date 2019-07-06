@@ -10,9 +10,6 @@ export default async function (options: { token: vscode.CancellationToken }) {
 	track('fetch')
 
 	const updated = await fetchInternal(options.token)
-	if (updated === null) {
-		return null
-	}
 
 	const workspace = await Util.getCurrentWorkspace()
 	if (workspace) {
@@ -32,7 +29,7 @@ export default async function (options: { token: vscode.CancellationToken }) {
 export async function fetchInternal(token?: vscode.CancellationToken) {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
-		return null
+		return false
 	}
 
 	let updated = false
@@ -45,9 +42,11 @@ export async function fetchInternal(token?: vscode.CancellationToken) {
 
 			try {
 				const result = await Git.run(workspace.uri, 'fetch', '--prune', 'origin', { token, retry: 2 })
+
 				if (token && token.isCancellationRequested) {
-					break
+					throw null
 				}
+
 				if (result.trim().length > 0) {
 					updated = true
 				}
@@ -65,7 +64,7 @@ export async function fetchInternal(token?: vscode.CancellationToken) {
 	})
 
 	if (token && token.isCancellationRequested) {
-		return null
+		throw null
 	}
 
 	return updated
