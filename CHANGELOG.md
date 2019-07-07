@@ -1,3 +1,6 @@
+### 2.13.0
+- Removed `gitGrace.urgent` and `gitGrace.urgentRestore` commands due to low usage.
+
 ### 2.12.2
 - Added `gitGrace.stageAll`, `gitGrace.unstageAll`, and `gitGrace.cleanAll` commands in favor of the built-in commands.
 - Fixed `gitGrace.blame` and `gitGrace.openWeb` commands so they use the pushed commit hash.

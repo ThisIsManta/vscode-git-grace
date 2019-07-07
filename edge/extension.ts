@@ -9,7 +9,6 @@ import push from './push'
 import commitSmart from './commitSmart'
 import commitAmend from './commitAmend'
 import commitEmpty from './commitEmpty'
-import urgent, { urgentRestore } from './urgent'
 import stash, { stashPopLatest, stashPop, stashClear, updateStashCountBar } from './stash'
 import squash from './squash'
 import master from './master'
@@ -55,10 +54,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitEmpty', commitEmpty))
 
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.urgent', Queue.put(urgent)))
-
-    context.subscriptions.push(vscode.commands.registerCommand('gitGrace.urgentRestore', Queue.put(urgentRestore)))
-
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stash', Queue.put(stash)))
 
     context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPopLatest', Queue.put(stashPopLatest)))
@@ -101,7 +96,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
     if (vscode.workspace.workspaceFolders) {
         await Queue.run(fetch)
-        await Queue.run(() => urgentRestore({ prompt: true }))
         await updateStashCountBar()
     }
 }

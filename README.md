@@ -40,8 +40,6 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |`gitGrace.pullRequest`<br>(alt+g j)|Push and open GitHub pull-request creation page in your web browser.|
 |`gitGrace.sync`<br>(alt+g g)|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.|
 |`gitGrace.showOutput`<br>(alt+g o)|Open the output channel for **Git Grace** extension.|
-|`gitGrace.urgent`|Commit all files with the message of _"(work-in-progress)"_, create _WIP_ tag, and push only the tag. This command is useful when you want to leave your computer and continue where you left off on another computer.|
-|`gitGrace.urgentRestore`|Checkout and delete WIP tag that corresponding to the current local branch.|
 |`tortoiseGit.showLog`<br>(alt+g l)|Show the log messages for the whole repository.|
 |`tortoiseGit.showFileLog`<br>(alt+g k)|Show the log messages for the current active file.|
 |`tortoiseGit.commit`<br>(alt+g v)|Commit with **TortoiseGit**.|

@@ -87,16 +87,6 @@
                 "category": "Git"
             },
             {
-                "command": "gitGrace.urgent",
-                "title": "Push as Work-In-Progress",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.urgentRestore",
-                "title": "Continue from Work-In-Progress",
-                "category": "Git"
-            },
-            {
                 "command": "gitGrace.stash",
                 "title": "Stash (Include Untracked, Persistent)",
                 "category": "Git"
