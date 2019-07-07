@@ -3,6 +3,7 @@
 - Amended `gitGrace.deleteMergedBranches` command so it reports its progress as a notification window instead of the status bar.
 - Amended `gitGrace.commitSmart` command so it triggers immediately after the commit message prompt.
 - Amended `gitGrace.commitSmart`, `gitGrace.commitAmend`, and `gitGrace.commitEmpty` commands so they wait in the command queue.
+- Amended `gitGrace.fetch` command; given the local and remote branches are out of sync, it prompts to reset to your local to the remote branch only when the remote branch contains all the change in your local branch.
 
 ### 2.12.2
 - Added `gitGrace.stageAll`, `gitGrace.unstageAll`, and `gitGrace.cleanAll` commands in favor of the built-in commands.

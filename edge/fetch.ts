@@ -1,5 +1,6 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
+import * as parseDiff from 'git-diff-parser'
 
 import * as Util from './Util'
 import * as Git from './Git'
@@ -132,43 +133,44 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 		return await push({ location: vscode.ProgressLocation.Notification })
 
 	} else if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
-		// Check if the local branch can be safely reset to its remote branch
 		const groups = await Git.getBranchTopology(workspace.uri, status.local, status.remote)
-		if (groups.length === 2 && status.dirty === false) {
-			const [localGroup, remoteGroup] = groups
-			if (
-				remoteGroup.length >= localGroup.length &&
-				localGroup.every((localCommit, index) => {
-					const remoteCommit = remoteGroup[index]
-					return remoteCommit.author === localCommit.author && localCommit.message === remoteCommit.message
-				}) &&
-				_.isEqual(
-					await Git.run(workspace.uri, 'diff', '--raw', localGroup[0].parentHash, localGroup[localGroup.length - 1].commitHash),
-					await Git.run(workspace.uri, 'diff', '--raw', remoteGroup[0].parentHash, remoteGroup[localGroup.length - 1].commitHash)
-				)
-			) {
-				const select = await vscode.window.showWarningMessage(
-					`The local branch "${status.local}" can be safely reset to its remote branch.`,
-					'Reset Branch')
-				if (select) {
-					await abortIfStatusHasChanged()
+		const [localCommits, remoteCommits] = _.chain(groups)
+			.filter(commits => commits.length > 0)
+			.sortBy(commits => commits[0].direction === '<' ? 0 : 1 /* Put local commits first */)
+			.map(commits => _.sortBy(commits, commit => commit.date /* Put older commits first */))
+			.value()
 
-					await Git.run(workspace.uri, 'reset', '--hard', _.last(remoteGroup).commitHash)
-				}
-				return null
-			}
+		let select: string
+		if (
+			localCommits && remoteCommits &&
+			await checkIfRemoteContainsLocalChanges(workspace.uri, _.first(localCommits).parentHash, _.last(localCommits).commitHash, _.last(remoteCommits).commitHash)
+		) {
+			select = await vscode.window.showWarningMessage(
+				`The local branch "${status.local}" can be safely reset to the tip of its remote branch.`,
+				'Reset Branch')
+
+		} else {
+			select = await vscode.window.showWarningMessage(
+				`The local branch "${status.local}" is out of sync with its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
+				'Rebase Now', 'Merge Now', 'Reset Branch')
 		}
 
-		const select = await vscode.window.showWarningMessage(
-			`The local branch "${status.local}" is out of sync with its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
-			'Rebase Now', 'Merge Now')
 		if (!select) {
 			return null
 		}
 
 		await abortIfStatusHasChanged()
 
-		if (select === 'Rebase Now') {
+		if (select === 'Reset Branch') {
+			await abortIfStatusHasChanged()
+
+			await Git.run(workspace.uri, 'reset', '--hard', _.last(remoteCommits).commitHash)
+
+			await vscode.commands.executeCommand('git.refresh')
+
+			vscode.window.setStatusBarMessage(`Resetting completed`, 10000)
+
+		} else if (select === 'Rebase Now') {
 			track('fetch:rebase-now')
 
 			await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Rebasing...' }, async () => {
@@ -221,6 +223,55 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 					return false
 				}
 			})
+		}
+	}
+
+	return true
+}
+
+type GitDiffFile = {
+	added: boolean
+	binary: boolean
+	deleted: boolean
+	renamed: boolean
+	name: string
+	index: [string, string, string]
+	lines: Array<{ break: boolean, ln1: number, ln2?: number, text: string, type: string }>
+}
+
+/**
+ * Returns true if and only if the secondCommitHash contains all the change in firstCommitHash.
+ */
+async function checkIfRemoteContainsLocalChanges(link: vscode.Uri, baseCommitHash: string, localCommitHash: string, remoteCommitHash: string) {
+	const a: Array<GitDiffFile> = parseDiff(
+		await Git.run(link, 'diff', baseCommitHash, localCommitHash)
+	).commits[0].files
+	const b: Array<GitDiffFile> = parseDiff(
+		await Git.run(link, 'diff', baseCommitHash, remoteCommitHash)
+	).commits[0].files
+
+	for (const fa of a) {
+		const fb = b.find(f => f.name === fa.name)
+		if (fb === undefined) {
+			return false
+		}
+
+		if (fa.binary !== fb.binary) {
+			return false
+		}
+
+		if (fa.added !== fb.added) {
+			return false
+		}
+
+		if (fa.deleted !== fb.deleted && !fb.renamed) {
+			return false
+		}
+
+		const la = fa.lines.filter(f => f.type !== 'normal').map(l => _.omit(l, 'ln2'))
+		const lb = fb.lines.filter(f => f.type !== 'normal').map(l => _.omit(l, 'ln2'))
+		if (_.differenceWith(la, lb, _.isEqual).length > 0) {
+			return false
 		}
 	}
 

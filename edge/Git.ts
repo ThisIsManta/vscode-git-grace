@@ -243,11 +243,11 @@ export async function getBranchTopology(link: vscode.Uri, localBranchName: strin
 	if (result.trim() === '') {
 		return []
 	}
-	const commits = _.chunk(result.trim().split('\n'), 5).map(([commit, parentHash, author, date, message]) => {
+	const commits = _.chunk(result.trim().split('\n'), 5).map(([commit, parentHash, email, date, message]) => {
 		const directionAndCommitHash = commit.match(/(<|>)(\w{40})/) // First line is always be "commit >X" where X is a 40-character-long commit hash
 		return {
-			author,
-			date: new Date(date),
+			email,
+			date,
 			message,
 			parentHash,
 			direction: directionAndCommitHash[1],
