@@ -291,23 +291,23 @@
     "scripts": {
         "postinstall": "node ./edge/postinstall",
         "compile": "tsc --watch --project ./",
-        "vscode:prepublish": "tsc --skipLibCheck --project ./",
+        "vscode:prepublish": "tsc --skipLibCheck --project ./ && parcel build ./dist/extension.js --target node",
         "preversion": "git push --dry-run origin master:master",
         "version": "vsce publish",
         "postversion": "git push --tags --quiet origin master:master"
     },
     "devDependencies": {
         "@types/lodash": "^4.14.123",
-        "@types/node": "^10.0.0",
+        "@types/node": "^12.0.0",
         "@types/vscode": "^1.36.0",
         "parcel-bundler": "^1.12.3",
         "vscode": "^1.1.35"
     },
     "dependencies": {
         "git-diff-parser": "^1.0.0",
-        "lodash": "^4.17.11",
-        "node-fetch": "^2.3.0",
+        "lodash": "^4.17.15",
+        "node-fetch": "^2.6.0",
         "open": "^6.4.0",
-        "typescript": "^3.5.0"
+        "typescript": "^3.5.3"
     }
 }
