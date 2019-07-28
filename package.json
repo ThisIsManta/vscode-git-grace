@@ -291,7 +291,7 @@
     "scripts": {
         "postinstall": "node ./edge/postinstall",
         "compile": "tsc --watch --project ./",
-        "vscode:prepublish": "tsc --skipLibCheck --project ./ && parcel build ./dist/extension.js --target node",
+        "vscode:prepublish": "tsc --skipLibCheck --project ./",
         "preversion": "git push --dry-run origin master:master",
         "version": "vsce publish",
         "postversion": "git push --tags --quiet origin master:master"

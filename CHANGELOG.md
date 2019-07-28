@@ -1,3 +1,6 @@
+### 2.14.1
+- Fixed the problem with JavaScript bundler.
+
 ### 2.14.0
 - Amended `gitGrace.master`, `gitGrace.openWeb`, and `gitGrace.deleteMergedBranches` commands so they recognize origin/dev branch.
 
