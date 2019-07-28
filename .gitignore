@@ -1,3 +1,4 @@
 node_modules
 dist
 edge/GitBuiltInExtension.d.ts
+.cache
