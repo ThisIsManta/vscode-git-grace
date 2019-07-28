@@ -120,7 +120,7 @@ export async function getMergedBranchNames(link: vscode.Uri, remote: boolean) {
 	return _.chain(content.trim().split('\n'))
 		.map(line => line.trim().split(' -> '))
 		.flatten()
-		.without('origin/HEAD', 'origin/master')
+		.without('origin/HEAD', 'origin/master', 'origin/dev')
 		.reject(name => name.startsWith('*'))
 		.compact()
 		.value()

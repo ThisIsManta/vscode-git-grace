@@ -18,18 +18,42 @@ export default async function () {
 		return null
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Switching to origin/master...' }, async () => {
+	let targetBranch = 'origin/master'
+	const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
+	if (remoteBranches.some(branch => branch === 'origin/dev')) {
+		const select = await new Promise<string>(resolve => {
+			const picker = vscode.window.createQuickPick()
+			picker.placeholder = 'Select a branch to headless checkout'
+			picker.items = [{ label: 'dev' }, { label: 'master' }]
+			picker.show()
+			picker.onDidAccept(() => {
+				picker.dispose()
+
+				const [select] = picker.selectedItems
+				resolve('origin/' + select.label)
+			})
+			picker.onDidHide(() => {
+				resolve()
+			})
+		})
+		if (!select) {
+			return null
+		}
+		targetBranch = select
+	}
+
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Switching to ${targetBranch}...` }, async () => {
 		await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
 
 		if (status.local === '') {
 			const currentHash = await Git.getCurrentCommitHash(workspace.uri)
-			const masterHash = await Git.getCurrentCommitHash(workspace.uri, 'origin/master')
+			const masterHash = await Git.getCurrentCommitHash(workspace.uri, targetBranch)
 			if (currentHash === masterHash) {
-				vscode.window.showInformationMessage(`You are on "origin/master" already.`)
+				vscode.window.showInformationMessage(`You are on "${targetBranch}" already.`)
 				return null
 			}
 
-			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, '"origin/master"')) {
+			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, `"${targetBranch}"`)) {
 				return null
 			}
 		}
@@ -37,10 +61,10 @@ export default async function () {
 		track('master')
 
 		try {
-			await Git.run(workspace.uri, 'checkout', '--detach', 'origin/master')
+			await Git.run(workspace.uri, 'checkout', '--detach', targetBranch)
 
 		} catch (ex) {
-			throw `Checking out "origin/master" failed.`
+			throw `Checking out "${targetBranch}" failed.`
 		}
 
 		vscode.commands.executeCommand('git.refresh')

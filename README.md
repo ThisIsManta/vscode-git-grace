@@ -34,8 +34,8 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |`gitGrace.commitEmpty`<br>(alt+g e)|Commit with _--allow-empty_ and the message of _"(empty commit)"_.|
 |`gitGrace.squash`<br>(alt+g q)|Modify the selected commit in the current path with the current staged files. There is a chance of conflicts; use at your own risk.|
 |`gitGrace.branch`<br>(alt+g n)|Create a new branch at the current commit, or rename the current non-master local branch. You will be asked to type a branch name.|
-|`gitGrace.checkout`<br>(alt+g s)|Checkout an existing branch while fetching the remote branches in the background. You will be asked if you want to stash/discard the dirty files and discard the dangling commits beforehand.|
-|`gitGrace.master`<br>(alt+g m)|Checkout the commit at _origin/master_ without creating a branch (detached head). You will be asked if you want to stash/discard the dirty files and discard the dangling commits beforehand.|
+|`gitGrace.checkout`<br>(alt+g s)|Checkout an existing branch while fetching the remote branches in the background, and create the local counterpart branch. You will be asked if you want to stash/discard the dirty files and discard the dangling commits beforehand.|
+|`gitGrace.master`<br>(alt+g m)|Checkout the commit at _origin/master_ or _origin/dev_ without creating a branch (detached head). You will be asked if you want to stash/discard the dirty files and discard the dangling commits beforehand.|
 |`gitGrace.openWeb`<br>(alt+g h)|Open the link to the active file in your web browser.|
 |`gitGrace.pullRequest`<br>(alt+g j)|Push and open GitHub pull-request creation page in your web browser.|
 |`gitGrace.sync`<br>(alt+g g)|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.|

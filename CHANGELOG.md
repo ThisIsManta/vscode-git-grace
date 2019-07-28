@@ -1,3 +1,6 @@
+### 2.14.0
+- Amended `gitGrace.master`, `gitGrace.openWeb`, and `gitGrace.deleteMergedBranches` commands so they recognize origin/dev branch.
+
 ### 2.13.0
 - Removed `gitGrace.urgent` and `gitGrace.urgentRestore` commands due to low usage.
 - Amended `gitGrace.deleteMergedBranches` command so it reports its progress as a notification window instead of the status bar.
@@ -143,7 +146,7 @@
 
 ### 1.0.0
 - Amended `gitGrace.fetch` command so it will not show no updates message while asking to fast forward.
-- Amended `gitGrace.master` command so that it it fetches before checking if the current branch is on origin/master already.
+- Amended `gitGrace.master` command so that it fetches before checking if the current branch is on origin/master already.
 - Removed `gitGrace.branch` command in favor of "git.branch" and `gitGrace.master` commands combined.
 - Amended some commands so they save all files only if "file.AutoSave" setting is "afterDelay" or "onFocusChange".
 

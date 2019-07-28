@@ -52,27 +52,29 @@ export default async function () {
 	}
 
 	const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
-	if (remoteBranches.indexOf('origin/master') >= 0) {
-		if (filePath) {
-			pickList.push({
-				label: 'origin/master',
-				url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath) + lineHash,
-				kind: 3,
-			})
+	for (const branch of ['origin/master', 'origin/dev']) {
+		if (remoteBranches.indexOf(branch) >= 0) {
+			if (filePath) {
+				pickList.push({
+					label: branch,
+					url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath) + lineHash,
+					kind: 3,
+				})
 
-		} else if (workspacePath === repositoryPath) {
-			pickList.push({
-				label: 'origin/master',
-				url: webOrigin,
-				kind: 4,
-			})
+			} else if (workspacePath === repositoryPath) {
+				pickList.push({
+					label: branch,
+					url: webOrigin,
+					kind: 4,
+				})
 
-		} else {
-			pickList.push({
-				label: 'origin/master',
-				url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath),
-				kind: 5,
-			})
+			} else {
+				pickList.push({
+					label: branch,
+					url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath),
+					kind: 5,
+				})
+			}
 		}
 	}
 
