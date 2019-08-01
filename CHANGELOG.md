@@ -1,3 +1,6 @@
+### 2.14.2
+- Fixed `gitGrace.master` command so it proceed checking out the selected branch when having more than one branch.
+
 ### 2.14.1
 - Fixed the problem with JavaScript bundler.
 

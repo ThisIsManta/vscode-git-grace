@@ -27,10 +27,10 @@ export default async function () {
 			picker.items = [{ label: 'dev' }, { label: 'master' }]
 			picker.show()
 			picker.onDidAccept(() => {
-				picker.dispose()
-
 				const [select] = picker.selectedItems
 				resolve('origin/' + select.label)
+
+				picker.dispose()
 			})
 			picker.onDidHide(() => {
 				resolve()
