@@ -108,7 +108,7 @@
             },
             {
                 "command": "gitGrace.master",
-                "title": "Checkout to \"origin/master\"",
+                "title": "Checkout to \"origin/HEAD\"",
                 "category": "Git"
             },
             {

@@ -18,42 +18,20 @@ export default async function () {
 		return null
 	}
 
-	let targetBranch = 'origin/master'
-	const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
-	if (remoteBranches.some(branch => branch === 'origin/dev')) {
-		const select = await new Promise<string>(resolve => {
-			const picker = vscode.window.createQuickPick()
-			picker.placeholder = 'Select a branch to headless checkout'
-			picker.items = [{ label: 'dev' }, { label: 'master' }]
-			picker.show()
-			picker.onDidAccept(() => {
-				const [select] = picker.selectedItems
-				resolve('origin/' + select.label)
+	const headBranchName = 'origin/' + await Git.getRemoteHeadBranchName(workspace.uri)
 
-				picker.dispose()
-			})
-			picker.onDidHide(() => {
-				resolve()
-			})
-		})
-		if (!select) {
-			return null
-		}
-		targetBranch = select
-	}
-
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Switching to ${targetBranch}...` }, async () => {
+	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Switching to ${headBranchName}...` }, async () => {
 		await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
 
 		if (status.local === '') {
 			const currentHash = await Git.getCurrentCommitHash(workspace.uri)
-			const masterHash = await Git.getCurrentCommitHash(workspace.uri, targetBranch)
+			const masterHash = await Git.getCurrentCommitHash(workspace.uri, headBranchName)
 			if (currentHash === masterHash) {
-				vscode.window.showInformationMessage(`You are on "${targetBranch}" already.`)
+				vscode.window.showInformationMessage(`You are on "${headBranchName}" already.`)
 				return null
 			}
 
-			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, `"${targetBranch}"`)) {
+			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, `"${headBranchName}"`)) {
 				return null
 			}
 		}
@@ -61,10 +39,10 @@ export default async function () {
 		track('master')
 
 		try {
-			await Git.run(workspace.uri, 'checkout', '--detach', targetBranch)
+			await Git.run(workspace.uri, 'checkout', '--detach', headBranchName)
 
 		} catch (ex) {
-			throw `Checking out "${targetBranch}" failed.`
+			throw `Checking out "${headBranchName}" failed.`
 		}
 
 		vscode.commands.executeCommand('git.refresh')

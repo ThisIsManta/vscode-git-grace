@@ -1,3 +1,6 @@
+### 2.15.0
+- Amended `gitGrace.master`, `gitGrace.openWeb`, and `gitGrace.deleteMergedBranches` commands so they set the target branch to _origin/HEAD_.
+
 ### 2.14.2
 - Fixed `gitGrace.master` command so it proceed checking out the selected branch when having more than one branch.
 

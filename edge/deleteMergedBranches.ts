@@ -116,11 +116,12 @@ export default async function () {
 }
 
 export async function getMergedBranchNames(link: vscode.Uri, remote: boolean) {
-	const content = await Git.run(link, 'branch', '--merged', 'origin/master', remote ? '--remotes' : null)
+	const headBranchName = await Git.getRemoteHeadBranchName(link)
+	const content = await Git.run(link, 'branch', '--merged', 'origin/' + headBranchName, remote ? '--remotes' : null)
 	return _.chain(content.trim().split('\n'))
 		.map(line => line.trim().split(' -> '))
 		.flatten()
-		.without('origin/HEAD', 'origin/master', 'origin/dev')
+		.without('origin/HEAD', 'origin/' + headBranchName)
 		.reject(name => name.startsWith('*'))
 		.compact()
 		.value()

@@ -16,6 +16,8 @@ export default async function () {
 		throw `The selected workspace was not a GitHub repository.`
 	}
 
+	const headBranchName = await Git.getRemoteHeadBranchName(workspace.uri)
+
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.dirty) {
 		throw `The current repository is dirty.`
@@ -23,8 +25,8 @@ export default async function () {
 	if (status.local === '') {
 		throw `The current repository is not attached to any branches.`
 	}
-	if (status.local === 'master') {
-		throw `The current branch is branch "master".`
+	if (status.local === headBranchName) {
+		throw `The current branch is branch "${headBranchName}".`
 	}
 	if (status.sync === Git.SyncStatus.LocalIsBehindRemote) {
 		throw `The current branch was behind its remote branch.`
@@ -38,5 +40,5 @@ export default async function () {
 
 	track('pull-request')
 
-	open(webOrigin + '/compare/' + 'master' + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+	open(webOrigin + '/compare/' + headBranchName + '...' + (status.remote.replace(/^origin\//, '') || status.local))
 }

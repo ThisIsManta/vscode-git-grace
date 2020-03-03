@@ -140,6 +140,11 @@ export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
 	return run(link, 'branch', `--set-upstream-to=origin/${localBranchName}`, localBranchName)
 }
 
+export async function getRemoteHeadBranchName(link: vscode.Uri) {
+	const branchName = await run(link, 'symbolic-ref', 'refs/remotes/origin/HEAD')
+	return branchName.trim().replace(new RegExp('^' + _.escapeRegExp('refs/remotes/origin/')), '')
+}
+
 export async function getBranchCounterparts(link: vscode.Uri) {
 	const result = await run(link, 'for-each-ref', '--format=%(refname)|%(upstream)', 'refs/heads/')
 	return _.chain(result.split('\n'))
