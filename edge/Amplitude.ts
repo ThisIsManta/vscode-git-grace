@@ -22,7 +22,8 @@ export function track(eventName: string, eventData?: object) {
 }
 
 const trackInternal = _.debounce(() => {
-	const params = new URLSearchParams()
+	// Disable Amplitude as it does not accept my events anymore
+	/* const params = new URLSearchParams()
 	params.append('api_key', 'df3ebf85734dba90b618ecb5f99aa07f')
 	params.append('event', JSON.stringify(events))
 
@@ -32,7 +33,7 @@ const trackInternal = _.debounce(() => {
 		body: params,
 	}).catch(ex => {
 		console.error('Error sending Amplitude tracking: ', ex)
-	})
+	}) */
 
 	events.splice(0, events.length)
 }, 30000)

@@ -1,3 +1,6 @@
+### 2.15.1
+- Fixed `gitGrace.checkout` command so it switches to newly fetched branch properly.
+
 ### 2.15.0
 - Amended `gitGrace.master`, `gitGrace.openWeb`, and `gitGrace.deleteMergedBranches` commands so they set the target branch to _origin/HEAD_.
 

@@ -25,8 +25,12 @@ export default async function () {
 	let localBranches: string[]
 	let remoteBranches: string[]
 	async function setPickerItems() {
-		localBranches = await Git.getLocalBranchNames(workspace.uri)
-		remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
+		const branches = await Promise.all([
+			Git.getLocalBranchNames(workspace.uri),
+			Git.getRemoteBranchNames(workspace.uri),
+		])
+		localBranches = branches[0]
+		remoteBranches = _.without(branches[1], 'origin/HEAD')
 
 		picker.items = [...localBranches, ...remoteBranches].map(name => ({ label: name }))
 		if (status.local) {
@@ -37,74 +41,85 @@ export default async function () {
 	const picker = vscode.window.createQuickPick()
 	picker.placeholder = 'Select a branch to checkout'
 	await setPickerItems()
+	picker.busy = true
 	picker.show()
 
 	// Do lazy fetching
-	const fetchPromise = fetchInternal().then(async updated => {
+	const syncBranchNamePromise = fetchInternal().then(async updated => {
 		if (updated) {
 			await setPickerItems()
 		}
+		picker.busy = false
 	})
 
-	return new Promise(resolve => {
+	return new Promise((resolve, reject) => {
 		picker.onDidAccept(async () => {
-			const [select] = picker.selectedItems
+			const selectBranchName = picker.selectedItems[0]?.label ?? picker.value
+
 			picker.hide()
 			picker.dispose()
 
-			if (localBranches.indexOf(select.label) >= 0) {
-				track('checkout:local')
-
-				await checkoutInternal(workspace.uri, select.label)
-
-			} else if (remoteBranches.indexOf(select.label) >= 0) {
-				const remoteBranchName = select.label
-				const localBranchName = remoteBranchName.replace(/^origin\//, '')
-
-				if (localBranches.indexOf(localBranchName) >= 0) {
-					const groups = await Git.getBranchTopology(workspace.uri, localBranchName, remoteBranchName)
-					if (groups.length === 1 && groups[0][0].direction === '>') {
-						track('checkout:remote', { safe: true })
-
-						await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
-
-					} else {
-						track('checkout:remote', { safe: false })
-
-						await checkoutInternal(workspace.uri, localBranchName)
-					}
-
-				} else {
-					track('checkout:remote', { safe: true })
-
-					await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
-				}
-
-			} else {
+			if (!selectBranchName) {
 				resolve()
-				return null
+				return
 			}
 
-			await vscode.commands.executeCommand('git.refresh')
+			try {
+				await syncBranchNamePromise
 
-			await fetchPromise
-			await trySyncRemoteBranch(workspace)
+				if (remoteBranches.includes(selectBranchName)) {
+					const remoteBranchName = selectBranchName
+					const localBranchName = remoteBranchName.replace(/^origin\//, '')
 
-			resolve()
+					if (localBranches.includes(localBranchName)) {
+						const groups = await Git.getBranchTopology(workspace.uri, localBranchName, remoteBranchName)
+						if (groups.length === 1 && groups[0][0].direction === '>') {
+							// Fast forward
+							await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
+							resolve()
+							return
+						}
+
+						await checkoutInternal(workspace.uri, localBranchName)
+						resolve()
+						return
+					}
+
+					await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
+					resolve()
+					return
+				}
+
+				await checkoutInternal(workspace.uri, selectBranchName)
+				resolve()
+
+			} catch (ex) {
+				reject(ex)
+			}
 		})
 
 		picker.onDidHide(() => {
 			resolve()
 		})
+	}).then(async () => {
+		await vscode.commands.executeCommand('git.refresh')
+
+		await trySyncRemoteBranch(workspace)
 	})
 }
 
 async function checkoutInternal(link: vscode.Uri, localBranchName: string, remoteBranchName?: string) {
+	let output: string
 	if (remoteBranchName) {
-		await Git.run(link, 'checkout', '-B', localBranchName, '--track', remoteBranchName)
+		output = await Git.run(link, 'checkout', '-B', localBranchName, '--track', remoteBranchName)
 
 	} else {
-		await Git.run(link, 'checkout', localBranchName)
+		// Note that this is a short hard to `git checkout -b <branch> --track origin/<branch>`
+		output = await Git.run(link, 'checkout', localBranchName)
+	}
+
+	if (output.startsWith('error:')) {
+		throw new Error(output.trim())
 	}
 }
 
