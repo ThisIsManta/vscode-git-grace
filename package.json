@@ -304,7 +304,7 @@
     "dependencies": {
         "git-diff-parser": "^1.0.0",
         "lodash": "^4.17.15",
-        "node-fetch": "^2.6.0",
+        "node-fetch": "^2.6.1",
         "open": "^6.4.0",
         "typescript": "^3.7.4"
     }
