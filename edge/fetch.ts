@@ -85,7 +85,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 		const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
 		delete newStatus.distance
 		if (_.isMatch(status, newStatus) === false) {
-			vscode.window.showErrorMessage(`The operation was cancelled because the branch status has changed.`, { modal: true })
+			vscode.window.showErrorMessage(`The fetch operation was cancelled because the branch status has changed.`, { modal: true })
 			throw null
 		}
 	}

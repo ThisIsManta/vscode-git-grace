@@ -29,7 +29,7 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |`gitGrace.stageAll`<br>(alt+g y)|Add files to the stage.|
 |`gitGrace.unstageAll`<br>(alt+g z)|Remove added files from the stage.|
 |`gitGrace.cleanAll`<br>(alt+g r)|Revert dirty files.|
-|`gitGrace.commitSmart`<br>(alt+g c)|Open **Visual Studio Code** built-in **Git** source control panel and prompt last 500 commit messages that were written by the current user.|
+|`gitGrace.commitSmart`<br>(alt+g c)|Prompt for a commit message with last 500 historical messages suggested and create a commit using **Visual Studio Code** built-in **Git** source control panel.|
 |`gitGrace.commitAmend`<br>(alt+g a)|Similar to `git.undoCommit` but prompt a confirmation dialog beforehand.|
 |`gitGrace.commitEmpty`<br>(alt+g e)|Commit with _--allow-empty_ and the message of _"(empty commit)"_.|
 |`gitGrace.squash`<br>(alt+g q)|Modify the selected commit in the current path with the current staged files. There is a chance of conflicts; use at your own risk.|

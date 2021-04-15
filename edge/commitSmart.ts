@@ -16,50 +16,70 @@ export default async function () {
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
+	await Promise.all([
+		vscode.commands.executeCommand('workbench.view.scm'),
+		vscode.commands.executeCommand('git.refresh'),
+	])
+
+	const repositoryList = Git.getGitBuiltInExtension().exports.getAPI(1).repositories
+	const sourceControlPanel = repositoryList.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
+	if (!sourceControlPanel) {
+		return
+	}
+
+	if (
+		sourceControlPanel.state.indexChanges.length +
+		sourceControlPanel.state.workingTreeChanges.length === 0
+	) {
+		vscode.window.showErrorMessage(`There are no files to be committed.`, { modal: true })
+		return
+	}
+
+	const picker = vscode.window.createQuickPick()
+	picker.value = sourceControlPanel.inputBox.value
+	picker.activeItems = []
+	picker.onDidChangeValue(() => {
+		picker.activeItems = []
+	})
+	picker.busy = true
+
+	getHistoricalMessages(workspace)
+		.then(messages => {
+			picker.items = messages
+		})
+		.finally(() => {
+			picker.busy = false
+		})
+
+	await new Promise<void>((resolve, reject) => {
+		picker.onDidAccept(() => {
+			sourceControlPanel.inputBox.value = picker.activeItems.length > 0 ? picker.activeItems[0].label : picker.value
+
+			resolve()
+
+			picker.dispose()
+		})
+		picker.onDidHide(() => {
+			reject()
+		})
+		picker.show()
+	})
+
+	track('commit-smart')
+
+	await vscode.commands.executeCommand('git.commit')
+}
+
+async function getHistoricalMessages(workspace: vscode.WorkspaceFolder) {
 	const email = (await Git.run(workspace.uri, 'config', 'user.email')).trim()
 
 	const messages = await Git.run(workspace.uri, 'log', '--max-count=500', '--no-merges', '--format=%s', '--author=' + email)
-	const pickList = _.chain(messages.trim().split('\n'))
+
+	return _.chain(messages.trim().split('\n'))
 		.reject(message => versionMatcher.test(message))
 		.map(message => message.replace(endWithParenthesisMatcher, ''))
 		.uniq()
 		.compact()
 		.map(message => ({ label: message } as vscode.QuickPickItem))
 		.value()
-
-	await vscode.commands.executeCommand('workbench.view.scm')
-
-	return new Promise<void>((resolve, reject) => {
-		let resolved = false
-
-		const picker = vscode.window.createQuickPick()
-		picker.ignoreFocusOut = true
-		picker.items = pickList
-		picker.activeItems = []
-		picker.onDidChangeValue(() => {
-			picker.activeItems = []
-		})
-		picker.onDidAccept(async () => {
-			const repositoryList = await Git.getGitBuiltInExtension().exports.getAPI(1).repositories
-			const sourceControlPanel = repositoryList.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
-			if (sourceControlPanel) {
-				sourceControlPanel.inputBox.value = picker.activeItems.length > 0 ? picker.activeItems[0].label : _.upperFirst(picker.value)
-			}
-
-			resolved = true
-			picker.dispose()
-
-			track('commit-smart')
-
-			await vscode.commands.executeCommand('git.commit')
-
-			resolve()
-		})
-		picker.onDidHide(() => {
-			if (!resolved) {
-				reject(null)
-			}
-		})
-		picker.show()
-	})
 }
