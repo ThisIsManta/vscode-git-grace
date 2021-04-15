@@ -52,7 +52,7 @@ export default async function () {
 		picker.busy = false
 	})
 
-	return new Promise((resolve, reject) => {
+	return new Promise<void>((resolve, reject) => {
 		picker.onDidAccept(async () => {
 			const selectBranchName = picker.selectedItems[0]?.label ?? picker.value
 

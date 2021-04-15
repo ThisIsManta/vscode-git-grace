@@ -29,7 +29,7 @@ export default async function () {
 
 	await vscode.commands.executeCommand('workbench.view.scm')
 
-	return new Promise((resolve, reject) => {
+	return new Promise<void>((resolve, reject) => {
 		let resolved = false
 
 		const picker = vscode.window.createQuickPick()
