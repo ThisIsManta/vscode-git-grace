@@ -1,7 +1,8 @@
 .gitignore
 .vscode/**
 .vscode-test/**
+node_modules
 edge
 test
-**/*.map
+dist
 tsconfig.json

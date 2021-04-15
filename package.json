@@ -27,7 +27,7 @@
     "activationEvents": [
         "workspaceContains:.git"
     ],
-    "main": "./dist/extension",
+    "main": "index.js",
     "contributes": {
         "configuration": {
             "type": "object",
@@ -290,8 +290,8 @@
     },
     "scripts": {
         "postinstall": "node ./edge/postinstall",
-        "compile": "tsc --watch --project ./",
-        "vscode:prepublish": "tsc --skipLibCheck --project ./",
+        "compile": "tsc --watch",
+        "vscode:prepublish": "tsc --skipLibCheck && esbuild dist/extension.js --bundle --platform=node --outfile=index.js --external:vscode",
         "preversion": "git push --dry-run origin master:master",
         "version": "vsce publish",
         "postversion": "git push --tags --quiet origin master:master"
@@ -299,13 +299,12 @@
     "devDependencies": {
         "@types/lodash": "^4.14.168",
         "@types/node": "^12.12.22",
-        "vscode": "^1.1.36"
-    },
-    "dependencies": {
+        "esbuild": "^0.11.11",
         "git-diff-parser": "^1.0.0",
         "lodash": "^4.17.21",
         "node-fetch": "^2.6.1",
         "open": "^8.0.5",
-        "typescript": "^4.2.4"
+        "typescript": "^4.2.4",
+        "vscode": "^1.1.36"
     }
 }
