@@ -263,7 +263,7 @@
                 "command": "tortoiseGit.showFileLog"
             },
             {
-                "key": "alt+g v",
+                "key": "alt+g t",
                 "command": "tortoiseGit.commit"
             },
             {

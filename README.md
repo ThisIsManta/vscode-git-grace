@@ -42,7 +42,7 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |`gitGrace.showOutput`<br>(alt+g o)|Open the output channel for **Git Grace** extension.|
 |`tortoiseGit.showLog`<br>(alt+g l)|Show the log messages for the whole repository.|
 |`tortoiseGit.showFileLog`<br>(alt+g k)|Show the log messages for the current active file.|
-|`tortoiseGit.commit`<br>(alt+g v)|Commit with **TortoiseGit**.|
+|`tortoiseGit.commit`<br>(alt+g t)|Commit with **TortoiseGit**.|
 |`tortoiseGit.blame`<br>(alt+g b)|Open **TortoiseGitBlame** for the current active file.|
 |`gitGrace.stash`<br>(alt+s s)|Save an unnamed stash with _--include-untracked_.|
 |`gitGrace.stashPopLatest`<br>(alt+s p)|Restore the last stash without hassle.|
