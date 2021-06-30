@@ -1,3 +1,6 @@
+### 2.16.2
+- Reduced start-up time.
+
 ### 2.15.1
 - Fixed `gitGrace.checkout` command so it switches to newly fetched branch properly.
 
