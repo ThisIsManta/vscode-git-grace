@@ -1,6 +1,6 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
-import * as open from 'open'
+import open from 'open'
 
 import * as Util from './Util'
 import * as Git from './Git'

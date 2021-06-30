@@ -1,6 +1,6 @@
 import * as _ from 'lodash'
 import * as vscode from 'vscode'
-import * as parseDiff from 'git-diff-parser'
+import parseDiff from 'git-diff-parser'
 
 import * as Util from './Util'
 import * as Git from './Git'

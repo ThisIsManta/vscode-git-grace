@@ -1,4 +1,4 @@
-import * as open from 'open'
+import open from 'open'
 
 import * as Util from './Util'
 import * as Git from './Git'

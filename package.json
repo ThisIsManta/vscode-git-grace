@@ -27,7 +27,7 @@
     "activationEvents": [
         "workspaceContains:.git"
     ],
-    "main": "index.js",
+    "main": "dist/extension.js",
     "contributes": {
         "configuration": {
             "type": "object",
@@ -289,9 +289,10 @@
         ]
     },
     "scripts": {
-        "postinstall": "node ./edge/postinstall",
-        "compile": "tsc --watch",
-        "vscode:prepublish": "tsc --skipLibCheck && esbuild dist/extension.js --bundle --platform=node --outfile=index.js --external:vscode",
+        "postinstall": "node ./edge/postinstall && code --install-extension connor4312.esbuild-problem-matchers",
+        "build": "esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
+        "watch": "npm run build -- --watch --sourcemap",
+        "vscode:prepublish": "tsc --noEmit && npm run build -- --minify",
         "preversion": "git push --dry-run origin master:master",
         "version": "vsce publish",
         "postversion": "git push --tags --quiet origin master:master"
@@ -299,12 +300,12 @@
     "devDependencies": {
         "@types/lodash": "^4.14.168",
         "@types/node": "^12.12.22",
-        "esbuild": "^0.11.11",
+        "esbuild": "^0.12.12",
         "git-diff-parser": "^1.0.0",
         "lodash": "^4.17.21",
         "node-fetch": "^2.6.1",
         "open": "^8.0.5",
-        "typescript": "^4.2.4",
-        "vscode": "^1.1.36"
+        "typescript": "^4.3.4",
+        "vscode": "^1.1.37"
     }
 }
