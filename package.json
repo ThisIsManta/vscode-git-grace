@@ -1,311 +1,311 @@
 {
-    "name": "git-grace",
-    "displayName": "Manta's Git Grace",
-    "description": "Add persistent Git commands.",
-    "version": "2.16.1",
-    "publisher": "thisismanta",
-    "categories": [
-        "Other"
-    ],
-    "keywords": [
-        "git"
-    ],
-    "repository": {
-        "url": "https://github.com/ThisIsManta/vscode-git-grace"
-    },
-    "bugs": {
-        "url": "https://github.com/ThisIsManta/vscode-git-grace/issues"
-    },
-    "icon": "docs/logo.png",
-    "galleryBanner": {
-        "color": "#212121",
-        "theme": "dark"
-    },
-    "engines": {
-        "vscode": "^1.41.0"
-    },
-    "activationEvents": [
-        "workspaceContains:.git"
-    ],
-    "main": "dist/extension.js",
-    "contributes": {
-        "configuration": {
-            "type": "object",
-            "title": "TortoiseGit",
-            "properties": {
-                "gitGrace.tortoiseGitPath": {
-                    "type": "string",
-                    "default": "C:\\Program Files\\TortoiseGit\\bin\\TortoiseGitProc.exe",
-                    "description": "Path to TortoiseGit executable (TortoiseGitProc.exe)."
-                }
-            }
-        },
-        "commands": [
-            {
-                "command": "gitGrace.fetch",
-                "title": "Fetch (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.pull",
-                "title": "Pull (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.push",
-                "title": "Push (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.stageAll",
-                "title": "Stage All Changes (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.unstageAll",
-                "title": "Unstage All Changes (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.cleanAll",
-                "title": "Discard All Changes (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.commitSmart",
-                "title": "Commit Smart",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.commitEmpty",
-                "title": "Commit Empty",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.squash",
-                "title": "Squash",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.stash",
-                "title": "Stash (Include Untracked, Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.stashPopLatest",
-                "title": "Pop Latest Stash (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.stashPop",
-                "title": "Pop Stash... (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.stashClear",
-                "title": "Clear Stash",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.master",
-                "title": "Checkout to \"origin/HEAD\"",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.branch",
-                "title": "Create Branch... (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.checkout",
-                "title": "Checkout to... (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.openWeb",
-                "title": "Open on Web...",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.pullRequest",
-                "title": "Create Pull-Request...",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.blame",
-                "title": "Blame...",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.sync",
-                "title": "Sync (Gracefully)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.deleteBranch",
-                "title": "Delete Branch... (Persistent)",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.deleteMergedBranches",
-                "title": "Delete Merged Branches...",
-                "category": "Git"
-            },
-            {
-                "command": "gitGrace.showOutput",
-                "title": "Show Output (Git Grace)",
-                "category": "Git"
-            },
-            {
-                "command": "tortoiseGit.showLog",
-                "title": "Show Log...",
-                "category": "TortoiseGit"
-            },
-            {
-                "command": "tortoiseGit.showFileLog",
-                "title": "Show File Log...",
-                "category": "TortoiseGit"
-            },
-            {
-                "command": "tortoiseGit.commit",
-                "title": "Commit...",
-                "category": "TortoiseGit"
-            },
-            {
-                "command": "tortoiseGit.blame",
-                "title": "Blame...",
-                "category": "TortoiseGit"
-            }
-        ],
-        "keybindings": [
-            {
-                "key": "alt+g f",
-                "command": "gitGrace.fetch"
-            },
-            {
-                "key": "alt+g u",
-                "command": "gitGrace.pull"
-            },
-            {
-                "key": "alt+g p",
-                "command": "gitGrace.push"
-            },
-            {
-                "key": "alt+g d",
-                "command": "git.openChange"
-            },
-            {
-                "key": "alt+g y",
-                "command": "gitGrace.stageAll"
-            },
-            {
-                "key": "alt+g z",
-                "command": "gitGrace.unstageAll"
-            },
-            {
-                "key": "alt+g r",
-                "command": "gitGrace.cleanAll"
-            },
-            {
-                "key": "alt+g c",
-                "command": "gitGrace.commitSmart"
-            },
-            {
-                "key": "alt+g a",
-                "command": "gitGrace.commitAmend"
-            },
-            {
-                "key": "alt+g e",
-                "command": "gitGrace.commitEmpty"
-            },
-            {
-                "key": "alt+g q",
-                "command": "gitGrace.squash"
-            },
-            {
-                "key": "alt+g m",
-                "command": "gitGrace.master"
-            },
-            {
-                "key": "alt+g n",
-                "command": "gitGrace.branch"
-            },
-            {
-                "key": "alt+g s",
-                "command": "gitGrace.checkout"
-            },
-            {
-                "key": "alt+g h",
-                "command": "gitGrace.openWeb"
-            },
-            {
-                "key": "alt+g j",
-                "command": "gitGrace.pullRequest"
-            },
-            {
-                "key": "alt+g g",
-                "command": "gitGrace.sync"
-            },
-            {
-                "key": "alt+g x",
-                "command": "gitGrace.deleteBranch"
-            },
-            {
-                "key": "alt+g o",
-                "command": "gitGrace.showOutput"
-            },
-            {
-                "key": "alt+g l",
-                "command": "tortoiseGit.showLog"
-            },
-            {
-                "key": "alt+g k",
-                "command": "tortoiseGit.showFileLog"
-            },
-            {
-                "key": "alt+g t",
-                "command": "tortoiseGit.commit"
-            },
-            {
-                "key": "alt+g b",
-                "command": "gitGrace.blame"
-            },
-            {
-                "key": "alt+s s",
-                "command": "gitGrace.stash"
-            },
-            {
-                "key": "alt+s p",
-                "command": "gitGrace.stashPopLatest"
-            },
-            {
-                "key": "alt+s l",
-                "command": "gitGrace.stashPop"
-            },
-            {
-                "key": "alt+s c",
-                "command": "gitGrace.stashClear"
-            }
-        ]
-    },
-    "scripts": {
-        "postinstall": "node ./edge/postinstall && code --install-extension connor4312.esbuild-problem-matchers",
-        "build": "esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
-        "watch": "npm run build -- --watch --sourcemap",
-        "vscode:prepublish": "tsc --noEmit && npm run build -- --minify",
-        "preversion": "git push --dry-run origin master:master",
-        "version": "vsce publish",
-        "postversion": "git push --tags --quiet origin master:master"
-    },
-    "devDependencies": {
-        "@types/lodash": "^4.14.168",
-        "@types/node": "^12.12.22",
-        "esbuild": "^0.12.12",
-        "git-diff-parser": "^1.0.0",
-        "lodash": "^4.17.21",
-        "node-fetch": "^2.6.1",
-        "open": "^8.0.5",
-        "typescript": "^4.3.4",
-        "vscode": "^1.1.37"
-    }
+	"name": "git-grace",
+	"displayName": "Manta's Git Grace",
+	"description": "Add persistent Git commands.",
+	"version": "2.16.1",
+	"publisher": "thisismanta",
+	"categories": [
+		"Other"
+	],
+	"keywords": [
+		"git"
+	],
+	"repository": {
+		"url": "https://github.com/ThisIsManta/vscode-git-grace"
+	},
+	"bugs": {
+		"url": "https://github.com/ThisIsManta/vscode-git-grace/issues"
+	},
+	"icon": "docs/logo.png",
+	"galleryBanner": {
+		"color": "#212121",
+		"theme": "dark"
+	},
+	"engines": {
+		"vscode": "^1.41.0"
+	},
+	"activationEvents": [
+		"workspaceContains:.git"
+	],
+	"main": "dist/extension.js",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "TortoiseGit",
+			"properties": {
+				"gitGrace.tortoiseGitPath": {
+					"type": "string",
+					"default": "C:\\Program Files\\TortoiseGit\\bin\\TortoiseGitProc.exe",
+					"description": "Path to TortoiseGit executable (TortoiseGitProc.exe)."
+				}
+			}
+		},
+		"commands": [
+			{
+				"command": "gitGrace.fetch",
+				"title": "Fetch (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.pull",
+				"title": "Pull (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.push",
+				"title": "Push (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.stageAll",
+				"title": "Stage All Changes (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.unstageAll",
+				"title": "Unstage All Changes (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.cleanAll",
+				"title": "Discard All Changes (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.commitSmart",
+				"title": "Commit Smart",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.commitEmpty",
+				"title": "Commit Empty",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.squash",
+				"title": "Squash",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.stash",
+				"title": "Stash (Include Untracked, Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.stashPopLatest",
+				"title": "Pop Latest Stash (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.stashPop",
+				"title": "Pop Stash... (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.stashClear",
+				"title": "Clear Stash",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.master",
+				"title": "Checkout to \"origin/HEAD\"",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.branch",
+				"title": "Create Branch... (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.checkout",
+				"title": "Checkout to... (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.openWeb",
+				"title": "Open on Web...",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.pullRequest",
+				"title": "Create Pull-Request...",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.blame",
+				"title": "Blame...",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.sync",
+				"title": "Sync (Gracefully)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.deleteBranch",
+				"title": "Delete Branch... (Persistent)",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.deleteMergedBranches",
+				"title": "Delete Merged Branches...",
+				"category": "Git"
+			},
+			{
+				"command": "gitGrace.showOutput",
+				"title": "Show Output (Git Grace)",
+				"category": "Git"
+			},
+			{
+				"command": "tortoiseGit.showLog",
+				"title": "Show Log...",
+				"category": "TortoiseGit"
+			},
+			{
+				"command": "tortoiseGit.showFileLog",
+				"title": "Show File Log...",
+				"category": "TortoiseGit"
+			},
+			{
+				"command": "tortoiseGit.commit",
+				"title": "Commit...",
+				"category": "TortoiseGit"
+			},
+			{
+				"command": "tortoiseGit.blame",
+				"title": "Blame...",
+				"category": "TortoiseGit"
+			}
+		],
+		"keybindings": [
+			{
+				"key": "alt+g f",
+				"command": "gitGrace.fetch"
+			},
+			{
+				"key": "alt+g u",
+				"command": "gitGrace.pull"
+			},
+			{
+				"key": "alt+g p",
+				"command": "gitGrace.push"
+			},
+			{
+				"key": "alt+g d",
+				"command": "git.openChange"
+			},
+			{
+				"key": "alt+g y",
+				"command": "gitGrace.stageAll"
+			},
+			{
+				"key": "alt+g z",
+				"command": "gitGrace.unstageAll"
+			},
+			{
+				"key": "alt+g r",
+				"command": "gitGrace.cleanAll"
+			},
+			{
+				"key": "alt+g c",
+				"command": "gitGrace.commitSmart"
+			},
+			{
+				"key": "alt+g a",
+				"command": "gitGrace.commitAmend"
+			},
+			{
+				"key": "alt+g e",
+				"command": "gitGrace.commitEmpty"
+			},
+			{
+				"key": "alt+g q",
+				"command": "gitGrace.squash"
+			},
+			{
+				"key": "alt+g m",
+				"command": "gitGrace.master"
+			},
+			{
+				"key": "alt+g n",
+				"command": "gitGrace.branch"
+			},
+			{
+				"key": "alt+g s",
+				"command": "gitGrace.checkout"
+			},
+			{
+				"key": "alt+g h",
+				"command": "gitGrace.openWeb"
+			},
+			{
+				"key": "alt+g j",
+				"command": "gitGrace.pullRequest"
+			},
+			{
+				"key": "alt+g g",
+				"command": "gitGrace.sync"
+			},
+			{
+				"key": "alt+g x",
+				"command": "gitGrace.deleteBranch"
+			},
+			{
+				"key": "alt+g o",
+				"command": "gitGrace.showOutput"
+			},
+			{
+				"key": "alt+g l",
+				"command": "tortoiseGit.showLog"
+			},
+			{
+				"key": "alt+g k",
+				"command": "tortoiseGit.showFileLog"
+			},
+			{
+				"key": "alt+g t",
+				"command": "tortoiseGit.commit"
+			},
+			{
+				"key": "alt+g b",
+				"command": "gitGrace.blame"
+			},
+			{
+				"key": "alt+s s",
+				"command": "gitGrace.stash"
+			},
+			{
+				"key": "alt+s p",
+				"command": "gitGrace.stashPopLatest"
+			},
+			{
+				"key": "alt+s l",
+				"command": "gitGrace.stashPop"
+			},
+			{
+				"key": "alt+s c",
+				"command": "gitGrace.stashClear"
+			}
+		]
+	},
+	"scripts": {
+		"postinstall": "node ./edge/postinstall && code --install-extension connor4312.esbuild-problem-matchers",
+		"build": "esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
+		"watch": "npm run build -- --watch --sourcemap",
+		"vscode:prepublish": "tsc --noEmit && npm run build -- --minify",
+		"preversion": "git push --dry-run origin master:master",
+		"version": "vsce publish",
+		"postversion": "git push --tags --quiet origin master:master"
+	},
+	"devDependencies": {
+		"@types/lodash": "^4.14.168",
+		"@types/node": "^12.12.22",
+		"esbuild": "^0.12.12",
+		"git-diff-parser": "^1.0.0",
+		"lodash": "^4.17.21",
+		"node-fetch": "^2.6.1",
+		"open": "^8.0.5",
+		"typescript": "^4.3.4",
+		"vscode": "^1.1.37"
+	}
 }

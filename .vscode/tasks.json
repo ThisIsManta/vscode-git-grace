@@ -1,13 +1,13 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "npm",
-            "type": "npm",
-            "script": "watch",
-            "group": "build",
-            "problemMatcher": "$esbuild-watch",
-            "isBackground": true,
-        }
-    ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "npm",
+			"type": "npm",
+			"script": "watch",
+			"group": "build",
+			"problemMatcher": "$esbuild-watch",
+			"isBackground": true,
+		}
+	]
 }
