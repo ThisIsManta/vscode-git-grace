@@ -1,4 +1,6 @@
-import * as _ from 'lodash'
+import without from 'lodash/without'
+import compact from 'lodash/compact'
+import defer from 'lodash/defer'
 import * as vscode from 'vscode'
 
 import * as Util from './Util'
@@ -99,7 +101,7 @@ export default async function () {
 
 			track('delete-merged-branches', { success: true })
 
-			_.defer(() => {
+			defer(() => {
 				vscode.window.showInformationMessage(`${mergedLocalBranches.length + mergedRemoteBranches.length} merged branch${mergedLocalBranches.length + mergedRemoteBranches.length ? 'es have' : 'has'} been deleted.`)
 			})
 
@@ -118,11 +120,12 @@ export default async function () {
 export async function getMergedBranchNames(link: vscode.Uri, remote: boolean) {
 	const headBranchName = await Git.getRemoteHeadBranchName(link)
 	const content = await Git.run(link, 'branch', '--merged', 'origin/' + headBranchName, remote ? '--remotes' : null)
-	return _.chain(content.trim().split('\n'))
-		.map(line => line.trim().split(' -> '))
-		.flatten()
-		.without('origin/HEAD', 'origin/' + headBranchName)
-		.reject(name => name.startsWith('*'))
-		.compact()
-		.value()
+	return compact(
+		without(
+			content.trim()
+				.split('\n')
+				.flatMap(line => line.trim().split(' -> ')),
+			'origin/HEAD', 'origin/' + headBranchName
+		).filter(name => !name.startsWith('*'))
+	)
 }

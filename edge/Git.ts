@@ -1,7 +1,12 @@
 import * as fs from 'fs'
 import * as fp from 'path'
 import * as cp from 'child_process'
-import * as _ from 'lodash'
+import compact from 'lodash/compact'
+import chunk from 'lodash/chunk'
+import first from 'lodash/first'
+import last from 'lodash/last'
+import trim from 'lodash/trim'
+import escapeRegExp from 'lodash/escapeRegExp'
 import * as vscode from 'vscode'
 
 import * as GitBuiltInExtension from './GitBuiltInExtension.d'
@@ -119,21 +124,21 @@ export async function getPushedCommitHash(link: vscode.Uri) {
 
 export async function getLocalBranchNames(link: vscode.Uri) {
 	const result = await run(link, 'branch', '--list')
-	return _.chain(result.split('\n'))
-		.map(line => line.startsWith('*') ? line.substring(1) : line)
-		.map(line => line.trim())
-		.compact()
-		.value()
+	return compact(
+		result.split('\n')
+			.map(line => line.startsWith('*') ? line.substring(1) : line)
+			.map(line => line.trim())
+	)
 }
 
 export async function getRemoteBranchNames(link: vscode.Uri) {
 	const result = await run(link, 'branch', '--list', '--remotes')
-	return _.chain(result.split('\n'))
-		.map(line => line.trim())
-		.map(line => line.split(' -> '))
-		.flatten()
-		.compact()
-		.value()
+	return compact(
+		result
+			.split('\n')
+			.map(line => line.trim())
+			.flatMap(line => line.split(' -> '))
+	)
 }
 
 export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
@@ -142,16 +147,17 @@ export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
 
 export async function getRemoteHeadBranchName(link: vscode.Uri) {
 	const branchName = await run(link, 'symbolic-ref', 'refs/remotes/origin/HEAD')
-	return branchName.trim().replace(new RegExp('^' + _.escapeRegExp('refs/remotes/origin/')), '')
+	return branchName.trim().replace(new RegExp('^' + escapeRegExp('refs/remotes/origin/')), '')
 }
 
 export async function getBranchCounterparts(link: vscode.Uri) {
 	const result = await run(link, 'for-each-ref', '--format=%(refname)|%(upstream)', 'refs/heads/')
-	return _.chain(result.split('\n'))
-		.compact()
+	return compact(result.split('\n'))
 		.map(line => line.split('|'))
-		.map(([local, remote]) => ({ local: local.replace(/^refs\/heads\//, ''), remote: remote.replace(/^refs\/remotes\//, '') || null }))
-		.value()
+		.map(([local, remote]) => ({
+			local: local.replace(/^refs\/heads\//, ''),
+			remote: remote.replace(/^refs\/remotes\//, '') || null
+		}))
 }
 
 export async function getLastCommit(link: vscode.Uri) {
@@ -237,8 +243,8 @@ export async function getFileStatus(link: vscode.Uri) {
 		.filter(line => line.trim().length > 0)
 		.map(line => ({
 			symbol: line.substring(0, 2).trim(),
-			currentLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, _.last(line.substring(3).split('->')).trim())),
-			originalLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, _.first(line.substring(3).split('->')).trim())),
+			currentLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, last(line.substring(3).split('->')).trim())),
+			originalLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, first(line.substring(3).split('->')).trim())),
 		}))
 		.find(file => file.currentLink.fsPath === link.fsPath)
 }
@@ -248,7 +254,7 @@ export async function getBranchTopology(link: vscode.Uri, localBranchName: strin
 	if (result.trim() === '') {
 		return []
 	}
-	const commits = _.chunk(result.trim().split('\n'), 5).map(([commit, parentHash, email, date, message]) => {
+	const commits = chunk(result.trim().split('\n'), 5).map(([commit, parentHash, email, date, message]) => {
 		const directionAndCommitHash = commit.match(/(<|>)(\w{40})/) // First line is always be "commit >X" where X is a 40-character-long commit hash
 		return {
 			email,
@@ -262,8 +268,8 @@ export async function getBranchTopology(link: vscode.Uri, localBranchName: strin
 	const groups = [[commits[0]]]
 	let index = 0
 	while (++index < commits.length) {
-		if (commits[index].direction === _.last(groups)[0].direction) {
-			_.last(groups).push(commits[index])
+		if (commits[index].direction === last(groups)[0].direction) {
+			last(groups).push(commits[index])
 		} else {
 			groups.push([commits[index]])
 		}
@@ -282,7 +288,7 @@ export function getWebOrigin(workspace: vscode.WorkspaceFolder) {
 	}
 
 	const confFile = fs.readFileSync(confPath, 'utf-8')
-	const confLine = _.compact(confFile.split('\n'))
+	const confLine = compact(confFile.split('\n'))
 	let head = ''
 	const dict = new Map<string, string>()
 	for (const line of confLine) {
@@ -300,7 +306,7 @@ export function getWebOrigin(workspace: vscode.WorkspaceFolder) {
 
 export async function getFileBeforeRenamed(link: vscode.Uri) {
 	const repositoryLink = getRepositoryLink(link)
-	const relativeCurrentFilePath = _.trim(link.fsPath.substring(repositoryLink.fsPath.length), fp.sep)
+	const relativeCurrentFilePath = trim(link.fsPath.substring(repositoryLink.fsPath.length), fp.sep)
 
 	let status = await getFileStatus(link)
 	if (status === undefined) {

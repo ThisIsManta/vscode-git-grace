@@ -1,8 +1,6 @@
-import * as _ from 'lodash'
-import * as fetch from 'node-fetch'
+import debounce from 'lodash/debounce'
 import * as os from 'os'
 import * as vscode from 'vscode'
-import { URLSearchParams } from 'url'
 
 const version = vscode.extensions.getExtension('thisismanta.git-grace').packageJSON.version
 
@@ -21,7 +19,7 @@ export function track(eventName: string, eventData?: object) {
 	trackInternal()
 }
 
-const trackInternal = _.debounce(() => {
+const trackInternal = debounce(() => {
 	// Disable Amplitude as it does not accept my events anymore
 	/* const params = new URLSearchParams()
 	params.append('api_key', 'df3ebf85734dba90b618ecb5f99aa07f')

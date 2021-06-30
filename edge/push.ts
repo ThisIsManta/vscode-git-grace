@@ -1,4 +1,4 @@
-import * as _ from 'lodash'
+import defer from 'lodash/defer'
 import * as vscode from 'vscode'
 
 import * as Util from './Util'
@@ -74,7 +74,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 						throw null
 					}
 
-					_.defer(async () => {
+					defer(async () => {
 						await vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
 
 						trySyncRemoteBranch(workspace)

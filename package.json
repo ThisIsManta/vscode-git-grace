@@ -22,7 +22,7 @@
 		"theme": "dark"
 	},
 	"engines": {
-		"vscode": "^1.41.0"
+		"vscode": "^1.57.0"
 	},
 	"activationEvents": [
 		"workspaceContains:.git"
@@ -299,7 +299,7 @@
 	},
 	"devDependencies": {
 		"@types/lodash": "^4.14.168",
-		"@types/node": "^12.12.22",
+		"@types/node": "^14.0.0",
 		"esbuild": "^0.12.12",
 		"git-diff-parser": "^1.0.0",
 		"lodash": "^4.17.21",

@@ -1,4 +1,5 @@
-import * as _ from 'lodash'
+import pull from 'lodash/pull'
+import sortBy from 'lodash/sortBy'
 import * as fp from 'path'
 import * as vscode from 'vscode'
 
@@ -16,14 +17,14 @@ export function getWorkspaceListWithGitEnabled() {
 export function setWorkspaceAsFirstTryNextTime(workspace: vscode.WorkspaceFolder) {
 	getWorkspaceListWithGitEnabled()
 
-	workspaceList = _.sortBy(workspaceList, item => item === workspace ? 0 : 1)
+	workspaceList = sortBy(workspaceList, item => item === workspace ? 0 : 1)
 }
 
 export async function updateWorkspaceList(e: vscode.WorkspaceFoldersChangeEvent) {
 	getWorkspaceListWithGitEnabled()
 
 	workspaceList.push(...e.added.filter(item => !!Git.getRepositoryLink(item.uri)))
-	_.pull(workspaceList, ...e.removed)
+	pull(workspaceList, ...e.removed)
 }
 
 export async function getCurrentWorkspace() {

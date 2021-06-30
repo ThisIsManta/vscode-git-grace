@@ -1,4 +1,4 @@
-import * as _ from 'lodash'
+import trimStart from 'lodash/trimStart'
 import * as vscode from 'vscode'
 
 import * as Util from './Util'
@@ -54,7 +54,7 @@ async function tryCreateNewBranch(link: vscode.Uri) {
 	const remoteBranchNames = await Git.getRemoteBranchNames(link)
 	const existingBranchNames = new Set<string>([
 		...localBranchNames,
-		...remoteBranchNames.map(name => _.trimStart(name, 'origin/')),
+		...remoteBranchNames.map(name => trimStart(name, 'origin/')),
 	])
 
 	const branchName = await vscode.window.showInputBox({

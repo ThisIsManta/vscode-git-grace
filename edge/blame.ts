@@ -1,4 +1,4 @@
-import * as _ from 'lodash'
+import trim from 'lodash/trim'
 import * as vscode from 'vscode'
 import open from 'open'
 
@@ -23,7 +23,7 @@ export default async function () {
 	const currentFile = Util.getCurrentFile()
 	const renamedFile = await Git.getFileBeforeRenamed(currentFile)
 	const repositoryLink = Git.getRepositoryLink(currentFile)
-	const relativeFilePath = _.trim((renamedFile || currentFile).fsPath.substring(repositoryLink.fsPath.length).replace(/\\/g, '/'), '/')
+	const relativeFilePath = trim((renamedFile || currentFile).fsPath.substring(repositoryLink.fsPath.length).replace(/\\/g, '/'), '/')
 
 	const commitHash = await Git.getPushedCommitHash(workspace.uri)
 	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor)

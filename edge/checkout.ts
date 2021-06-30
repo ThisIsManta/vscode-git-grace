@@ -1,4 +1,4 @@
-import * as _ from 'lodash'
+import without from 'lodash/without'
 import * as vscode from 'vscode'
 
 import * as Util from './Util'
@@ -30,7 +30,7 @@ export default async function () {
 			Git.getRemoteBranchNames(workspace.uri),
 		])
 		localBranches = branches[0]
-		remoteBranches = _.without(branches[1], 'origin/HEAD')
+		remoteBranches = without(branches[1], 'origin/HEAD')
 
 		picker.items = [...localBranches, ...remoteBranches].map(name => ({ label: name }))
 		if (status.local) {

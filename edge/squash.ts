@@ -1,4 +1,6 @@
-import * as _ from 'lodash'
+import compact from 'lodash/compact'
+import trimEnd from 'lodash/trimEnd'
+import last from 'lodash/last'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
@@ -18,7 +20,7 @@ export default async function () {
 	const originalCommitHash = await Git.getCurrentCommitHash(workspace.uri)
 
 	const lastCommitText = await Git.run(workspace.uri, 'log', '--pretty=format:%H %s', '--no-merges', '--max-count=50', 'HEAD')
-	const lastCommitList = _.trimEnd(lastCommitText).split('\n')
+	const lastCommitList = trimEnd(lastCommitText).split('\n')
 		.map(line => {
 			const [commitHash, ...message] = line.split(' ')
 			return { commitHash, label: message.join(' ') }
@@ -36,7 +38,7 @@ export default async function () {
 	try {
 		await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Squashing...' }, async () => {
 			const fileStatusText = await Git.run(workspace.uri, 'status', '--short')
-			const fileStatusList = _.trimEnd(fileStatusText).split('\n')
+			const fileStatusList = trimEnd(fileStatusText).split('\n')
 				.map(line => ({ path: line.substring(3), staged: /\w/.test(line.charAt(0)) }))
 
 			const filesHaveBeenPartiallyStaged = fileStatusList.some(file => file.staged) && !fileStatusList.every(file => file.staged)
@@ -54,10 +56,10 @@ export default async function () {
 			await Git.run(workspace.uri, 'commit', '--amend', '--reset-author', '--reuse-message=' + select.commitHash)
 
 			const commitHashText = await Git.run(workspace.uri, 'log', '--pretty=format:%H', select.commitHash + '..' + originalCommitHash)
-			const commitHashList = _.compact(commitHashText.split('\n'))
+			const commitHashList = compact(commitHashText.split('\n'))
 			for (const commitHash of commitHashList) {
 				const result = await Git.run(workspace.uri, 'cherry-pick', commitHash)
-				if (_.last(result.trim().split('\n')).startsWith('Otherwise,')) {
+				if (last(result.trim().split('\n')).startsWith('Otherwise,')) {
 					await Git.run(workspace.uri, 'cherry-pick', '--abort')
 					throw `Could not be able to cherry pick ${commitHash}.`
 				}

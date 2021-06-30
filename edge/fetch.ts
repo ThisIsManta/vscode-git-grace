@@ -1,4 +1,10 @@
-import * as _ from 'lodash'
+import isMatch from 'lodash/isMatch'
+import isEqual from 'lodash/isEqual'
+import sortBy from 'lodash/sortBy'
+import first from 'lodash/first'
+import last from 'lodash/last'
+import omit from 'lodash/omit'
+import differenceWith from 'lodash/differenceWith'
 import * as vscode from 'vscode'
 import parseDiff from 'git-diff-parser'
 
@@ -84,7 +90,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 	async function abortIfStatusHasChanged() {
 		const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
 		delete newStatus.distance
-		if (_.isMatch(status, newStatus) === false) {
+		if (isMatch(status, newStatus) === false) {
 			vscode.window.showErrorMessage(`The fetch operation was cancelled because the branch status has changed.`, { modal: true })
 			throw null
 		}
@@ -134,16 +140,18 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 
 	} else if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
 		const groups = await Git.getBranchTopology(workspace.uri, status.local, status.remote)
-		const [localCommits, remoteCommits] = _.chain(groups)
-			.filter(commits => commits.length > 0)
-			.sortBy(commits => commits[0].direction === '<' ? 0 : 1 /* Put local commits first */)
-			.map(commits => _.sortBy(commits, commit => commit.date /* Put older commits first */))
-			.value()
+		// Put local commits first
+		const localCommitFirstGroups = sortBy(
+			groups.filter(commits => commits.length > 0),
+			commits => commits[0].direction === '<' ? 0 : 1
+		)
+		// Put older commits first
+		const [localCommits, remoteCommits] = localCommitFirstGroups.map(commits => sortBy(commits, commit => commit.date))
 
 		let select: string
 		if (
 			localCommits && remoteCommits &&
-			await checkIfRemoteContainsLocalChanges(workspace.uri, _.first(localCommits).parentHash, _.last(localCommits).commitHash, _.last(remoteCommits).commitHash)
+			await checkIfRemoteContainsLocalChanges(workspace.uri, first(localCommits).parentHash, last(localCommits).commitHash, last(remoteCommits).commitHash)
 		) {
 			select = await vscode.window.showWarningMessage(
 				`The local branch "${status.local}" can be safely reset to the tip of its remote branch.`,
@@ -164,7 +172,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder) {
 		if (select === 'Reset Branch') {
 			await abortIfStatusHasChanged()
 
-			await Git.run(workspace.uri, 'reset', '--hard', _.last(remoteCommits).commitHash)
+			await Git.run(workspace.uri, 'reset', '--hard', last(remoteCommits).commitHash)
 
 			await vscode.commands.executeCommand('git.refresh')
 
@@ -268,9 +276,9 @@ async function checkIfRemoteContainsLocalChanges(link: vscode.Uri, baseCommitHas
 			return false
 		}
 
-		const la = fa.lines.filter(f => f.type !== 'normal').map(l => _.omit(l, 'ln2'))
-		const lb = fb.lines.filter(f => f.type !== 'normal').map(l => _.omit(l, 'ln2'))
-		if (_.differenceWith(la, lb, _.isEqual).length > 0) {
+		const la = fa.lines.filter(f => f.type !== 'normal').map(l => omit(l, 'ln2'))
+		const lb = fb.lines.filter(f => f.type !== 'normal').map(l => omit(l, 'ln2'))
+		if (differenceWith(la, lb, isEqual).length > 0) {
 			return false
 		}
 	}

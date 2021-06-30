@@ -1,4 +1,4 @@
-import * as _ from 'lodash'
+import compact from 'lodash/compact'
 import * as vscode from 'vscode'
 
 import * as Util from './Util'
@@ -86,7 +86,7 @@ export async function updateStashCountBar() {
 	const workspace = await Util.getCurrentWorkspace()
 	if (workspace) {
 		const result = await Git.run(workspace.uri, 'stash', 'list')
-		const stashList = _.compact(result.split('\n'))
+		const stashList = compact(result.split('\n'))
 		if (stashList.length > 0) {
 			if (!stashCountBar) {
 				stashCountBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5)

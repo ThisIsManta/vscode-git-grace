@@ -1,4 +1,5 @@
-import * as _ from 'lodash'
+import last from 'lodash/last'
+import isEqual from 'lodash/isEqual'
 import * as vscode from 'vscode'
 
 import Log from './Log'
@@ -13,19 +14,19 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 	return async (options: object = {}) => {
 		try {
 			// Do not enqueue the same operation
-			if (_.isEqual(pendingActionList[0], { action, options })) {
+			if (isEqual(pendingActionList[0], { action, options })) {
 				return undefined
 			}
 
 			// Cancel the active operation if the new pending operation requests cancellation
-			if (pendingActionList.length > 0 && _.includes(cancellableActionList, _.last(pendingActionList).action)) {
+			if (pendingActionList.length > 0 && cancellableActionList.includes(last(pendingActionList).action)) {
 				if (cancellationService) {
 					cancellationService.cancel()
 					cancellationService = null
 				}
 				pendingActionList.pop()
 
-				while (pendingActionList.length > 0 && _.includes(cancellableActionList, _.last(pendingActionList).action)) {
+				while (pendingActionList.length > 0 && cancellableActionList.includes(last(pendingActionList).action)) {
 					pendingActionList.pop()
 				}
 			}
@@ -39,7 +40,7 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 
 				while (pendingActionList.length > 0) {
 					cancellationService = new vscode.CancellationTokenSource()
-					const { action, options } = _.last(pendingActionList)
+					const { action, options } = last(pendingActionList)
 					await action({ ...options, token: cancellationService.token })
 					pendingActionList.pop()
 				}

@@ -1,4 +1,5 @@
-import * as _ from 'lodash'
+import uniq from 'lodash/uniq'
+import compact from 'lodash/compact'
 import * as vscode from 'vscode'
 
 import * as Util from './Util'
@@ -75,11 +76,13 @@ async function getHistoricalMessages(workspace: vscode.WorkspaceFolder) {
 
 	const messages = await Git.run(workspace.uri, 'log', '--max-count=500', '--no-merges', '--format=%s', '--author=' + email)
 
-	return _.chain(messages.trim().split('\n'))
-		.reject(message => versionMatcher.test(message))
-		.map(message => message.replace(endWithParenthesisMatcher, ''))
-		.uniq()
-		.compact()
-		.map(message => ({ label: message } as vscode.QuickPickItem))
-		.value()
+	return compact(
+		uniq(
+			messages
+				.trim()
+				.split('\n')
+				.filter(message => !versionMatcher.test(message))
+				.map(message => message.replace(endWithParenthesisMatcher, ''))
+		)
+	).map(message => ({ label: message } as vscode.QuickPickItem))
 }

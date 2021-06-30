@@ -1,4 +1,4 @@
-import * as _ from 'lodash'
+import truncate from 'lodash/truncate'
 import * as vscode from 'vscode'
 
 import * as Util from './Util'
@@ -14,7 +14,7 @@ export default async function () {
 	const commit = await Git.getLastCommit(workspace.uri)
 
 	const select = await vscode.window.showWarningMessage(
-		`Are you sure you want to amend last commit "${_.truncate(commit.message, { length: 60 })}"?`,
+		`Are you sure you want to amend last commit "${truncate(commit.message, { length: 60 })}"?`,
 		{ modal: true }, 'Amend Last Commit')
 	if (!select) {
 		throw null

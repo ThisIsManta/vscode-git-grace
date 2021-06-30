@@ -1,4 +1,7 @@
-import * as _ from 'lodash'
+import trim from 'lodash/trim'
+import first from 'lodash/first'
+import last from 'lodash/last'
+import uniq from 'lodash/uniq'
 import * as vscode from 'vscode'
 import open from 'open'
 
@@ -13,14 +16,14 @@ export default async function () {
 	}
 	const workspacePath = workspace.uri.fsPath
 
-	const webOrigin = await Git.getWebOrigin(workspace)
+	const webOrigin = Git.getWebOrigin(workspace)
 	if (!webOrigin || webOrigin.startsWith('https://github.com/') === false) {
 		return null
 	}
 
 	const repositoryPath = Git.getRepositoryLink(workspace.uri).fsPath
 	function normalizeWebLocation(path: string) {
-		return _.trim(path.substring(repositoryPath.length).replace(/\\/g, '/'), '/')
+		return trim(path.substring(repositoryPath.length).replace(/\\/g, '/'), '/')
 	}
 
 	const currentFile = Util.getCurrentFile()
@@ -130,8 +133,8 @@ export async function getLineHashForGitHub(editor: vscode.TextEditor) {
 		return ''
 	}
 
-	return '#' + _.uniq([
-		_.first(editor.selections).start.line,
-		_.last(editor.selections).end.line,
+	return '#' + uniq([
+		first(editor.selections).start.line,
+		last(editor.selections).end.line,
 	]).map(no => 'L' + (no + 1)).join('-')
 }
