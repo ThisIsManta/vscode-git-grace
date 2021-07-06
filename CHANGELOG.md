@@ -1,3 +1,6 @@
+### 2.16.3
+- Fixed the error calling `includes` of undefined.
+
 ### 2.16.2
 - Reduced start-up time.
 

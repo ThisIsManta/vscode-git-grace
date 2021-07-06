@@ -19,14 +19,14 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 			}
 
 			// Cancel the active operation if the new pending operation requests cancellation
-			if (pendingActionList.length > 0 && cancellableActionList.includes(last(pendingActionList).action)) {
+			if (pendingActionList.length > 0 && cancellableActionList && cancellableActionList.includes(last(pendingActionList).action)) {
 				if (cancellationService) {
 					cancellationService.cancel()
 					cancellationService = null
 				}
 				pendingActionList.pop()
 
-				while (pendingActionList.length > 0 && cancellableActionList.includes(last(pendingActionList).action)) {
+				while (pendingActionList.length > 0 && cancellableActionList && cancellableActionList.includes(last(pendingActionList).action)) {
 					pendingActionList.pop()
 				}
 			}

@@ -22,8 +22,8 @@ export default async function () {
 		return null
 	}
 
-	let localBranches: string[]
-	let remoteBranches: string[]
+	let localBranches: string[] = []
+	let remoteBranches: string[] = []
 	async function setPickerItems() {
 		const branches = await Promise.all([
 			Git.getLocalBranchNames(workspace.uri),
