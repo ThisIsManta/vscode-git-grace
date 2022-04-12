@@ -1,6 +1,5 @@
 import pull from 'lodash/pull'
 import sortBy from 'lodash/sortBy'
-import * as fp from 'path'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'

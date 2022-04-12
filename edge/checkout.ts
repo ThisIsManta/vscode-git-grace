@@ -5,7 +5,6 @@ import * as Util from './Util'
 import * as Git from './Git'
 import { fetchInternal, trySyncRemoteBranch } from './fetch'
 import stash from './stash'
-import { track } from './Amplitude'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
