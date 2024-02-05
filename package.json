@@ -22,7 +22,8 @@
 		"theme": "dark"
 	},
 	"engines": {
-		"vscode": "^1.66.0"
+		"node": ">=18.17.0",
+		"vscode": "^1.86.0"
 	},
 	"activationEvents": [
 		"workspaceContains:.git"
@@ -289,22 +290,22 @@
 		]
 	},
 	"scripts": {
-		"postinstall": "node ./edge/postinstall && code --install-extension connor4312.esbuild-problem-matchers",
+		"postinstall": "node ./edge/postinstall.js && code --install-extension connor4312.esbuild-problem-matchers",
 		"build": "esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
 		"watch": "npm run build -- --watch --sourcemap",
 		"vscode:prepublish": "npm run build -- --minify",
 		"version": "npx vsce publish -p $VSCE_PUBLISH_TOKEN"
 	},
 	"devDependencies": {
-		"@thisismanta/semantic-version": "^5.0.2",
-		"@types/lodash": "^4.14.181",
-		"@types/node": "^14.6.4",
-		"@types/vscode": "^1.66.0",
-		"esbuild": "^0.14.36",
+		"@thisismanta/semantic-version": "^8.0.0",
+		"@types/lodash": "^4.14.202",
+		"@types/node": "^18.17.0",
+		"@types/vscode": "^1.86.0",
+		"esbuild": "^0.20.0",
 		"git-diff-parser": "^1.0.0",
+		"lefthook": "^1.6.1",
 		"lodash": "^4.17.21",
-		"node-fetch": "^2.6.1",
 		"open": "^8.4.0",
-		"typescript": "^4.6.3"
+		"typescript": "^5.3.3"
 	}
 }

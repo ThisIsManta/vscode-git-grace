@@ -1,7 +1,6 @@
 const fs = require('fs')
 const fp = require('path')
 const trimStart = require('lodash/trimStart')
-const fetch = require('node-fetch')
 
 async function downloadGitBuiltInExtensionDefinition() {
 	const vscodeVersion = trimStart(require('../package.json').engines.vscode, '^')

@@ -34,7 +34,7 @@ export default async function () {
 
 	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor)
 
-	const pickList: Array<vscode.QuickPickItem & { url: string, kind: number }> = []
+	const pickList: Array<vscode.QuickPickItem & { url: string }> = []
 
 	const commitHash = await Git.getPushedCommitHash(workspace.uri)
 	if (commitHash) {
@@ -42,14 +42,12 @@ export default async function () {
 			pickList.push({
 				label: commitHash,
 				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath) + lineHash,
-				kind: 1,
 			})
 
 		} else {
 			pickList.push({
 				label: commitHash,
 				url: webOrigin + `/commit/${commitHash}`,
-				kind: 2,
 			})
 		}
 	}
@@ -61,21 +59,18 @@ export default async function () {
 				pickList.push({
 					label: branch,
 					url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath) + lineHash,
-					kind: 3,
 				})
 
 			} else if (workspacePath === repositoryPath) {
 				pickList.push({
 					label: branch,
 					url: webOrigin,
-					kind: 4,
 				})
 
 			} else {
 				pickList.push({
 					label: branch,
 					url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath),
-					kind: 5,
 				})
 			}
 		}
@@ -87,21 +82,18 @@ export default async function () {
 			pickList.push({
 				label: status.remote,
 				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath) + lineHash,
-				kind: 6,
 			})
 
 		} else if (workspacePath === repositoryPath) {
 			pickList.push({
 				label: status.remote,
 				url: webOrigin + `/tree/${status.local}`,
-				kind: 7,
 			})
 
 		} else {
 			pickList.push({
 				label: status.remote,
 				url: webOrigin + `/tree/${status.local}/` + normalizeWebLocation(workspacePath),
-				kind: 8,
 			})
 		}
 	}
