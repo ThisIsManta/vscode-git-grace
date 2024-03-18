@@ -24,7 +24,7 @@ As soon as **Git Grace** is installed, the extension provides the following keyb
 |---|---|
 |`gitGrace.fetch`<br>(alt+g f)|Fetch from _origin_ with _--prune_. You will be asked if you want to fast forward/push/rebase/merge when the current local branch and its remote counterpart are out of sync.|
 |`gitGrace.pull`<br>(alt+g u)|Fetch from _origin_ with _--prune_ then rebase normally.|
-|`gitGrace.push`<br>(alt+g p)|Push to _origin_ with _--tags_. You will be asked if _--force-with-lease_ is needed when the current local branch and its remote counterpart are out of sync.|
+|`gitGrace.push`<br>(alt+g p)|Push to _origin_. You will be asked if _--force-with-lease_ is needed when the current local branch and its remote counterpart are out of sync.|
 |`git.openChange`<br>(alt+g d)|Open the diff window for the active file.|
 |`gitGrace.stageAll`<br>(alt+g y)|Add files to the stage.|
 |`gitGrace.unstageAll`<br>(alt+g z)|Remove added files from the stage.|

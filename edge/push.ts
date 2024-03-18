@@ -49,7 +49,7 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 			}
 
 			try {
-				const result = await Git.run(workspace.uri, 'push', '--tags', status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote && '--force-with-lease', 'origin', status.local, { token: options.token })
+				const result = await Git.run(workspace.uri, 'push', status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote && '--force-with-lease', 'origin', status.local, { token: options.token })
 				if (options.token && options.token.isCancellationRequested) {
 					throw null
 				}
