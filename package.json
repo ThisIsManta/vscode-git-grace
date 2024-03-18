@@ -297,15 +297,15 @@
 		"version": "npx vsce publish -p $VSCE_PUBLISH_TOKEN"
 	},
 	"devDependencies": {
-		"@thisismanta/semantic-version": "^8.0.0",
-		"@types/lodash": "^4.14.202",
+		"@thisismanta/semantic-version": "^8.0.1",
+		"@types/lodash": "^4.17.0",
 		"@types/node": "^18.17.0",
 		"@types/vscode": "^1.86.0",
-		"esbuild": "^0.20.0",
+		"esbuild": "^0.20.2",
 		"git-diff-parser": "^1.0.0",
-		"lefthook": "^1.6.1",
+		"lefthook": "^1.6.7",
 		"lodash": "^4.17.21",
-		"open": "^8.4.0",
-		"typescript": "^5.3.3"
+		"open": "^10.1.0",
+		"typescript": "^5.4.2"
 	}
 }
