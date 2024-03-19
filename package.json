@@ -305,7 +305,7 @@
 		"git-diff-parser": "^1.0.0",
 		"lefthook": "^1.6.7",
 		"lodash": "^4.17.21",
-		"open": "^10.1.0",
+		"open": "^8.4.0",
 		"typescript": "^5.4.2"
 	}
 }
