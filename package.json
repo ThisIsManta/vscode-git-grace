@@ -22,8 +22,8 @@
 		"theme": "dark"
 	},
 	"engines": {
-		"node": ">=18.17.0",
-		"vscode": "^1.86.0"
+		"node": ">=18.0.0",
+		"vscode": "^1.92.0"
 	},
 	"activationEvents": [
 		"workspaceContains:.git"
@@ -294,18 +294,18 @@
 		"build": "esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
 		"watch": "npm run build -- --watch --sourcemap",
 		"vscode:prepublish": "npm run build -- --minify",
-		"version": "npx vsce publish -p $VSCE_PUBLISH_TOKEN"
+		"version": "npx @vscode/vsce publish --pat $VSCE_PUBLISH_TOKEN"
 	},
 	"devDependencies": {
-		"@thisismanta/semantic-version": "^8.0.1",
-		"@types/lodash": "^4.17.0",
-		"@types/node": "^18.17.0",
-		"@types/vscode": "^1.86.0",
-		"esbuild": "^0.20.2",
+		"@thisismanta/semantic-version": "^9.1.0",
+		"@types/lodash": "^4.17.7",
+		"@types/node": "^18.0.0",
+		"@types/vscode": "^1.92.0",
+		"esbuild": "^0.23.1",
 		"git-diff-parser": "^1.0.0",
-		"lefthook": "^1.6.7",
+		"lefthook": "^1.7.14",
 		"lodash": "^4.17.21",
-		"open": "^8.4.0",
-		"typescript": "^5.4.2"
+		"open": "^10.1.0",
+		"typescript": "^5.5.4"
 	}
 }
