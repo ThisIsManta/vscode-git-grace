@@ -291,7 +291,7 @@
 	},
 	"scripts": {
 		"postinstall": "node ./edge/postinstall.js && code --install-extension connor4312.esbuild-problem-matchers",
-		"build": "rm -rf dist/* && esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --external:@vscode/* --format=cjs",
+		"build": "rm -rf dist/* && esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
 		"watch": "npm run build -- --watch --sourcemap",
 		"vscode:prepublish": "npm run build -- --minify",
 		"version": "npx @vscode/vsce publish --pat $VSCE_PUBLISH_TOKEN"
@@ -301,14 +301,12 @@
 		"@types/lodash": "^4.17.7",
 		"@types/node": "^18.0.0",
 		"@types/vscode": "^1.92.0",
+		"@vscode/extension-telemetry": "^0.9.7",
 		"esbuild": "^0.23.1",
 		"git-diff-parser": "^1.0.0",
 		"lefthook": "^1.7.14",
 		"lodash": "^4.17.21",
 		"open": "^8.4.2",
 		"typescript": "^5.5.4"
-	},
-	"dependencies": {
-		"@vscode/extension-telemetry": "^0.9.7"
 	}
 }
