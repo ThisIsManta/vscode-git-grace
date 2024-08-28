@@ -1,7 +1,0 @@
-.gitignore
-.vscode/**
-.vscode-test/**
-node_modules
-edge
-test
-tsconfig.json
