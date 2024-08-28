@@ -26,7 +26,7 @@
 		"vscode": "^1.92.0"
 	},
 	"activationEvents": [
-		"workspaceContains:.git"
+		"*"
 	],
 	"main": "dist/extension.js",
 	"contributes": {
@@ -294,8 +294,11 @@
 		"build": "rm -rf dist/* && esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
 		"watch": "npm run build -- --watch --sourcemap",
 		"vscode:prepublish": "npm run build -- --minify",
-		"version": "npx @vscode/vsce publish --pat $VSCE_PUBLISH_TOKEN"
+		"version": "npx @vscode/vsce publish --allow-star-activation --pat $VSCE_PUBLISH_TOKEN"
 	},
+	"extensionDependencies": [
+		"vscode.git"
+	],
 	"devDependencies": {
 		"@thisismanta/semantic-version": "^9.1.0",
 		"@types/lodash": "^4.17.7",

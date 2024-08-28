@@ -1,6 +1,5 @@
 import * as vscode from 'vscode'
 
-import * as Git from './Git'
 import * as Util from './Utility'
 import * as Queue from './Queue'
 import fetch from './fetch'
@@ -21,7 +20,6 @@ import cleanAll from './cleanAll'
 import sync from './sync'
 import deleteBranch from './deleteBranch'
 import deleteMergedBranches from './deleteMergedBranches'
-import sleep from './sleep'
 import TortoiseGit from './TortoiseGit'
 import Log from './Log'
 import stageAll from './stageAll'
@@ -29,11 +27,6 @@ import unstageAll from './unstageAll'
 import { telemetry } from './Telemetry'
 
 export async function activate(context: vscode.ExtensionContext) {
-	// Prevent "No Git repository" error throwing from built-in Git extension
-	while (Git.getGitBuiltInExtension().isActive === false) {
-		await sleep(500)
-	}
-
 	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(updateStashCountBar))
 
 	context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(Util.updateWorkspaceList))

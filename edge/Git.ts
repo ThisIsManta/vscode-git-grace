@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import * as fp from 'path'
 import * as cp from 'child_process'
+import { setTimeout as delay } from 'timers/promises'
 import compact from 'lodash/compact'
 import chunk from 'lodash/chunk'
 import first from 'lodash/first'
@@ -11,7 +12,6 @@ import * as vscode from 'vscode'
 
 import * as GitBuiltInExtension from './GitBuiltInExtension.d'
 import Log from './Log'
-import sleep from './sleep'
 
 export function getGitBuiltInExtension() {
 	return vscode.extensions.getExtension<GitBuiltInExtension.GitExtension>('vscode.git')
@@ -40,7 +40,7 @@ export async function run(link: vscode.Uri, ...formalParameters: Array<string | 
 		} catch (ex) {
 			if (count > 0) {
 				count -= 1
-				await sleep(1500)
+				await delay(500)
 				continue
 			}
 
