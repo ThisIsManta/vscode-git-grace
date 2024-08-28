@@ -8,7 +8,7 @@ import differenceWith from 'lodash/differenceWith'
 import * as vscode from 'vscode'
 import parseDiff from 'git-diff-parser'
 
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Git from './Git'
 import push from './push'
 import { track } from './Telemetry'

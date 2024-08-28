@@ -3,7 +3,7 @@ import compact from 'lodash/compact'
 import defer from 'lodash/defer'
 import * as vscode from 'vscode'
 
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Git from './Git'
 import { fetchInternal } from './fetch'
 import Log from './Log'

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Queue from './Queue'
 import fetch from './fetch'
 import pull from './pull'

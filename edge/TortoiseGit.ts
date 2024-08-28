@@ -1,7 +1,7 @@
 import * as cp from 'child_process'
 import * as vscode from 'vscode'
 
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Git from './Git'
 
 // Slightly modified from https://github.com/mbinic/vscode-tgit/blob/master/src/TGit.ts

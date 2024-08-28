@@ -1,7 +1,7 @@
 import defer from 'lodash/defer'
 import * as vscode from 'vscode'
 
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Git from './Git'
 import { trySyncRemoteBranch } from './fetch'
 import { track } from './Telemetry'

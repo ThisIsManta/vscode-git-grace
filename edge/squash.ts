@@ -4,7 +4,7 @@ import last from 'lodash/last'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import * as Util from './Util'
+import * as Util from './Utility'
 import { track } from './Telemetry'
 
 export default async function () {

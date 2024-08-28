@@ -2,7 +2,7 @@ import trim from 'lodash/trim'
 import * as vscode from 'vscode'
 import open from 'open'
 
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Git from './Git'
 import { track } from './Telemetry'
 import { getLineHashForGitHub } from './openWeb'

@@ -1,7 +1,7 @@
 import without from 'lodash/without'
 import * as vscode from 'vscode'
 
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Git from './Git'
 import { fetchInternal, trySyncRemoteBranch } from './fetch'
 import stash from './stash'

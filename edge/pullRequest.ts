@@ -1,6 +1,6 @@
 import open from 'open'
 
-import * as Util from './Util'
+import * as Util from './Utility'
 import * as Git from './Git'
 import push from './push'
 import { track } from './Telemetry'
