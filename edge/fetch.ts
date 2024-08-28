@@ -11,7 +11,7 @@ import parseDiff from 'git-diff-parser'
 import * as Util from './Util'
 import * as Git from './Git'
 import push from './push'
-import { track } from './Amplitude'
+import { track } from './Telemetry'
 
 export default async function (options: { token: vscode.CancellationToken }) {
 	track('fetch')

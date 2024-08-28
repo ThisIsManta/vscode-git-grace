@@ -5,7 +5,7 @@ import * as vscode from 'vscode'
 
 import * as Git from './Git'
 import * as Util from './Util'
-import { track } from './Amplitude'
+import { track } from './Telemetry'
 
 export default async function () {
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()

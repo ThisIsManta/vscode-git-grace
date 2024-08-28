@@ -3,7 +3,7 @@ import * as vscode from 'vscode'
 import * as Util from './Util'
 import * as Git from './Git'
 import { getMergedBranchNames } from './deleteMergedBranches'
-import { track } from './Amplitude'
+import { track } from './Telemetry'
 
 export default async function () {
 	track('sync')

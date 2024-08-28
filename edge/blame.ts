@@ -4,7 +4,7 @@ import open from 'open'
 
 import * as Util from './Util'
 import * as Git from './Git'
-import { track } from './Amplitude'
+import { track } from './Telemetry'
 import { getLineHashForGitHub } from './openWeb'
 
 export default async function () {

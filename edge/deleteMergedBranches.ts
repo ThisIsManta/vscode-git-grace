@@ -7,7 +7,7 @@ import * as Util from './Util'
 import * as Git from './Git'
 import { fetchInternal } from './fetch'
 import Log from './Log'
-import { track } from './Amplitude'
+import { track } from './Telemetry'
 
 interface Branch {
 	root: vscode.WorkspaceFolder

@@ -19,12 +19,14 @@ import pullRequest from './pullRequest'
 import blame from './blame'
 import cleanAll from './cleanAll'
 import sync from './sync'
+import deleteBranch from './deleteBranch'
 import deleteMergedBranches from './deleteMergedBranches'
 import sleep from './sleep'
 import TortoiseGit from './TortoiseGit'
 import Log from './Log'
 import stageAll from './stageAll'
 import unstageAll from './unstageAll'
+import { telemetry } from './Telemetry'
 
 export async function activate(context: vscode.ExtensionContext) {
 	// Prevent "No Git repository" error throwing from built-in Git extension
@@ -78,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.sync', Queue.put(sync)))
 
-	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteBranch', Queue.put(async () => vscode.commands.executeCommand('git.deleteBranch'))))
+	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteBranch', Queue.put(deleteBranch)))
 
 	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.deleteMergedBranches', Queue.put(deleteMergedBranches, [fetch])))
 
@@ -105,4 +107,6 @@ export async function deactivate() {
 		Log.hide()
 		Log.dispose()
 	}
+
+	await telemetry.dispose()
 }
