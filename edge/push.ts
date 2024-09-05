@@ -3,7 +3,6 @@ import * as vscode from 'vscode'
 
 import * as Util from './Utility'
 import * as Git from './Git'
-import { trySyncRemoteBranch } from './fetch'
 import { track } from './Telemetry'
 
 export default async function (options: { location?: vscode.ProgressLocation, token?: vscode.CancellationToken } = {}) {
@@ -64,23 +63,15 @@ export default async function (options: { location?: vscode.ProgressLocation, to
 
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-				if (
-					typeof ex === 'string' &&
-					(
-						ex.includes('Updates were rejected because the tip of your current branch is behind') && ex.includes('its remote counterpart.') ||
-						ex.includes('Updates were rejected because the remote contains work that you do') && ex.includes('not have locally.')
-					)
-				) {
+				if (typeof ex === 'string' && ex.includes('error: failed to push some refs')) {
 					await Git.run(workspace.uri, 'fetch', 'origin', status.local, { token: options.token })
 
 					if (options.token && options.token.isCancellationRequested) {
 						throw null
 					}
 
-					defer(async () => {
-						await vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
-
-						trySyncRemoteBranch(workspace)
+					defer(() => {
+						vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
 					})
 
 					throw null
