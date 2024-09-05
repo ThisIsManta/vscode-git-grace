@@ -1,7 +1,7 @@
 {
 	"name": "git-grace",
 	"displayName": "Manta's Git Grace",
-	"description": "Add persistent Git commands.",
+	"description": "Run persistent Git commands.",
 	"version": "3.0.5",
 	"publisher": "thisismanta",
 	"license": "MIT",
@@ -9,7 +9,10 @@
 		"Other"
 	],
 	"keywords": [
-		"git"
+		"git",
+		"github",
+		"tortoisegit",
+		"shortcut"
 	],
 	"repository": {
 		"url": "https://github.com/ThisIsManta/vscode-git-grace"
