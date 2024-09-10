@@ -1,28 +1,31 @@
 import compact from 'lodash/compact'
 import * as vscode from 'vscode'
 
-import * as Util from './Utility'
 import * as Git from './Git'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 export default async function stash() {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
 
 	track('stash')
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Saving Stash...' }, async () => {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Window,
+		title: 'Saving Stash...',
+	}, async () => {
 		try {
 			await Git.run(workspace.uri, 'stash', 'save', '--include-untracked')
 
-		} catch (ex) {
+		} catch (error) {
 			Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-			throw `Saving stash failed.`
+			throw new Error('Saving stash failed.')
 		}
 	})
 
@@ -34,23 +37,26 @@ export default async function stash() {
 export async function stashPopLatest() {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Popping Stash...' }, async () => {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Window,
+		title: 'Popping Stash...',
+	}, async () => {
 		try {
 			await Git.run(workspace.uri, 'stash', 'pop')
 
-			track('stash-pop-latest', { success: true })
+			track('stash-pop-latest', { success: String(true) })
 
-		} catch (ex) {
-			track('stash-pop-latest', { success: false })
+		} catch (error) {
+			track('stash-pop-latest', { success: String(false) })
 
 			Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-			throw `Popping stash failed.`
+			throw new Error('Popping stash failed.')
 		}
 	})
 
@@ -70,7 +76,7 @@ export async function stashPop() {
 export async function stashClear() {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
 
 	track('stash-clear')
@@ -80,8 +86,7 @@ export async function stashClear() {
 	updateStashCountBar()
 }
 
-let stashCountBar: vscode.StatusBarItem
-
+let stashCountBar: vscode.StatusBarItem | null = null
 export async function updateStashCountBar() {
 	const workspace = await Util.getCurrentWorkspace()
 	if (workspace) {
@@ -91,10 +96,12 @@ export async function updateStashCountBar() {
 			if (!stashCountBar) {
 				stashCountBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5)
 			}
+
 			stashCountBar.text = `${stashList.length} Stash${stashList.length > 1 ? 'es' : ''}`
 			stashCountBar.command = 'gitGrace.stashPop'
 			stashCountBar.show()
-			return undefined
+
+			return
 		}
 	}
 

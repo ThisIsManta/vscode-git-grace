@@ -1,16 +1,19 @@
 import * as vscode from 'vscode'
 
-import * as Util from './Utility'
 import * as Git from './Git'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 export default async function () {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
-		return null
+		return
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Pulling...' }, async () => {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Window,
+		title: 'Pulling...',
+	}, async () => {
 		for (const workspace of workspaceList) {
 			try {
 				await Git.run(workspace.uri, 'fetch', '--prune', 'origin', { retry: 2 })
@@ -22,20 +25,19 @@ export default async function () {
 
 				await Git.run(workspace.uri, 'rebase', '--no-stat')
 
-			} catch (ex) {
-				track('pull', { success: false })
+			} catch (error) {
+				track('pull', { success: String(false) })
 
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-				throw `Pulling failed.`
+				throw new Error('Pulling failed.')
 			}
 		}
-
 	})
 
 	await vscode.commands.executeCommand('git.refresh')
 
-	track('pull', { success: true })
+	track('pull', { success: String(true) })
 
-	vscode.window.setStatusBarMessage(`Pulling completed`, 10000)
+	vscode.window.setStatusBarMessage('Pulling completed', 10000)
 }

@@ -1,20 +1,22 @@
 import compact from 'lodash/compact'
 import trimEnd from 'lodash/trimEnd'
-import last from 'lodash/last'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import * as Util from './Utility'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 export default async function () {
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	const workspace = await Util.getCurrentWorkspace()
+	if (!workspace) {
+		return
+	}
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.dirty === false) {
-		throw `Nothing is to be squashed.`
+		throw new Error('Nothing is to be squashed.')
 	}
 
 	const originalCommitHash = await Git.getCurrentCommitHash(workspace.uri)
@@ -23,29 +25,40 @@ export default async function () {
 	const lastCommitList = trimEnd(lastCommitText).split('\n')
 		.map(line => {
 			const [commitHash, ...message] = line.split(' ')
-			return { commitHash, label: message.join(' ') }
+			return {
+				commitHash,
+				label: message.join(' '),
+			}
 		})
+
 	if (lastCommitList.length === 0) {
-		throw `Nothing is to be squashed.`
+		throw new Error('Nothing is to be squashed.')
 	}
 
 	const select = await vscode.window.showQuickPick(lastCommitList, { placeHolder: 'Select a commit to squash' })
 	if (!select) {
-		return null
+		return
 	}
 
 	let filesHaveBeenStashed = false
+
 	try {
-		await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Squashing...' }, async () => {
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Squashing...',
+		}, async () => {
 			const fileStatusText = await Git.run(workspace.uri, 'status', '--short')
 			const fileStatusList = trimEnd(fileStatusText).split('\n')
-				.map(line => ({ path: line.substring(3), staged: /\w/.test(line.charAt(0)) }))
+				.map(line => ({
+					path: line.substring(3),
+					staged: /\w/.test(line.charAt(0)),
+				}))
 
 			const filesHaveBeenPartiallyStaged = fileStatusList.some(file => file.staged) && !fileStatusList.every(file => file.staged)
 			await Git.run(workspace.uri, 'checkout', '--detach', 'HEAD')
 			await Git.run(workspace.uri, 'commit', '--no-verify', filesHaveBeenPartiallyStaged ? '' : '--all', '--message=(squash commit)')
-			const squashCommitHash = await Git.getCurrentCommitHash(workspace.uri)
 
+			const squashCommitHash = await Git.getCurrentCommitHash(workspace.uri)
 			if (filesHaveBeenPartiallyStaged) {
 				await Git.run(workspace.uri, 'stash', 'push', '--include-untracked')
 				filesHaveBeenStashed = true
@@ -59,9 +72,14 @@ export default async function () {
 			const commitHashList = compact(commitHashText.split('\n'))
 			for (const commitHash of commitHashList) {
 				const result = await Git.run(workspace.uri, 'cherry-pick', commitHash)
-				if (last(result.trim().split('\n')).startsWith('Otherwise,')) {
+				if (
+					result.trim().split('\n')
+						.at(-1)
+						?.startsWith('Otherwise,')
+				) {
 					await Git.run(workspace.uri, 'cherry-pick', '--abort')
-					throw `Could not be able to cherry pick ${commitHash}.`
+
+					throw new Error(`Could not be able to cherry pick ${commitHash}.`)
 				}
 			}
 
@@ -71,17 +89,16 @@ export default async function () {
 			}
 		})
 
-		track('squash', { success: true })
+		track('squash', { success: String(true) })
 
-	} catch (ex) {
-		track('squash', { success: false })
+	} catch (error) {
+		track('squash', { success: String(false) })
 
 		await Git.run(workspace.uri, 'reset', '--hard', originalCommitHash)
 
 		if (status.local) {
 			await Git.run(workspace.uri, 'checkout', status.local)
 		}
-
 	} finally {
 		if (filesHaveBeenStashed) {
 			await Git.run(workspace.uri, 'stash', 'pop')

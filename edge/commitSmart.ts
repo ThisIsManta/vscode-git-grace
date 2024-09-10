@@ -1,18 +1,17 @@
-import uniq from 'lodash/uniq'
 import compact from 'lodash/compact'
+import uniq from 'lodash/uniq'
 import * as vscode from 'vscode'
 
-import * as Util from './Utility'
 import * as Git from './Git'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 const versionMatcher = /^\d+\.\d+\.\d+$/
 const endWithParenthesisMatcher = /\s*\(.+\)\s*$/
-
-export default async function () {
+export default async function (): Promise<void> {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
@@ -32,7 +31,8 @@ export default async function () {
 		sourceControlPanel.state.indexChanges.length +
 		sourceControlPanel.state.workingTreeChanges.length === 0
 	) {
-		vscode.window.showErrorMessage(`There are no files to be committed.`, { modal: true })
+		vscode.window.showErrorMessage('There are no files to be committed.', { modal: true })
+
 		return
 	}
 
@@ -61,7 +61,7 @@ export default async function () {
 			picker.dispose()
 		})
 		picker.onDidHide(() => {
-			reject()
+			reject(new vscode.CancellationError())
 		})
 		picker.show()
 	})
@@ -71,18 +71,15 @@ export default async function () {
 	await vscode.commands.executeCommand('git.commit')
 }
 
-async function getHistoricalMessages(workspace: vscode.WorkspaceFolder) {
+async function getHistoricalMessages(workspace: vscode.WorkspaceFolder): Promise<Array<vscode.QuickPickItem>> {
 	const email = (await Git.run(workspace.uri, 'config', 'user.email')).trim()
 
 	const messages = await Git.run(workspace.uri, 'log', '--max-count=500', '--no-merges', '--format=%s', '--author=' + email)
 
-	return compact(
-		uniq(
-			messages
-				.trim()
-				.split('\n')
-				.filter(message => !versionMatcher.test(message))
-				.map(message => message.replace(endWithParenthesisMatcher, ''))
-		)
-	).map(message => ({ label: message } as vscode.QuickPickItem))
+	return compact(uniq(messages
+		.trim()
+		.split('\n')
+		.filter(message => !versionMatcher.test(message))
+		.map(message => message.replace(endWithParenthesisMatcher, ''))))
+		.map(message => ({ label: message }))
 }

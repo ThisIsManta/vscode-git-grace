@@ -8,6 +8,8 @@
 		"noEmit": true,
 		"outDir": "dist",
 		"rootDir": "edge",
+		"strict": true,
+		"strictNullChecks": true,
 		"sourceMap": true,
 		"target": "ES2020"
 	},

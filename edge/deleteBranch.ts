@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+
 import { track } from './Telemetry'
 
 export default async function () {

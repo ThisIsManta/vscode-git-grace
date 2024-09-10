@@ -1,29 +1,32 @@
 import trim from 'lodash/trim'
-import first from 'lodash/first'
-import last from 'lodash/last'
 import uniq from 'lodash/uniq'
-import * as vscode from 'vscode'
 import open from 'open'
+import * as vscode from 'vscode'
 
-import * as Util from './Utility'
 import * as Git from './Git'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
+
 	const workspacePath = workspace.uri.fsPath
 
 	const webOrigin = Git.getWebOrigin(workspace)
 	if (!webOrigin || webOrigin.startsWith('https://github.com/') === false) {
-		return null
+		return
 	}
 
-	const repositoryPath = Git.getRepositoryLink(workspace.uri).fsPath
+	const repositoryPath = Git.getRepositoryLink(workspace.uri)?.fsPath
+	if (!repositoryPath) {
+		return
+	}
+
 	function normalizeWebLocation(path: string) {
-		return trim(path.substring(repositoryPath.length).replace(/\\/g, '/'), '/')
+		return trim(path.substring(repositoryPath!.length).replace(/\\/g, '/'), '/')
 	}
 
 	const currentFile = Util.getCurrentFile()
@@ -32,7 +35,7 @@ export default async function () {
 		? (renamedFile || currentFile).fsPath
 		: ''
 
-	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor)
+	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor!)
 
 	const pickList: Array<vscode.QuickPickItem & { url: string }> = []
 
@@ -99,34 +102,38 @@ export default async function () {
 	}
 
 	if (pickList.length === 0) {
-		return null
+		return
 	}
 
 	if (pickList.length === 1) {
 		open(pickList[0].url)
-		return null
+
+		return
 	}
 
 	const select = await vscode.window.showQuickPick(
-		pickList.map(pick => ({ ...pick, description: workspace.name })),
-		{ placeHolder: 'Select a reference to open in GitHub' }
+		pickList.map(pick => ({
+			...pick,
+			description: workspace.name,
+		})),
+		{ placeHolder: 'Select a reference to open in GitHub' },
 	)
+
 	if (select) {
 		open(select.url)
 
-		track('open-web', { kind: select.kind })
-
-		return null
+		track('open-web', { kind: String(select.kind) })
 	}
 }
 
-export async function getLineHashForGitHub(editor: vscode.TextEditor) {
+export async function getLineHashForGitHub(editor: vscode.TextEditor): Promise<string> {
 	if (await Git.getFileStatus(editor.document.uri)) {
 		return ''
 	}
 
 	return '#' + uniq([
-		first(editor.selections).start.line,
-		last(editor.selections).end.line,
-	]).map(no => 'L' + (no + 1)).join('-')
+		editor.selections.at(0)!.start.line,
+		editor.selections.at(-1)!.end.line,
+	]).map(no => 'L' + (no + 1))
+		.join('-')
 }

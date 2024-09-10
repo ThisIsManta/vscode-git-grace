@@ -1,26 +1,29 @@
 import * as vscode from 'vscode'
 
-import * as Util from './Utility'
-import * as Git from './Git'
 import { tryAbortBecauseOfDirtyFiles, tryAbortBecauseOfDanglingCommits } from './checkout'
+import * as Git from './Git'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.dirty && await tryAbortBecauseOfDirtyFiles(workspace.uri)) {
-		return null
+		return
 	}
 
 	const headBranchName = 'origin/' + await Git.getRemoteHeadBranchName(workspace.uri)
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Switching to ${headBranchName}...` }, async () => {
+	await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Window,
+		title: `Switching to ${headBranchName}...`,
+	}, async () => {
 		await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
 
 		if (status.local === '') {
@@ -28,11 +31,12 @@ export default async function () {
 			const masterHash = await Git.getCurrentCommitHash(workspace.uri, headBranchName)
 			if (currentHash === masterHash) {
 				vscode.window.showInformationMessage(`You are on "${headBranchName}" already.`)
-				return null
+
+				return
 			}
 
 			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, `"${headBranchName}"`)) {
-				return null
+				return
 			}
 		}
 
@@ -41,8 +45,8 @@ export default async function () {
 		try {
 			await Git.run(workspace.uri, 'checkout', '--detach', headBranchName)
 
-		} catch (ex) {
-			throw `Checking out "${headBranchName}" failed.`
+		} catch (error) {
+			throw new Error(`Checking out "${headBranchName}" failed.`)
 		}
 
 		vscode.commands.executeCommand('git.refresh')

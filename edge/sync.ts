@@ -1,14 +1,18 @@
 import * as vscode from 'vscode'
 
-import * as Util from './Utility'
-import * as Git from './Git'
 import { getMergedBranchNames } from './deleteMergedBranches'
+import * as Git from './Git'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 export default async function () {
 	track('sync')
 
-	const errorCount = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Syncing...', cancellable: true }, async (progress, token) => {
+	const errorCount = await vscode.window.withProgress({
+		location: vscode.ProgressLocation.Notification,
+		title: 'Syncing...',
+		cancellable: true,
+	}, async (progress, token) => {
 		const workspaceList = await Util.getWorkspaceListWithGitEnabled()
 		if (workspaceList.length === 0) {
 			return null
@@ -34,8 +38,14 @@ export default async function () {
 			}
 		}
 
-		const automatedWorkers: Array<{ workspace: vscode.WorkspaceFolder, action: () => Promise<any> }> = []
-		const interactiveWorkers: Array<{ workspace: vscode.WorkspaceFolder, action: () => any }> = []
+		const automatedWorkers: Array<{
+			workspace: vscode.WorkspaceFolder
+			action: () => Promise<any>
+		}> = []
+		const interactiveWorkers: Array<{
+			workspace: vscode.WorkspaceFolder
+			action: () => any
+		}> = []
 
 		for (const workspace of workspaceList) {
 			if (token.isCancellationRequested) {
@@ -51,11 +61,11 @@ export default async function () {
 
 				automatedWorkers.push({
 					workspace,
-					action: () => Git.run(workspace.uri, 'push', '--tags', { retry: 1 })
+					action: () => Git.run(workspace.uri, 'push', '--tags', { retry: 1 }),
 				})
 
 				for (const { local, remote } of counterparts) {
-					if (remoteBranches.has(remote)) {
+					if (remote && remoteBranches.has(remote)) {
 						const groups = await Git.getBranchTopology(workspace.uri, local, remote)
 						if (groups.length === 0) {
 							continue
@@ -64,27 +74,27 @@ export default async function () {
 							if (groups[0][0].direction === '<') {
 								automatedWorkers.push({
 									workspace,
-									action: () => Git.run(workspace.uri, 'push', 'origin', local, { retry: 1 })
+									action: () => Git.run(workspace.uri, 'push', 'origin', local, { retry: 1 }),
 								})
 
 							} else {
 								automatedWorkers.push({
 									workspace,
-									action: () => Git.run(workspace.uri, 'rebase', '--no-stat')
+									action: () => Git.run(workspace.uri, 'rebase', '--no-stat'),
 								})
 							}
 
 						} else {
 							interactiveWorkers.push({
 								workspace,
-								action: () => vscode.window.showErrorMessage(`The local branch "${local}" is out of sync with its remote branch.`)
+								action: () => vscode.window.showErrorMessage(`The local branch "${local}" is out of sync with its remote branch.`),
 							})
 						}
 
 					} else if (mergedBranches.has(local)) {
 						automatedWorkers.push({
 							workspace,
-							action: () => Git.run(workspace.uri, 'branch', '--delete', '--force', local, { retry: 1 })
+							action: () => Git.run(workspace.uri, 'branch', '--delete', '--force', local, { retry: 1 }),
 						})
 
 					} else {
@@ -93,15 +103,15 @@ export default async function () {
 							action: async () => {
 								await Git.run(workspace.uri, 'push', 'origin', local, { retry: 1 })
 								await Git.setRemoteBranch(workspace.uri, local)
-							}
+							},
 						})
 					}
 				}
 
-			} catch (ex) {
+			} catch (error) {
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-				throw `Syncing failed.`
+				throw new Error('Syncing failed.')
 			}
 		}
 
@@ -117,10 +127,10 @@ export default async function () {
 			try {
 				await worker.action()
 
-			} catch (ex) {
+			} catch (error) {
 				errorCount += 1
 
-				vscode.window.showErrorMessage((workspaceList.length > 1 ? `${worker.workspace.name}: ` : '') + ex)
+				vscode.window.showErrorMessage((workspaceList.length > 1 ? `${worker.workspace.name}: ` : '') + error)
 
 				Util.setWorkspaceAsFirstTryNextTime(worker.workspace)
 			}
@@ -140,6 +150,6 @@ export default async function () {
 	})
 
 	if (typeof errorCount === 'number') {
-		vscode.window.setStatusBarMessage(`Syncing completed` + (errorCount === 0 ? `successfully` : `with ${errorCount} failure${errorCount === 1 ? '' : 's'}`), 10000)
+		vscode.window.setStatusBarMessage('Syncing completed' + (errorCount === 0 ? 'successfully' : `with ${errorCount} failure${errorCount === 1 ? '' : 's'}`), 10000)
 	}
 }

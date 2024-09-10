@@ -1,10 +1,11 @@
+import compact from 'lodash/compact'
 import without from 'lodash/without'
 import * as vscode from 'vscode'
 
-import * as Util from './Utility'
-import * as Git from './Git'
 import { fetchInternal, trySyncRemoteBranch } from './fetch'
+import * as Git from './Git'
 import stash from './stash'
+import * as Util from './Utility'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
@@ -21,19 +22,23 @@ export default async function () {
 		return null
 	}
 
-	let localBranches: string[] = []
-	let remoteBranches: string[] = []
+	let localBranches: Array<string> = []
+	let remoteBranches: Array<string> = []
+
+	const workspaceLink = workspace.uri
+
 	async function setPickerItems() {
 		const branches = await Promise.all([
-			Git.getLocalBranchNames(workspace.uri),
-			Git.getRemoteBranchNames(workspace.uri),
+			Git.getLocalBranchNames(workspaceLink),
+			Git.getRemoteBranchNames(workspaceLink),
 		])
 		localBranches = branches[0]
 		remoteBranches = without(branches[1], 'origin/HEAD')
 
 		picker.items = [...localBranches, ...remoteBranches].map(name => ({ label: name }))
+
 		if (status.local) {
-			picker.activeItems = [picker.items.find(item => item.label === status.local)]
+			picker.activeItems = compact([picker.items.find(item => item.label === status.local)])
 		}
 	}
 
@@ -48,6 +53,7 @@ export default async function () {
 		if (updated) {
 			await setPickerItems()
 		}
+
 		picker.busy = false
 	})
 
@@ -60,6 +66,7 @@ export default async function () {
 
 			if (!selectBranchName) {
 				resolve()
+
 				return
 			}
 
@@ -69,31 +76,33 @@ export default async function () {
 				if (remoteBranches.includes(selectBranchName)) {
 					const remoteBranchName = selectBranchName
 					const localBranchName = remoteBranchName.replace(/^origin\//, '')
-
 					if (localBranches.includes(localBranchName)) {
 						const groups = await Git.getBranchTopology(workspace.uri, localBranchName, remoteBranchName)
 						if (groups.length === 1 && groups[0][0].direction === '>') {
 							// Fast forward
 							await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
 							resolve()
+
 							return
 						}
 
 						await checkoutInternal(workspace.uri, localBranchName)
 						resolve()
+
 						return
 					}
 
 					await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
 					resolve()
+
 					return
 				}
 
 				await checkoutInternal(workspace.uri, selectBranchName)
 				resolve()
 
-			} catch (ex) {
-				reject(ex)
+			} catch (error) {
+				reject(error)
 			}
 		})
 
@@ -122,10 +131,14 @@ async function checkoutInternal(link: vscode.Uri, localBranchName: string, remot
 	}
 }
 
-export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri) {
+export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boolean> {
 	const select = await vscode.window.showWarningMessage(
-		`The current repository is dirty.`,
-		{ modal: true }, 'Stash Now', 'Discard All Files')
+		'The current repository is dirty.',
+		{ modal: true },
+		'Stash Now',
+		'Discard All Files',
+	)
+
 	if (!select) {
 		return true
 	}
@@ -140,15 +153,15 @@ export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri) {
 		try {
 			await Git.run(link, 'reset', '--hard')
 
-		} catch (ex) {
-			throw `Cleaning up files failed.`
+		} catch (error) {
+			throw new Error('Cleaning up files failed.')
 		}
 	}
 
 	return false
 }
 
-export async function tryAbortBecauseOfDanglingCommits(link: vscode.Uri, branchName: string) {
+export async function tryAbortBecauseOfDanglingCommits(link: vscode.Uri, branchName: string): Promise<boolean> {
 	const commitHash = await Git.getCurrentCommitHash(link)
 
 	const containingLocalBranches = await Git.run(link, 'branch', '--contains', commitHash)
@@ -163,7 +176,10 @@ export async function tryAbortBecauseOfDanglingCommits(link: vscode.Uri, branchN
 
 	const select = await vscode.window.showWarningMessage(
 		`Checking out ${branchName} will make you lose the changes made on this detached head.`,
-		{ modal: true }, 'Discard Dangling Commits')
+		{ modal: true },
+		'Discard Dangling Commits',
+	)
+
 	if (!select) {
 		return true
 	}

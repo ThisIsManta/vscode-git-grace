@@ -1,20 +1,18 @@
-import * as fs from 'fs'
-import * as fp from 'path'
 import * as cp from 'child_process'
-import { setTimeout as delay } from 'timers/promises'
-import compact from 'lodash/compact'
+import * as fs from 'fs'
 import chunk from 'lodash/chunk'
-import first from 'lodash/first'
-import last from 'lodash/last'
-import trim from 'lodash/trim'
+import compact from 'lodash/compact'
 import escapeRegExp from 'lodash/escapeRegExp'
+import trim from 'lodash/trim'
+import * as fp from 'path'
+import { setTimeout as delay } from 'timers/promises'
 import * as vscode from 'vscode'
 
 import * as GitBuiltInExtension from './GitBuiltInExtension.d'
 import Log from './Log'
 
 export function getGitBuiltInExtension() {
-	return vscode.extensions.getExtension<GitBuiltInExtension.GitExtension>('vscode.git')
+	return vscode.extensions.getExtension<GitBuiltInExtension.GitExtension>('vscode.git')!
 }
 
 let gitExecutablePath = ''
@@ -24,9 +22,9 @@ interface Options {
 	token?: vscode.CancellationToken
 }
 
-export async function run(link: vscode.Uri, ...formalParameters: Array<string | Options>) {
-	const parameters = formalParameters.filter(parameter => typeof parameter === 'string' && parameter.trim().length > 0) as Array<string>
-	const options = (formalParameters.find(parameter => typeof parameter === 'object' && parameter !== null) || {}) as Options
+export async function run(link: vscode.Uri, ...formalParameters: Array<string | Options>): Promise<string> {
+	const parameters = formalParameters.filter((parameter): parameter is string => typeof parameter === 'string' && parameter.trim().length > 0)
+	const options = formalParameters.find((parameter): parameter is Options => typeof parameter === 'object' && parameter !== null) || {}
 
 	let count = options.retry || 0
 	while (true) {
@@ -37,29 +35,29 @@ export async function run(link: vscode.Uri, ...formalParameters: Array<string | 
 		try {
 			return await runInternal(link, parameters, options.token)
 
-		} catch (ex) {
+		} catch (error) {
 			if (count > 0) {
 				count -= 1
 				await delay(500)
+
 				continue
 			}
 
-			throw ex
+			throw error
 		}
 	}
 }
 
-const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: vscode.CancellationToken) => new Promise<string>(async (resolve, reject) => {
+const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: vscode.CancellationToken) => new Promise<string>((resolve, reject) => {
 	const actualParameters = ['--no-pager', ...formalParameters]
 
 	Log.appendLine('git ' + actualParameters.join(' '))
 
 	if (gitExecutablePath === '') {
-		gitExecutablePath = await getGitBuiltInExtension().exports.getAPI(1).git.path
+		gitExecutablePath = getGitBuiltInExtension().exports.getAPI(1).git.path
 	}
 
-	const pipe = cp.spawn(gitExecutablePath, actualParameters, { cwd: getRepositoryLink(link).fsPath.replace(/\\/g, fp.posix.sep) })
-
+	const pipe = cp.spawn(gitExecutablePath, actualParameters, { cwd: getRepositoryLink(link)?.fsPath.replace(/\\/g, fp.posix.sep) })
 	if (token) {
 		token.onCancellationRequested(() => {
 			pipe.kill()
@@ -83,22 +81,29 @@ const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: 
 
 		if (exit === 0 || exit === null) {
 			resolve(outputBuffer)
+
 		} else {
-			reject(outputBuffer)
+			reject(new GitError(outputBuffer))
 		}
 	})
 })
 
-const repositoryCache = new Map<string, vscode.Uri>()
+export class GitError extends Error {
+	constructor(public readonly output: string) {
+		super(output)
+	}
+}
 
-export function getRepositoryLink(link: vscode.Uri) {
+const repositoryCache = new Map<string, vscode.Uri>()
+export function getRepositoryLink(link: vscode.Uri): vscode.Uri | null {
 	if (!link) {
 		return null
 	}
 
 	const directoryPath = fp.dirname(link.fsPath)
-	if (repositoryCache.has(directoryPath)) {
-		return repositoryCache.get(directoryPath)
+	const cachedLink = repositoryCache.get(directoryPath)
+	if (cachedLink) {
+		return cachedLink
 	}
 
 	const pathList = (typeof link === 'string' ? link : link.fsPath).split(/\\|\//)
@@ -107,6 +112,7 @@ export function getRepositoryLink(link: vscode.Uri) {
 		if (fs.existsSync(path) && fs.statSync(path).isDirectory()) {
 			const repositoryLink = vscode.Uri.file(fp.dirname(path))
 			repositoryCache.set(directoryPath, repositoryLink)
+
 			return repositoryLink
 		}
 	}
@@ -124,21 +130,17 @@ export async function getPushedCommitHash(link: vscode.Uri) {
 
 export async function getLocalBranchNames(link: vscode.Uri) {
 	const result = await run(link, 'branch', '--list')
-	return compact(
-		result.split('\n')
-			.map(line => line.startsWith('*') ? line.substring(1) : line)
-			.map(line => line.trim())
-	)
+	return compact(result.split('\n')
+		.map(line => (line.startsWith('*') ? line.substring(1) : line))
+		.map(line => line.trim()))
 }
 
 export async function getRemoteBranchNames(link: vscode.Uri) {
 	const result = await run(link, 'branch', '--list', '--remotes')
-	return compact(
-		result
-			.split('\n')
-			.map(line => line.trim())
-			.flatMap(line => line.split(' -> '))
-	)
+	return compact(result
+		.split('\n')
+		.map(line => line.trim())
+		.flatMap(line => line.split(' -> ')))
 }
 
 export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
@@ -156,7 +158,7 @@ export async function getBranchCounterparts(link: vscode.Uri) {
 		.map(line => line.split('|'))
 		.map(([local, remote]) => ({
 			local: local.replace(/^refs\/heads\//, ''),
-			remote: remote.replace(/^refs\/remotes\//, '') || null
+			remote: remote.replace(/^refs\/remotes\//, '') || null,
 		}))
 }
 
@@ -182,7 +184,7 @@ interface BranchStatus {
 	remote: string
 	dirty: boolean
 	sync: SyncStatus
-	distance: number
+	distance?: number
 }
 
 export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchStatus> {
@@ -190,9 +192,14 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 
 	const chunk = status.split('\n')[0].substring(3).trim()
 	const dirty = status.trim().split('\n').length > 1
-
 	if (chunk.includes('(no branch)')) {
-		return { local: '', remote: '', dirty, sync: SyncStatus.LocalIsInSyncWithRemote, distance: 0 }
+		return {
+			local: '',
+			remote: '',
+			dirty,
+			sync: SyncStatus.LocalIsInSyncWithRemote,
+			distance: 0,
+		}
 	}
 
 	let local = chunk
@@ -200,8 +207,10 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 	if (chunk.includes('...')) {
 		const separator = chunk.indexOf('...')
 		local = chunk.substring(0, separator)
-		if (chunk.endsWith('[gone]') == false) {
+
+		if (chunk.endsWith('[gone]') === false) {
 			remote = chunk.substring(separator + 3).trim()
+
 			if (remote.indexOf(' [') > 0) {
 				remote = remote.substring(0, remote.indexOf(' ['))
 			}
@@ -212,6 +221,7 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 		const counterpartBranch = remoteBranches.find(branch => branch === `origin/${local}`) || ''
 		if (counterpartBranch) {
 			await setRemoteBranch(link, local)
+
 			const newStatus = await getCurrentBranchStatus(link)
 			remote = newStatus.remote
 		}
@@ -221,67 +231,101 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 	let distance = 0
 	if (local && remote) {
 		const result = await run(link, 'rev-list', '--left-right', '--count', local + '...' + remote)
-		const [left, right] = result.match(/(\d+)\s+(\d+)/).slice(1).map(numb => parseInt(numb))
+		const [left, right] = result.match(/(\d+)\s+(\d+)/)!.slice(1)
+			.map(numb => parseInt(numb))
+
 		if (left > 0 && right > 0) {
 			sync = SyncStatus.LocalIsNotInSyncWithRemote
+
 		} else if (left > 0) {
 			sync = SyncStatus.LocalIsAheadOfRemote
+
 		} else if (right > 0) {
 			sync = SyncStatus.LocalIsBehindRemote
 		}
+
 		distance = left + right
 	}
 
-	return { local, remote, dirty, sync, distance }
+	return {
+		local,
+		remote,
+		dirty,
+		sync,
+		distance,
+	}
 }
 
 export async function getFileStatus(link: vscode.Uri) {
-	const repositoryLink = await getRepositoryLink(link)
+	const repositoryLink = getRepositoryLink(link)
+	if (!repositoryLink) {
+		return undefined
+	}
 
 	const status = await run(link, 'status', '--short')
 	return status.split('\n')
 		.filter(line => line.trim().length > 0)
 		.map(line => ({
 			symbol: line.substring(0, 2).trim(),
-			currentLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, last(line.substring(3).split('->')).trim())),
-			originalLink: vscode.Uri.file(fp.join(repositoryLink.fsPath, first(line.substring(3).split('->')).trim())),
+			currentLink: vscode.Uri.file(fp.join(
+				repositoryLink.fsPath,
+				line.substring(3).split('->').at(-1)!.trim(),
+			)),
+			originalLink: vscode.Uri.file(fp.join(
+				repositoryLink.fsPath,
+				line.substring(3).split('->').at(0)!.trim(),
+			)),
 		}))
 		.find(file => file.currentLink.fsPath === link.fsPath)
 }
 
-export async function getBranchTopology(link: vscode.Uri, localBranchName: string, remoteBranchName: string) {
+export async function getBranchTopology(link: vscode.Uri, localBranchName: string, remoteBranchName: string): Promise<Array<Array<{
+	email: string
+	date: string
+	message: string
+	parentHash: string
+	direction: string
+	commitHash: string
+}>>> {
 	const result = await run(link, 'rev-list', '--topo-order', '--left-right', localBranchName + '...' + remoteBranchName, '--format=format:%P%n%aE%n%aI%n%f')
 	if (result.trim() === '') {
 		return []
 	}
+
 	const commits = chunk(result.trim().split('\n'), 5).map(([commit, parentHash, email, date, message]) => {
-		const directionAndCommitHash = commit.match(/(<|>)(\w{40})/) // First line is always be "commit >X" where X is a 40-character-long commit hash
+		// First line is always be "commit >X" where X is a 40-character-long commit hash
+		const [match, direction, commitHash] = commit.match(/(<|>)(\w{40})/)!
 		return {
 			email,
 			date,
 			message,
 			parentHash,
-			direction: directionAndCommitHash[1],
-			commitHash: directionAndCommitHash[2],
+			direction,
+			commitHash,
 		}
 	})
 	const groups = [[commits[0]]]
 	let index = 0
 	while (++index < commits.length) {
-		if (commits[index].direction === last(groups)[0].direction) {
-			last(groups).push(commits[index])
+		if (commits[index].direction === groups.at(-1)?.at(0)?.direction) {
+			groups.at(-1)!.push(commits[index])
+
 		} else {
 			groups.push([commits[index]])
 		}
 	}
+
 	return groups
 }
 
 const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
 const urlPattern = /^\turl\s*=\s*(.+)\.git$/
+export function getWebOrigin(workspace: vscode.WorkspaceFolder): string | null {
+	const repositoryPath = getRepositoryLink(workspace.uri)?.fsPath
+	if (!repositoryPath) {
+		return null
+	}
 
-export function getWebOrigin(workspace: vscode.WorkspaceFolder) {
-	const repositoryPath = getRepositoryLink(workspace.uri).fsPath
 	const confPath = fp.join(repositoryPath, '.git', 'config')
 	if (!fs.existsSync(confPath)) {
 		return null
@@ -294,18 +338,24 @@ export function getWebOrigin(workspace: vscode.WorkspaceFolder) {
 	for (const line of confLine) {
 		if (line.startsWith('[')) {
 			head = line
+
 		} else if (gitPattern.test(line)) {
-			dict.set(head, 'https://' + line.match(gitPattern)[1].replace(':', '/'))
+			dict.set(head, 'https://' + line.match(gitPattern)![1].replace(':', '/'))
+
 		} else if (urlPattern.test(line)) {
-			dict.set(head, line.match(urlPattern)[1])
+			dict.set(head, line.match(urlPattern)![1])
 		}
 	}
 
 	return dict.get('[remote "origin"]') || null
 }
 
-export async function getFileBeforeRenamed(link: vscode.Uri) {
+export async function getFileBeforeRenamed(link: vscode.Uri): Promise<vscode.Uri | null> {
 	const repositoryLink = getRepositoryLink(link)
+	if (!repositoryLink) {
+		return null
+	}
+
 	const relativeCurrentFilePath = trim(link.fsPath.substring(repositoryLink.fsPath.length), fp.sep)
 
 	let status = await getFileStatus(link)
@@ -318,7 +368,7 @@ export async function getFileBeforeRenamed(link: vscode.Uri) {
 		status = await getFileStatus(link)
 	}
 
-	if (status.symbol === 'R' && status.currentLink.fsPath === link.fsPath) {
+	if (status && status.symbol === 'R' && status.currentLink.fsPath === link.fsPath) {
 		return status.originalLink
 	}
 

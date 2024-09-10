@@ -1,14 +1,13 @@
-import trimStart from 'lodash/trimStart'
 import * as vscode from 'vscode'
 
-import * as Util from './Utility'
 import * as Git from './Git'
 import { track } from './Telemetry'
+import * as Util from './Utility'
 
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
 
 	await vscode.window.withProgress({ location: vscode.ProgressLocation.SourceControl }, async () => {
@@ -23,7 +22,10 @@ export default async function () {
 			]
 			const select = await vscode.window.showWarningMessage(
 				`You are on the local branch "${status.local}".`,
-				{ modal: true }, ...options)
+				{ modal: true },
+				...options,
+			)
+
 			if (select === options[0]) {
 				await tryCreateNewBranch(workspace.uri)
 
@@ -37,7 +39,10 @@ export default async function () {
 					const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
 					await Git.run(workspace.uri, 'branch', '--unset-upstream', newStatus.local)
 
-					await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Syncing Remote Branch...' }, async () => {
+					await vscode.window.withProgress({
+						location: vscode.ProgressLocation.Window,
+						title: 'Syncing Remote Branch...',
+					}, async () => {
 						await Git.run(workspace.uri, 'push', '--delete', 'origin', oldStatus.local, { retry: 1 })
 						await Git.run(workspace.uri, 'push', 'origin', newStatus.local, { retry: 1 })
 					})
@@ -54,7 +59,7 @@ async function tryCreateNewBranch(link: vscode.Uri) {
 	const remoteBranchNames = await Git.getRemoteBranchNames(link)
 	const existingBranchNames = new Set<string>([
 		...localBranchNames,
-		...remoteBranchNames.map(name => trimStart(name, 'origin/')),
+		...remoteBranchNames.map(name => name.replace(/^origin\//, '')),
 	])
 
 	const branchName = await vscode.window.showInputBox({
@@ -67,14 +72,17 @@ async function tryCreateNewBranch(link: vscode.Uri) {
 
 			try {
 				await Git.run(link, 'check-ref-format', '--branch', value)
+
 				return null
-			} catch (ex) {
+
+			} catch (error) {
 				return 'The given branch name is not valid.'
 			}
-		}
+		},
 	})
+
 	if (!branchName) {
-		return null
+		return
 	}
 
 	await Git.run(link, 'checkout', '-B', branchName)
