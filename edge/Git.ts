@@ -128,19 +128,33 @@ export async function getPushedCommitHash(link: vscode.Uri) {
 	return (await run(link, 'log', '--format=%H', '--remotes=origin', '--max-count=1')).trim()
 }
 
-export async function getLocalBranchNames(link: vscode.Uri) {
-	const result = await run(link, 'branch', '--list')
-	return compact(result.split('\n')
-		.map(line => (line.startsWith('*') ? line.substring(1) : line))
-		.map(line => line.trim()))
+export async function getLocalBranches(link: vscode.Uri) {
+	const result = await run(link, 'branch', '--list', '--format=%(objectname) %(refname:short) %(upstream:short) %(authordate:iso-strict)')
+	return compact(result.split('\n'))
+		.map(line => {
+			const [commitHash, name, upstreamName, date] = line.trim().split(' ')
+			return {
+				commitHash,
+				name,
+				upstreamName: upstreamName || undefined,
+				date: new Date(date),
+			}
+		})
 }
 
-export async function getRemoteBranchNames(link: vscode.Uri) {
-	const result = await run(link, 'branch', '--list', '--remotes')
-	return compact(result
-		.split('\n')
-		.map(line => line.trim())
-		.flatMap(line => line.split(' -> ')))
+export async function getRemoteBranches(link: vscode.Uri) {
+	const result = await run(link, 'branch', '--list', '--remotes', '--format=%(objectname) %(refname:short) %(authordate:iso-strict)')
+	return compact(result.split('\n'))
+		// Remove "origin"
+		.slice(1)
+		.map(line => {
+			const [commitHash, name, date] = line.trim().split(' ')
+			return {
+				commitHash,
+				name,
+				date: new Date(date),
+			}
+		})
 }
 
 export function setRemoteBranch(link: vscode.Uri, localBranchName: string) {
@@ -217,8 +231,8 @@ export async function getCurrentBranchStatus(link: vscode.Uri): Promise<BranchSt
 		}
 
 	} else {
-		const remoteBranches = await getRemoteBranchNames(link)
-		const counterpartBranch = remoteBranches.find(branch => branch === `origin/${local}`) || ''
+		const remoteBranches = await getRemoteBranches(link)
+		const counterpartBranch = remoteBranches.find(branch => branch.name === `origin/${local}`) || ''
 		if (counterpartBranch) {
 			await setRemoteBranch(link, local)
 

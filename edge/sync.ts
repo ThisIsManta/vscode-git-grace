@@ -56,8 +56,8 @@ export default async function () {
 				await Git.run(workspace.uri, 'fetch', '--prune', 'origin', { retry: 2 })
 
 				const counterparts = await Git.getBranchCounterparts(workspace.uri)
-				const remoteBranches = new Set(await Git.getRemoteBranchNames(workspace.uri))
-				const mergedBranches = new Set(await getMergedBranchNames(workspace.uri, false))
+				const remoteBranchNames = new Set((await Git.getRemoteBranches(workspace.uri)).map(branch => branch.name))
+				const mergedBranchNames = new Set(await getMergedBranchNames(workspace.uri, false))
 
 				automatedWorkers.push({
 					workspace,
@@ -65,7 +65,7 @@ export default async function () {
 				})
 
 				for (const { local, remote } of counterparts) {
-					if (remote && remoteBranches.has(remote)) {
+					if (remote && remoteBranchNames.has(remote)) {
 						const groups = await Git.getBranchTopology(workspace.uri, local, remote)
 						if (groups.length === 0) {
 							continue
@@ -91,7 +91,7 @@ export default async function () {
 							})
 						}
 
-					} else if (mergedBranches.has(local)) {
+					} else if (mergedBranchNames.has(local)) {
 						automatedWorkers.push({
 							workspace,
 							action: () => Git.run(workspace.uri, 'branch', '--delete', '--force', local, { retry: 1 }),

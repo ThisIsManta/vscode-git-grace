@@ -55,11 +55,11 @@ export default async function () {
 async function tryCreateNewBranch(link: vscode.Uri) {
 	track('branch:new')
 
-	const localBranchNames = await Git.getLocalBranchNames(link)
-	const remoteBranchNames = await Git.getRemoteBranchNames(link)
+	const localBranches = await Git.getLocalBranches(link)
+	const remoteBranches = await Git.getRemoteBranches(link)
 	const existingBranchNames = new Set<string>([
-		...localBranchNames,
-		...remoteBranchNames.map(name => name.replace(/^origin\//, '')),
+		...localBranches.map(({ name }) => name),
+		...remoteBranches.map(({ name }) => name.replace(/^origin\//, '')),
 	])
 
 	const branchName = await vscode.window.showInputBox({

@@ -1,5 +1,5 @@
 import compact from 'lodash/compact'
-import without from 'lodash/without'
+import sortBy from 'lodash/sortBy'
 import * as vscode from 'vscode'
 
 import { fetchInternal, trySyncRemoteBranch } from './fetch'
@@ -10,109 +10,160 @@ import * as Util from './Utility'
 export default async function () {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
-		return null
+		return
 	}
-
-	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (status.dirty && await tryAbortBecauseOfDirtyFiles(workspace.uri)) {
-		return null
-	}
-
-	if (status.local === '' && await tryAbortBecauseOfDanglingCommits(workspace.uri, 'another branch')) {
-		return null
-	}
-
-	let localBranches: Array<string> = []
-	let remoteBranches: Array<string> = []
 
 	const workspaceLink = workspace.uri
 
-	async function setPickerItems() {
-		const branches = await Promise.all([
-			Git.getLocalBranchNames(workspaceLink),
-			Git.getRemoteBranchNames(workspaceLink),
+	const status = await Git.getCurrentBranchStatus(workspaceLink)
+	if (status.dirty && await tryAbortBecauseOfDirtyFiles(workspaceLink)) {
+		return
+	}
+
+	if (status.local === '' && await tryAbortBecauseOfDanglingCommits(workspaceLink, 'another branch')) {
+		return
+	}
+
+	async function getBranches() {
+		const [localBranches, remoteBranches] = await Promise.all([
+			Git.getLocalBranches(workspaceLink),
+			Git.getRemoteBranches(workspaceLink),
+			// TODO: include tags
 		])
-		localBranches = branches[0]
-		remoteBranches = without(branches[1], 'origin/HEAD')
 
-		picker.items = [...localBranches, ...remoteBranches].map(name => ({ label: name }))
-
-		if (status.local) {
-			picker.activeItems = compact([picker.items.find(item => item.label === status.local)])
+		return {
+			localBranches,
+			remoteBranches,
 		}
 	}
 
+	function getPickerItems({ localBranches, remoteBranches }: {
+		localBranches: Array<{
+			commitHash: string
+			name: string
+			upstreamName?: string
+			date: Date
+		}>
+		remoteBranches: Array<{
+			commitHash: string
+			name: string
+			date: Date
+		}>
+	}): Array<vscode.QuickPickItem> {
+		const remoteBranchIcon = new vscode.ThemeIcon('cloud')
+
+		const remoteBranchToCommitHash = new Map(remoteBranches.map(branch => [branch.name, branch.commitHash]))
+
+		return [
+			...sortBy(localBranches, branch => -branch.date.valueOf())
+				.filter(branch => {
+					if (!branch.upstreamName) {
+						return true
+					}
+
+					// Reduce noise by hiding local branches that point to the same commit as its upstream
+					if (branch.upstreamName === ('origin/' + branch.name) && remoteBranchToCommitHash.get(branch.upstreamName) === branch.commitHash) {
+						return false
+					}
+
+					return true
+				})
+				.map(branch => ({
+					label: branch.name,
+					// Show upstream branch name if it is not conventional
+					detail: (branch.upstreamName && branch.upstreamName !== ('origin/' + branch.name)) ? ('$(' + remoteBranchIcon.id + ') ' + branch.upstreamName) : undefined,
+				})),
+			{
+				label: 'Remote',
+				kind: vscode.QuickPickItemKind.Separator,
+			},
+			...remoteBranches
+				.map(branch => ({
+					iconPath: remoteBranchIcon,
+					label: branch.name,
+				})),
+		]
+	}
+
+	function getSelectPickerItem(items: ReadonlyArray<vscode.QuickPickItem>) {
+		return compact([items.find(item => item.label === status.local)])
+	}
+
+	let branches = await getBranches()
+
 	const picker = vscode.window.createQuickPick()
-	picker.placeholder = 'Select a branch to checkout'
-	await setPickerItems()
+	picker.placeholder = 'Select a branch to checkout or enter a commit hash'
+	picker.items = getPickerItems(branches)
+	picker.activeItems = getSelectPickerItem(picker.items)
+	picker.matchOnDetail = true
 	picker.busy = true
 	picker.show()
 
 	// Do lazy fetching
-	const syncBranchNamePromise = fetchInternal().then(async updated => {
+	const fetchPromise = fetchInternal().then(async updated => {
 		if (updated) {
-			await setPickerItems()
+			branches = await getBranches()
+			picker.items = getPickerItems(branches)
+			picker.activeItems = getSelectPickerItem(picker.items)
 		}
 
 		picker.busy = false
 	})
 
-	return new Promise<void>((resolve, reject) => {
+	await new Promise<void>((resolve, reject) => {
+		picker.onDidHide(() => {
+			resolve()
+		})
+
 		picker.onDidAccept(async () => {
-			const selectBranchName = picker.selectedItems[0]?.label ?? picker.value
+			const input = picker.selectedItems[0]?.label ?? picker.value
 
 			picker.hide()
 			picker.dispose()
 
-			if (!selectBranchName) {
+			if (!input) {
 				resolve()
 
 				return
 			}
 
 			try {
-				await syncBranchNamePromise
+				await fetchPromise
 
-				if (remoteBranches.includes(selectBranchName)) {
-					const remoteBranchName = selectBranchName
-					const localBranchName = remoteBranchName.replace(/^origin\//, '')
-					if (localBranches.includes(localBranchName)) {
-						const groups = await Git.getBranchTopology(workspace.uri, localBranchName, remoteBranchName)
+				const { localBranches, remoteBranches } = branches
+				const selectRemoteBranch = remoteBranches.find(branch => branch.name.localeCompare(input, undefined, { sensitivity: 'base' }) === 0)
+				if (selectRemoteBranch) {
+					const branchName = selectRemoteBranch.name.replace(/^origin\//, '')
+					if (localBranches.some(branch => branch.name.localeCompare(branchName, undefined, { sensitivity: 'base' }) === 0)) {
+						const groups = await Git.getBranchTopology(workspaceLink, branchName, selectRemoteBranch.name)
 						if (groups.length === 1 && groups[0][0].direction === '>') {
 							// Fast forward
-							await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
+							await checkoutInternal(workspaceLink, branchName, selectRemoteBranch.name)
 							resolve()
 
 							return
 						}
 
-						await checkoutInternal(workspace.uri, localBranchName)
+						await checkoutInternal(workspaceLink, branchName)
+						trySyncRemoteBranch(workspace)
 						resolve()
 
 						return
 					}
 
-					await checkoutInternal(workspace.uri, localBranchName, remoteBranchName)
+					await checkoutInternal(workspaceLink, branchName, selectRemoteBranch.name)
 					resolve()
 
 					return
 				}
 
-				await checkoutInternal(workspace.uri, selectBranchName)
+				await checkoutInternal(workspaceLink, input)
 				resolve()
 
 			} catch (error) {
 				reject(error)
 			}
 		})
-
-		picker.onDidHide(() => {
-			resolve()
-		})
-	}).then(async () => {
-		await vscode.commands.executeCommand('git.refresh')
-
-		await trySyncRemoteBranch(workspace)
 	})
 }
 
@@ -122,13 +173,17 @@ async function checkoutInternal(link: vscode.Uri, localBranchName: string, remot
 		output = await Git.run(link, 'checkout', '-B', localBranchName, '--track', remoteBranchName)
 
 	} else {
-		// Note that this is a short hard to `git checkout -b <branch> --track origin/<branch>`
+		// Note that this is a short hand to `git checkout -b <branch> --track origin/<branch>`
+		// Note that the input can be a commit hash, which git-checkout will proceed in detached mode
+		// See https://git-scm.com/docs/git-checkout#Documentation/git-checkout.txt---detach
 		output = await Git.run(link, 'checkout', localBranchName)
 	}
 
 	if (output.startsWith('error:')) {
 		throw new Error(output.trim())
 	}
+
+	await vscode.commands.executeCommand('git.refresh')
 }
 
 export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boolean> {

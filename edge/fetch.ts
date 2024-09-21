@@ -38,12 +38,11 @@ export async function fetchInternal(token?: vscode.CancellationToken): Promise<b
 		return false
 	}
 
-	let updated = false
-
-	await vscode.window.withProgress({
+	return await vscode.window.withProgress({
 		location: vscode.ProgressLocation.Window,
 		title: 'Fetching...',
 	}, async progress => {
+		let updated: boolean = false
 		for (const workspace of workspaceList) {
 			if (workspaceList.length > 1) {
 				progress.report({ message: `Fetching "${workspace.name}"...` })
@@ -74,13 +73,13 @@ export async function fetchInternal(token?: vscode.CancellationToken): Promise<b
 				}
 			}
 		}
+
+		if (token && token.isCancellationRequested) {
+			throw new vscode.CancellationError()
+		}
+
+		return updated
 	})
-
-	if (token && token.isCancellationRequested) {
-		throw new vscode.CancellationError()
-	}
-
-	return updated
 }
 
 export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Promise<boolean> {

@@ -55,24 +55,24 @@ export default async function () {
 		}
 	}
 
-	const remoteBranches = await Git.getRemoteBranchNames(workspace.uri)
-	for (const branch of ['origin/master', 'origin/dev']) {
-		if (remoteBranches.indexOf(branch) >= 0) {
+	const remoteBranches = await Git.getRemoteBranches(workspace.uri)
+	for (const branchName of ['origin/master', 'origin/dev']) {
+		if (remoteBranches.some(branch => branch.name === branchName)) {
 			if (filePath) {
 				pickList.push({
-					label: branch,
+					label: branchName,
 					url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath) + lineHash,
 				})
 
 			} else if (workspacePath === repositoryPath) {
 				pickList.push({
-					label: branch,
+					label: branchName,
 					url: webOrigin,
 				})
 
 			} else {
 				pickList.push({
-					label: branch,
+					label: branchName,
 					url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath),
 				})
 			}
