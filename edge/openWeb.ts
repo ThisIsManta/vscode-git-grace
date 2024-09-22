@@ -55,28 +55,24 @@ export default async function () {
 		}
 	}
 
-	const remoteBranches = await Git.getRemoteBranches(workspace.uri)
-	for (const branchName of ['origin/master', 'origin/dev']) {
-		if (remoteBranches.some(branch => branch.name === branchName)) {
-			if (filePath) {
-				pickList.push({
-					label: branchName,
-					url: webOrigin + '/blob/master/' + normalizeWebLocation(filePath) + lineHash,
-				})
+	const headBranchName = await Git.getRemoteHeadBranchName(workspace.uri)
+	if (filePath) {
+		pickList.push({
+			label: headBranchName,
+			url: webOrigin + '/blob/' + headBranchName + '/' + normalizeWebLocation(filePath) + lineHash,
+		})
 
-			} else if (workspacePath === repositoryPath) {
-				pickList.push({
-					label: branchName,
-					url: webOrigin,
-				})
+	} else if (workspacePath === repositoryPath) {
+		pickList.push({
+			label: headBranchName,
+			url: webOrigin,
+		})
 
-			} else {
-				pickList.push({
-					label: branchName,
-					url: webOrigin + '/tree/master/' + normalizeWebLocation(workspacePath),
-				})
-			}
-		}
+	} else {
+		pickList.push({
+			label: headBranchName,
+			url: webOrigin + '/tree/' + headBranchName + '/' + normalizeWebLocation(workspacePath),
+		})
 	}
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
