@@ -13,10 +13,7 @@ export default async function () {
 		return
 	}
 
-	const webOrigin = Git.getWebOrigin(workspace)
-	if (!webOrigin) {
-		throw new Error('The selected workspace was not a GitHub repository.')
-	}
+	const webOrigin = await Git.getWebOrigin(workspace)
 
 	track('blame')
 

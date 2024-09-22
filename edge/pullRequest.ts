@@ -11,11 +11,6 @@ export default async function () {
 		return
 	}
 
-	const webOrigin = Git.getWebOrigin(workspace)
-	if (!webOrigin) {
-		throw new Error('The selected workspace was not a GitHub repository.')
-	}
-
 	const headBranchName = await Git.getRemoteHeadBranchName(workspace.uri)
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
@@ -40,6 +35,8 @@ export default async function () {
 	}
 
 	track('pull-request')
+
+	const webOrigin = await Git.getWebOrigin(workspace)
 
 	open(webOrigin + '/compare/' + headBranchName + '...' + (status.remote.replace(/^origin\//, '') || status.local))
 }

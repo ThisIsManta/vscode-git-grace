@@ -332,36 +332,13 @@ export async function getBranchTopology(link: vscode.Uri, localBranchName: strin
 	return groups
 }
 
-const gitPattern = /^\turl\s*=\s*git@(.+)\.git/
-const urlPattern = /^\turl\s*=\s*(.+)\.git$/
-export function getWebOrigin(workspace: vscode.WorkspaceFolder): string | null {
-	const repositoryPath = getRepositoryLink(workspace.uri)?.fsPath
-	if (!repositoryPath) {
-		return null
+export async function getWebOrigin(workspace: vscode.WorkspaceFolder): Promise<string> {
+	const raw = (await run(workspace.uri, 'config', 'get', 'remote.origin.url')).trim().replace(/\.git$/, '')
+	if (raw.startsWith('git@')) {
+		return 'https://' + raw.replace(/^git@/, '').replace(':', '/')
 	}
 
-	const confPath = fp.join(repositoryPath, '.git', 'config')
-	if (!fs.existsSync(confPath)) {
-		return null
-	}
-
-	const confFile = fs.readFileSync(confPath, 'utf-8')
-	const confLine = compact(confFile.split('\n'))
-	let head = ''
-	const dict = new Map<string, string>()
-	for (const line of confLine) {
-		if (line.startsWith('[')) {
-			head = line
-
-		} else if (gitPattern.test(line)) {
-			dict.set(head, 'https://' + line.match(gitPattern)![1].replace(':', '/'))
-
-		} else if (urlPattern.test(line)) {
-			dict.set(head, line.match(urlPattern)![1])
-		}
-	}
-
-	return dict.get('[remote "origin"]') || null
+	return raw
 }
 
 export async function getFileBeforeRenamed(link: vscode.Uri): Promise<vscode.Uri | null> {

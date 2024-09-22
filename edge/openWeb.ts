@@ -15,7 +15,7 @@ export default async function () {
 
 	const workspacePath = workspace.uri.fsPath
 
-	const webOrigin = Git.getWebOrigin(workspace)
+	const webOrigin = await Git.getWebOrigin(workspace)
 	if (!webOrigin || webOrigin.startsWith('https://github.com/') === false) {
 		return
 	}
