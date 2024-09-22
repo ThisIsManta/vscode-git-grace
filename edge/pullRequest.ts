@@ -32,14 +32,10 @@ export default async function () {
 	}
 
 	if (status.sync === Git.SyncStatus.LocalIsBehindRemote) {
-		throw new Error('The current branch was behind its remote branch.')
+		throw new Error('The current branch is behind its remote branch.')
 	}
 
-	if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
-		throw new Error('The current branch was out-of-sync with its remote branch.')
-	}
-
-	if (status.remote === '' || status.sync === Git.SyncStatus.LocalIsAheadOfRemote) {
+	if (status.remote === '' || status.sync !== Git.SyncStatus.LocalIsInSyncWithRemote) {
 		await push()
 	}
 
