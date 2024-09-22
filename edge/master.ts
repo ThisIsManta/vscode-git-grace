@@ -18,24 +18,25 @@ export default async function () {
 		return
 	}
 
-	const headBranchName = 'origin/' + await Git.getRemoteHeadBranchName(workspace.uri)
+	const headBranchName = await Git.getRemoteHeadBranchName(workspace.uri)
+	const remoteHeadBranchName = 'origin/' + headBranchName
 
 	await vscode.window.withProgress({
 		location: vscode.ProgressLocation.Window,
-		title: `Switching to ${headBranchName}...`,
+		title: `Switching to ${remoteHeadBranchName}...`,
 	}, async () => {
-		await Git.run(workspace.uri, 'fetch', 'origin', { retry: 2 })
+		await Git.run(workspace.uri, 'fetch', 'origin', headBranchName, { retry: 2 })
 
 		if (status.local === '') {
 			const currentHash = await Git.getCurrentCommitHash(workspace.uri)
-			const masterHash = await Git.getCurrentCommitHash(workspace.uri, headBranchName)
+			const masterHash = await Git.getCurrentCommitHash(workspace.uri, remoteHeadBranchName)
 			if (currentHash === masterHash) {
-				vscode.window.showInformationMessage(`You are on "${headBranchName}" already.`)
+				vscode.window.showInformationMessage(`You are on "${remoteHeadBranchName}" already.`)
 
 				return
 			}
 
-			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, `"${headBranchName}"`)) {
+			if (await tryAbortBecauseOfDanglingCommits(workspace.uri, `"${remoteHeadBranchName}"`)) {
 				return
 			}
 		}
@@ -43,10 +44,10 @@ export default async function () {
 		track('master')
 
 		try {
-			await Git.run(workspace.uri, 'checkout', '--detach', headBranchName)
+			await Git.run(workspace.uri, 'checkout', '--detach', remoteHeadBranchName)
 
 		} catch (error) {
-			throw new Error(`Checking out "${headBranchName}" failed.`)
+			throw new Error(`Checking out "${remoteHeadBranchName}" failed.`)
 		}
 
 		vscode.commands.executeCommand('git.refresh')
