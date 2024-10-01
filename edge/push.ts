@@ -73,17 +73,17 @@ export default async function (options: {
 				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
 				if (error instanceof Git.GitError && error.message.includes('error: failed to push some refs')) {
+					if (error.message.includes('error: GH006: Protected branch update failed')) {
+						throw new Error(`Pushing failed because the remote branch "${status.remote || status.local}" is protected.`)
+					}
+
 					await Git.run(workspace.uri, 'fetch', 'origin', status.local, { token: options.token })
 
 					if (options.token && options.token.isCancellationRequested) {
 						throw new vscode.CancellationError()
 					}
 
-					defer(() => {
-						vscode.window.showErrorMessage(`The local branch "${status.local}" could not be pushed because its remote branch has been moved.`, { modal: true })
-					})
-
-					throw new vscode.CancellationError()
+					throw new Error(`Pushing failed because the remote branch "${status.remote || status.local}" has been moved.`)
 				}
 
 				throw new Error('Pushing failed.')
