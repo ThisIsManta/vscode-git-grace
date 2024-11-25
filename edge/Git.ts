@@ -333,7 +333,8 @@ export async function getBranchTopology(link: vscode.Uri, localBranchName: strin
 }
 
 export async function getWebOrigin(workspace: vscode.WorkspaceFolder): Promise<string> {
-	const raw = (await run(workspace.uri, 'config', 'get', 'remote.origin.url')).trim().replace(/\.git$/, '')
+	// Do not use `git config get` to maintain compatibility with Apple Git (as part of Xcode Command Line Tools)
+	const raw = (await run(workspace.uri, 'config', 'remote.origin.url')).trim().replace(/\.git$/, '')
 	if (raw.startsWith('git@')) {
 		return 'https://' + raw.replace(/^git@/, '').replace(':', '/')
 	}
