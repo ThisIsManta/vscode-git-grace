@@ -12,6 +12,7 @@
 		"git",
 		"github",
 		"tortoisegit",
+		"fork",
 		"shortcut"
 	],
 	"repository": {
@@ -156,6 +157,21 @@
 				"command": "gitGrace.showOutput",
 				"title": "Show Output (Git Grace)",
 				"category": "Git"
+			},
+			{
+				"command": "fork.showLog",
+				"title": "Show Log...",
+				"category": "Fork"
+			},
+			{
+				"command": "fork.showFileLog",
+				"title": "Show File Log...",
+				"category": "Fork"
+			},
+			{
+				"command": "fork.commit",
+				"title": "Commit...",
+				"category": "Fork"
 			},
 			{
 				"command": "tortoiseGit.showLog",

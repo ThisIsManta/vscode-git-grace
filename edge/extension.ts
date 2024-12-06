@@ -11,6 +11,7 @@ import commitSmart from './commitSmart'
 import deleteBranch from './deleteBranch'
 import deleteMergedBranches from './deleteMergedBranches'
 import fetch from './fetch'
+import * as Fork from './Fork'
 import Log from './Log'
 import master from './master'
 import openWeb from './openWeb'
@@ -81,6 +82,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.showOutput', () => {
 		Log.show()
 	}))
+
+	context.subscriptions.push(vscode.commands.registerCommand('fork.showLog', Queue.put(Fork.showLog)))
+	context.subscriptions.push(vscode.commands.registerCommand('fork.showFileLog', Queue.put(Fork.showFileLog)))
+	context.subscriptions.push(vscode.commands.registerCommand('fork.commit', Queue.put(Fork.commit)))
 
 	if (os.platform() === 'win32') {
 		const tortoiseGit = new TortoiseGit()

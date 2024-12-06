@@ -35,6 +35,16 @@ As soon as **Git Grace** is installed, the extension provides the following comm
 |`gitGrace.stashClear`<br>(Alt+S C)|Clear the stash list.|
 |`git.openChange`<br>(Alt+G D)|Open the diff window for the active file.|
 
+## Fork integration
+
+In order to enable [**Fork**](https://fork.dev/) integration, **Fork** CLI must be installed under _Settings > Integration_.
+
+|Command|Description|
+|---|---|
+|`fork.showLog`|Show history for the current repository.|
+|`fork.showFileLog`|Show history for the current active file.|
+|`fork.commit`|Open **Fork** commit dialog for the current repository.|
+
 ## TortoiseGit integration
 
 Modified from [Marko Binic's TortoiseGit Commands](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds), [**TortoiseGit**](https://tortoisegit.org/) integration will search for `TortoiseGitProc.exe` automatically.
