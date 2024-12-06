@@ -1,3 +1,4 @@
+import * as os from 'os'
 import * as vscode from 'vscode'
 
 import blame from './blame'
@@ -81,11 +82,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		Log.show()
 	}))
 
-	const tortoiseGit = new TortoiseGit()
-	context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', Queue.put(() => tortoiseGit.showLog())))
-	context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', Queue.put(() => tortoiseGit.showFileLog())))
-	context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', Queue.put(() => tortoiseGit.commit())))
-	context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
+	if (os.platform() === 'win32') {
+		const tortoiseGit = new TortoiseGit()
+		context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showLog', Queue.put(() => tortoiseGit.showLog())))
+		context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.showFileLog', Queue.put(() => tortoiseGit.showFileLog())))
+		context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.commit', Queue.put(() => tortoiseGit.commit())))
+		context.subscriptions.push(vscode.commands.registerCommand('tortoiseGit.blame', () => tortoiseGit.blame()))
+	}
 
 	if (vscode.workspace.workspaceFolders) {
 		await Queue.run(fetch)

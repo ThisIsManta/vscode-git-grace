@@ -267,18 +267,6 @@
 				"command": "gitGrace.showOutput"
 			},
 			{
-				"key": "alt+g l",
-				"command": "tortoiseGit.showLog"
-			},
-			{
-				"key": "alt+g k",
-				"command": "tortoiseGit.showFileLog"
-			},
-			{
-				"key": "alt+g t",
-				"command": "tortoiseGit.commit"
-			},
-			{
 				"key": "alt+g b",
 				"command": "gitGrace.blame"
 			},

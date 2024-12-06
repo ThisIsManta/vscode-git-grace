@@ -34,11 +34,14 @@ As soon as **Git Grace** is installed, the extension provides the following comm
 |`gitGrace.stashPop`<br>(Alt+S L)|Open the stash list and restore the selected stash.|
 |`gitGrace.stashClear`<br>(Alt+S C)|Clear the stash list.|
 |`git.openChange`<br>(Alt+G D)|Open the diff window for the active file.|
-|`tortoiseGit.showLog`<br>(Alt+G L)|Show the log messages for the whole repository.|
-|`tortoiseGit.showFileLog`<br>(Alt+G K)|Show the log messages for the current active file.|
-|`tortoiseGit.commit`<br>(Alt+G T)|Commit with [**TortoiseGit**](https://tortoisegit.org/).|
-|`tortoiseGit.blame`|Open **TortoiseGitBlame** for the current active file.|
 
 ## TortoiseGit integration
 
-**TortoiseGit** integration (Windows exclusive) is slightly modified from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension. By default, the path to **TortoiseGit** executable is `C:\Program Files\TortoiseGit\bin\TortoiseGitProc.exe`, but it can be changed later at `gitGrace.tortoiseGitPath` settings.
+**TortoiseGit** integration (Windows exclusive) is slightly modified from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension. The extension will search for `TortoiseGitProc.exe` intelligently.
+
+|Command|Description|
+|---|---|
+|`tortoiseGit.showLog`|Show the history for the current repository.|
+|`tortoiseGit.showFileLog`|Show the history for the current active file.|
+|`tortoiseGit.commit`|Commit with [**TortoiseGit**](https://tortoisegit.org/).|
+|`tortoiseGit.blame`|Open **TortoiseGitBlame** for the current active file.|
