@@ -41,17 +41,6 @@
 		"dist/*"
 	],
 	"contributes": {
-		"configuration": {
-			"type": "object",
-			"title": "TortoiseGit",
-			"properties": {
-				"gitGrace.tortoiseGitPath": {
-					"type": "string",
-					"default": "C:\\Program Files\\TortoiseGit\\bin\\TortoiseGitProc.exe",
-					"description": "Path to TortoiseGit executable (TortoiseGitProc.exe)."
-				}
-			}
-		},
 		"commands": [
 			{
 				"command": "gitGrace.fetch",

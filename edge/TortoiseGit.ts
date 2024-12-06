@@ -1,26 +1,14 @@
 import * as cp from 'child_process'
+import compact from 'lodash/compact'
+import once from 'lodash/once'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
+import Log from './Log'
 import * as Util from './Utility'
 
 // Slightly modified from https://github.com/mbinic/vscode-tgit/blob/master/src/TGit.ts
 export default class TortoiseGit {
-	private launcherPath: string = ''
-
-	constructor() {
-		this.launcherPath = this.getExecutablePath()
-
-		vscode.workspace.onDidChangeConfiguration(() => {
-			this.launcherPath = this.getExecutablePath()
-		})
-	}
-
-	private getExecutablePath() {
-		// TODO: call `where TortoiseGitProc.exe`
-		return vscode.workspace.getConfiguration('gitGrace').get<string>('tortoiseGitPath') ?? this.launcherPath
-	}
-
 	public fetch() {
 		return this.run('fetch')
 	}
@@ -98,7 +86,21 @@ export default class TortoiseGit {
 		return this.run('sync')
 	}
 
+	private executablePath = ''
+
 	private async run(command: string, withFilePath: boolean = false, additionalParams: string | null = null) {
+		if (!this.executablePath) {
+			try {
+				this.executablePath = cp.execSync('where TortoiseGitProc.exe').toString().trim()
+
+			} catch (error) {
+				Log.appendLine(String(error))
+				vscode.window.showErrorMessage('TortoiseGit is not found. Please make sure it is installed and added to PATH.')
+
+				return
+			}
+		}
+
 		if (withFilePath && !Util.getCurrentFile()) {
 			return
 		}
@@ -108,15 +110,14 @@ export default class TortoiseGit {
 			return
 		}
 
-		let executable = `"${this.launcherPath}" /command:${command}`
-		if (withFilePath) {
-			executable += ` /path:"${Util.getCurrentFile().fsPath}"`
-		}
-
-		if (additionalParams) {
-			executable += ' ' + additionalParams
-		}
-
-		cp.exec(executable, { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+		cp.exec(compact([
+			`"${this.executablePath}"`,
+			`/command:${command}`,
+			withFilePath && `/path:"${Util.getCurrentFile().fsPath}"`,
+			additionalParams,
+		]).join(' '), { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+			.on('error', error => {
+				Log.appendLine(String(error))
+			})
 	}
 }

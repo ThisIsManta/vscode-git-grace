@@ -37,11 +37,11 @@ As soon as **Git Grace** is installed, the extension provides the following comm
 
 ## TortoiseGit integration
 
-**TortoiseGit** integration (Windows exclusive) is slightly modified from [Marko Binic's **TortoiseGit Commands**](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds) extension. The extension will search for `TortoiseGitProc.exe` intelligently.
+Modified from [Marko Binic's TortoiseGit Commands](https://marketplace.visualstudio.com/items?itemName=mbinic.tgit-cmds), [**TortoiseGit**](https://tortoisegit.org/) integration will search for `TortoiseGitProc.exe` automatically.
 
 |Command|Description|
 |---|---|
-|`tortoiseGit.showLog`|Show the history for the current repository.|
-|`tortoiseGit.showFileLog`|Show the history for the current active file.|
-|`tortoiseGit.commit`|Commit with [**TortoiseGit**](https://tortoisegit.org/).|
-|`tortoiseGit.blame`|Open **TortoiseGitBlame** for the current active file.|
+|`tortoiseGit.showLog`|Show history for the current repository.|
+|`tortoiseGit.showFileLog`|Show history for the current active file.|
+|`tortoiseGit.commit`|Open **TortoiseGit** commit dialog for the current repository.|
+|`tortoiseGit.blame`|Open **TortoiseGit** blame dialog for the current active file.|
