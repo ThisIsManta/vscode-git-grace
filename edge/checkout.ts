@@ -188,7 +188,7 @@ async function checkoutInternal(link: vscode.Uri, localBranchName: string, remot
 
 export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boolean> {
 	const select = await vscode.window.showWarningMessage(
-		'The current repository is dirty.',
+		'There are some uncommitted files.',
 		{ modal: true },
 		'Stash Now',
 		'Discard All Files',
@@ -199,10 +199,7 @@ export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boo
 	}
 
 	if (select === 'Stash Now') {
-		const error = await stash()
-		if (error !== undefined) {
-			return true
-		}
+		await stash()
 
 	} else if (select === 'Discard All Files') {
 		try {

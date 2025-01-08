@@ -24,7 +24,7 @@ As soon as **Git Grace** is installed, the extension provides the following comm
 |`gitGrace.deleteBranch`<br>(Alt+G X)|Similar to `git.deleteBranch`.|
 |`gitGrace.deleteMergedBranches`|Delete all the branches that have been merged to _origin/HEAD_. This command is available in the command palette as _Delete Merged Branches_.|
 |`gitGrace.squash`<br>(Alt+G Q)|Modify the selected commit in the current path with the current staged files. There is a chance of conflicts; use at your own risk.|
-|`gitGrace.sync`<br>(Alt+G G)|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if the repository is dirty.|
+|`gitGrace.sync`<br>(Alt+G G)|Push to _origin_ then pull with _--all_, _--rebase_ and finally pushes everything to _origin_. You will be asked to commit beforehand if there are some uncommitted files.|
 |`gitGrace.pullRequest`<br>(Alt+G J)|Push and open GitHub pull-request creation page.|
 |`gitGrace.openWeb`<br>(Alt+G H)|Open the current active file in GitHub.|
 |`gitGrace.blame`<br>(Alt+G B)|Open the current active file in GitHub blame page.|

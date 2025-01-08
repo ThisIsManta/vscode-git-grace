@@ -1,4 +1,5 @@
 import open from 'open'
+import * as vscode from 'vscode'
 
 import * as Git from './Git'
 import push from './push'
@@ -14,10 +15,6 @@ export default async function () {
 	const headBranchName = await Git.getRemoteHeadBranchName(workspace.uri)
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (status.dirty) {
-		throw new Error('The current repository is dirty.')
-	}
-
 	if (status.local === '') {
 		throw new Error('The current repository is not attached to any branches.')
 	}
@@ -27,7 +24,19 @@ export default async function () {
 	}
 
 	if (status.sync === Git.SyncStatus.LocalIsBehindRemote) {
-		throw new Error('The current branch is behind its remote branch.')
+		throw new Error('The local branch is out of sync with its remote branch.')
+	}
+
+	if (status.dirty) {
+		const select = await vscode.window.showWarningMessage(
+			'There are some uncommitted files.',
+			{ modal: true },
+			'Proceed Anyway',
+		)
+
+		if (select !== 'Proceed Anyway') {
+			throw new vscode.CancellationError()
+		}
 	}
 
 	if (status.remote === '' || status.sync !== Git.SyncStatus.LocalIsInSyncWithRemote) {
