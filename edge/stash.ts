@@ -15,17 +15,53 @@ export default async function stash() {
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
+	await Promise.all([
+		vscode.commands.executeCommand('workbench.view.scm'),
+		vscode.commands.executeCommand('git.refresh'),
+	])
+
+	const stagedFilesOnly = await (async (): Promise<boolean> => {
+		// Skip prompt if there are zero or only staged files
+		if (
+			!(
+				// Staged files
+				await Git.run(workspace.uri, 'diff', '--name-only', '--cached')
+			) ||
+			!(
+				// Unstaged files
+				await Git.run(workspace.uri, 'diff', '--name-only') ||
+				// Untracked files
+				await Git.run(workspace.uri, 'ls-files', '--others', '--exclude-standard')
+			)
+		) {
+			return false
+		}
+
+		const select = await vscode.window.showInformationMessage(
+			'What files would you like to stash?',
+			{ modal: true },
+			'Staged Files Only',
+			'All Files',
+		)
+
+		if (select === undefined) {
+			throw new vscode.CancellationError()
+		}
+
+		return select === 'Staged Files Only'
+	})()
+
 	await vscode.window.withProgress({
 		location: vscode.ProgressLocation.Window,
-		title: 'Saving Stash...',
+		title: 'Pushing Stash...',
 	}, async () => {
 		try {
-			await Git.run(workspace.uri, 'stash', 'save', '--include-untracked')
+			await Git.run(workspace.uri, 'stash', 'push', stagedFilesOnly ? '--staged' : '--include-untracked')
 
 		} catch (error) {
 			Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-			throw new Error('Saving stash failed.')
+			throw new Error('Pushing stash failed.')
 		}
 	})
 
