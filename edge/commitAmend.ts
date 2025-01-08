@@ -13,8 +13,8 @@ export default async function () {
 
 	const commit = await Git.getLastCommit(workspace.uri)
 
-	const select = await vscode.window.showWarningMessage(
-		`Are you sure you want to amend last commit "${truncate(commit.message, { length: 60 })}"?`,
+	const select = await vscode.window.showInformationMessage(
+		`Last commit is "${truncate(commit.message, { length: 60 })}"`,
 		{ modal: true },
 		'Amend Last Commit',
 	)

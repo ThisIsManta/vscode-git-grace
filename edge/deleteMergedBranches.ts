@@ -58,8 +58,11 @@ export default async function () {
 			.map(([list, unit]) => list.length + ' ' + unit + (list.length > 1 ? 'es' : ''))
 			.join(' and ')
 		const select = await vscode.window.showInformationMessage(
-			`Are you sure you want to delete ${branchNameList}?`,
-			{ modal: true },
+			'Would you like to delete the following branches?',
+			{
+				modal: true,
+				detail: branchNameList,
+			},
 			'Delete Merged Branches',
 		)
 

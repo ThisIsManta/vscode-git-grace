@@ -10,10 +10,10 @@ export default async function () {
 		return
 	}
 
-	const select = await vscode.window.showWarningMessage(
-		'Are you sure you want to create an empty commit?',
+	const select = await vscode.window.showInformationMessage(
+		'Would you like to create an empty commit with "(empty commit)" message?',
 		{ modal: true },
-		'Create an Empty Commit',
+		'Create Empty Commit',
 	)
 
 	if (!select) {
