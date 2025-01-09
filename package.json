@@ -2,7 +2,7 @@
 	"name": "git-grace",
 	"displayName": "Manta's Git Grace",
 	"description": "Run persistent Git commands.",
-	"version": "4.0.0",
+	"version": "4.1.0",
 	"publisher": "thisismanta",
 	"license": "MIT",
 	"categories": [
