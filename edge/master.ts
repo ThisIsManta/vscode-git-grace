@@ -24,8 +24,16 @@ export default async function () {
 	await vscode.window.withProgress({
 		location: vscode.ProgressLocation.Window,
 		title: `Switching to ${remoteHeadBranchName}...`,
-	}, async () => {
-		await Git.run(workspace.uri, 'fetch', 'origin', headBranchName, { retry: 2 })
+		cancellable: true,
+	}, async (process, token) => {
+		await Git.run(workspace.uri, 'fetch', 'origin', headBranchName, {
+			retry: 2,
+			token,
+		})
+
+		if (token.isCancellationRequested) {
+			throw new vscode.CancellationError()
+		}
 
 		if (status.local === '') {
 			const currentHash = await Git.getCurrentCommitHash(workspace.uri)
@@ -43,10 +51,18 @@ export default async function () {
 
 		track('master')
 
+		if (token.isCancellationRequested) {
+			throw new vscode.CancellationError()
+		}
+
 		try {
-			await Git.run(workspace.uri, 'checkout', '--detach', remoteHeadBranchName)
+			await Git.run(workspace.uri, 'checkout', '--detach', remoteHeadBranchName, { token })
 
 		} catch (error) {
+			if (error instanceof Error) {
+				Telemetry.logError(error)
+			}
+
 			throw new Error(`Checking out "${remoteHeadBranchName}" failed.`)
 		}
 
