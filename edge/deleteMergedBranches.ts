@@ -6,7 +6,7 @@ import * as vscode from 'vscode'
 import { fetchInternal } from './fetch'
 import * as Git from './Git'
 import Log from './Log'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 interface Branch {
@@ -107,7 +107,7 @@ export default async function () {
 				} catch (error) {
 					Util.setWorkspaceAsFirstTryNextTime(branch.root)
 
-					if (!(error instanceof Git.GitError) || !error.message.includes(`error: unable to delete '${branchNameWithoutOrigin}': remote ref does not exist`)) {
+					if (!(error instanceof Git.GitCommandLineError) || !error.message.includes(`error: unable to delete '${branchNameWithoutOrigin}': remote ref does not exist`)) {
 						throw error
 					}
 				}
@@ -126,7 +126,7 @@ export default async function () {
 				throw new vscode.CancellationError()
 			}
 
-			track('delete-merged-branches', { success: String(true) })
+			Telemetry.logUsage('delete-merged-branches')
 
 			defer(() => {
 				vscode.window.showInformationMessage(`${mergedLocalBranches.length + mergedRemoteBranches.length} merged branch${mergedLocalBranches.length + mergedRemoteBranches.length ? 'es have' : 'has'} been deleted.`)
@@ -139,9 +139,9 @@ export default async function () {
 
 			if (error instanceof Error) {
 				Log.appendLine(error.message)
-			}
 
-			track('delete-merged-branches', { success: String(false) })
+				Telemetry.logError(error)
+			}
 
 			throw new Error(`Deleting merged branches failed - only ${deletedRemoteBranchCount === 1 ? `branch "${mergedRemoteBranches[0].name}" has` : `${deletedRemoteBranchCount} branches have`} been deleted.`)
 		}

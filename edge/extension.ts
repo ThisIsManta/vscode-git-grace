@@ -21,9 +21,9 @@ import push from './push'
 import * as Queue from './Queue'
 import squash from './squash'
 import stageAll from './stageAll'
-import stash, { stashPopLatest, stashPop, stashClear, updateStashCountBar } from './stash'
+import { stashPush, stashPopLatest, stashPop, stashClear, updateStashCountBar } from './stash'
 import sync from './sync'
-import { telemetry } from './Telemetry'
+import Telemetry from './Telemetry'
 import TortoiseGit from './TortoiseGit'
 import unstageAll from './unstageAll'
 import * as Util from './Utility'
@@ -51,7 +51,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.commitEmpty', Queue.put(commitEmpty)))
 
-	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stash', Queue.put(stash)))
+	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stash', Queue.put(stashPush)))
 
 	context.subscriptions.push(vscode.commands.registerCommand('gitGrace.stashPopLatest', Queue.put(stashPopLatest)))
 
@@ -96,7 +96,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	}
 
 	if (vscode.workspace.workspaceFolders) {
-		await Queue.run(fetch)
+		await Queue.run(options => fetch({
+			silence: true,
+			token: options?.token,
+		}))
 		await updateStashCountBar()
 	}
 }
@@ -109,5 +112,5 @@ export async function deactivate() {
 		Log.dispose()
 	}
 
-	await telemetry.dispose()
+	Telemetry.dispose()
 }

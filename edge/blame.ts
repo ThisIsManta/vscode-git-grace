@@ -4,7 +4,7 @@ import * as vscode from 'vscode'
 
 import * as Git from './Git'
 import { getLineHashForGitHub } from './openWeb'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -14,8 +14,6 @@ export default async function () {
 	}
 
 	const webOrigin = await Git.getWebOrigin(workspace)
-
-	track('blame')
 
 	const currentFile = Util.getCurrentFile()
 	const renamedFile = await Git.getFileBeforeRenamed(currentFile)
@@ -30,4 +28,6 @@ export default async function () {
 	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor!)
 
 	open(webOrigin + '/blame/' + commitHash + '/' + relativeFilePath + lineHash)
+
+	Telemetry.logUsage('blame')
 }

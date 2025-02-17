@@ -3,7 +3,7 @@ import uniq from 'lodash/uniq'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 const versionMatcher = /^\d+\.\d+\.\d+$/
@@ -66,9 +66,9 @@ export default async function (): Promise<void> {
 		picker.show()
 	})
 
-	track('commit-smart')
-
 	await vscode.commands.executeCommand('git.commit')
+
+	Telemetry.logUsage('commit-smart')
 }
 
 async function getHistoricalMessages(workspace: vscode.WorkspaceFolder): Promise<Array<vscode.QuickPickItem>> {

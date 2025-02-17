@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -29,10 +29,12 @@ export default async function () {
 			if (select === options[0]) {
 				await tryCreateNewBranch(workspace.uri)
 
-			} else if (select === options[1]) {
-				track('branch:rename')
+				Telemetry.logUsage('branch:new')
 
+			} else if (select === options[1]) {
 				await vscode.commands.executeCommand('git.renameBranch')
+
+				Telemetry.logUsage('branch:rename')
 
 				const oldStatus = status
 				if (oldStatus.remote) {
@@ -53,8 +55,6 @@ export default async function () {
 }
 
 async function tryCreateNewBranch(link: vscode.Uri) {
-	track('branch:new')
-
 	const localBranches = await Git.getLocalBranches(link)
 	const remoteBranches = await Git.getRemoteBranches(link)
 	const existingBranchNames = new Set<string>([

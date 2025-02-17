@@ -2,16 +2,14 @@ import compact from 'lodash/compact'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
-export default async function stash() {
+export async function stashPush() {
 	const workspace = await Util.getCurrentWorkspace()
 	if (!workspace) {
 		return
 	}
-
-	track('stash')
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
@@ -20,7 +18,7 @@ export default async function stash() {
 		vscode.commands.executeCommand('git.refresh'),
 	])
 
-	const stagedFilesOnly = await (async (): Promise<boolean> => {
+	const stagedFilesOnly = await (async (): Promise<boolean | undefined> => {
 		// Skip prompt if there are zero or only staged files
 		if (
 			!(
@@ -34,7 +32,7 @@ export default async function stash() {
 				await Git.run(workspace.uri, 'ls-files', '--others', '--exclude-standard')
 			)
 		) {
-			return false
+			return undefined
 		}
 
 		const select = await vscode.window.showInformationMessage(
@@ -67,6 +65,8 @@ export default async function stash() {
 
 	vscode.commands.executeCommand('git.refresh')
 
+	Telemetry.logUsage('stash-push', { stagedFilesOnly })
+
 	updateStashCountBar()
 }
 
@@ -85,10 +85,12 @@ export async function stashPopLatest() {
 		try {
 			await Git.run(workspace.uri, 'stash', 'pop')
 
-			track('stash-pop-latest', { success: String(true) })
+			Telemetry.logUsage('stash-pop-latest')
 
 		} catch (error) {
-			track('stash-pop-latest', { success: String(false) })
+			if (error instanceof Error) {
+				Telemetry.logError(error)
+			}
 
 			Util.setWorkspaceAsFirstTryNextTime(workspace)
 
@@ -102,9 +104,9 @@ export async function stashPopLatest() {
 }
 
 export async function stashPop() {
-	track('stash-pop')
-
 	await vscode.commands.executeCommand('git.stashPop')
+
+	Telemetry.logUsage('stash-pop')
 
 	updateStashCountBar()
 }
@@ -115,9 +117,9 @@ export async function stashClear() {
 		return
 	}
 
-	track('stash-clear')
-
 	await Git.run(workspace.uri, 'stash', 'clear')
+
+	Telemetry.logUsage('stash-clear')
 
 	updateStashCountBar()
 }

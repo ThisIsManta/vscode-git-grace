@@ -4,7 +4,8 @@ import * as vscode from 'vscode'
 
 import { fetchInternal, trySyncRemoteBranch } from './fetch'
 import * as Git from './Git'
-import stash from './stash'
+import { stashPush } from './stash'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -165,6 +166,8 @@ export default async function () {
 			}
 		})
 	})
+
+	Telemetry.logUsage('checkout')
 }
 
 async function checkoutInternal(link: vscode.Uri, localBranchName: string, remoteBranchName?: string) {
@@ -199,7 +202,7 @@ export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boo
 	}
 
 	if (select === 'Stash Now') {
-		await stash()
+		await stashPush()
 
 	} else if (select === 'Discard All Files') {
 		try {

@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 
 import { tryAbortBecauseOfDirtyFiles, tryAbortBecauseOfDanglingCommits } from './checkout'
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -49,14 +49,14 @@ export default async function () {
 			}
 		}
 
-		track('master')
-
 		if (token.isCancellationRequested) {
 			throw new vscode.CancellationError()
 		}
 
 		try {
 			await Git.run(workspace.uri, 'checkout', '--detach', remoteHeadBranchName, { token })
+
+			Telemetry.logUsage('master')
 
 		} catch (error) {
 			if (error instanceof Error) {

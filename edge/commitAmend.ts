@@ -2,7 +2,7 @@ import truncate from 'lodash/truncate'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -23,8 +23,8 @@ export default async function () {
 		throw new vscode.CancellationError()
 	}
 
-	track('commit-amend')
-
 	await vscode.commands.executeCommand('git.undoCommit')
 	await vscode.commands.executeCommand('workbench.view.scm')
+
+	Telemetry.logUsage('commit-amend')
 }

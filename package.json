@@ -307,13 +307,13 @@
 		"@types/lodash": "^4.17.15",
 		"@types/node": "^20.17.19",
 		"@types/vscode": "~1.96.0",
-		"@vscode/extension-telemetry": "^0.9.8",
 		"esbuild": "^0.25.0",
 		"git-diff-parser": "^1.0.0",
 		"high-standard": "^6.0.0",
 		"lefthook": "^1.10.1",
 		"lodash": "^4.17.21",
 		"open": "8.4.2",
+		"posthog-node": "^4.6.0",
 		"typescript": "^5.7.3"
 	}
 }

@@ -24,16 +24,16 @@ interface Options {
 
 export async function run(link: vscode.Uri, ...formalParameters: Array<string | Options>): Promise<string> {
 	const parameters = formalParameters.filter((parameter): parameter is string => typeof parameter === 'string' && parameter.trim().length > 0)
-	const options = formalParameters.find((parameter): parameter is Options => typeof parameter === 'object' && parameter !== null) || {}
+	const options = formalParameters.find((parameter): parameter is Options => typeof parameter === 'object' && parameter !== null)
 
-	let count = options.retry || 0
+	let count = options?.retry || 0
 	while (true) {
-		if (options.token && options.token.isCancellationRequested) {
+		if (options?.token?.isCancellationRequested) {
 			return ''
 		}
 
 		try {
-			return await runInternal(link, parameters, options.token)
+			return await runInternal(link, parameters, options?.token)
 
 		} catch (error) {
 			if (count > 0) {
@@ -83,12 +83,12 @@ const runInternal = (link: vscode.Uri, formalParameters: Array<string>, token?: 
 			resolve(outputBuffer)
 
 		} else {
-			reject(new GitError(outputBuffer))
+			reject(new GitCommandLineError(outputBuffer))
 		}
 	})
 })
 
-export class GitError extends Error {
+export class GitCommandLineError extends Error {
 	constructor(public readonly output: string) {
 		super(output)
 	}

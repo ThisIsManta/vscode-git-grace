@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -31,7 +31,7 @@ export default async function () {
 		}
 	})
 
-	track('commit-empty')
+	Telemetry.logUsage('commit-empty')
 
 	await vscode.commands.executeCommand('git.refresh')
 }

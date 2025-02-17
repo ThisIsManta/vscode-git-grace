@@ -1,9 +1,9 @@
 import * as vscode from 'vscode'
 
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 
 export default async function () {
-	track('delete-branch')
-
 	await vscode.commands.executeCommand('git.deleteBranch')
+
+	Telemetry.logUsage('delete-branch')
 }

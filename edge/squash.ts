@@ -3,7 +3,7 @@ import trimEnd from 'lodash/trimEnd'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -44,7 +44,7 @@ export default async function () {
 
 	try {
 		await vscode.window.withProgress({
-			location: vscode.ProgressLocation.Notification,
+			location: vscode.ProgressLocation.Window,
 			title: 'Squashing...',
 		}, async () => {
 			const fileStatusText = await Git.run(workspace.uri, 'status', '--short')
@@ -89,10 +89,12 @@ export default async function () {
 			}
 		})
 
-		track('squash', { success: String(true) })
+		Telemetry.logUsage('squash')
 
 	} catch (error) {
-		track('squash', { success: String(false) })
+		if (error instanceof Error) {
+			Telemetry.logError(error)
+		}
 
 		await Git.run(workspace.uri, 'reset', '--hard', originalCommitHash)
 

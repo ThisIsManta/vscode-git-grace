@@ -3,6 +3,7 @@ import { setTimeout } from 'timers/promises'
 import { promisify } from 'util'
 
 import * as Git from './Git'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 const exec = promisify(cp.exec)
@@ -12,7 +13,9 @@ export async function showLog() {
 		return
 	}
 
-	exec('fork log', { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+	await exec('fork log', { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+
+	Telemetry.logUsage('fork:show-log')
 }
 
 export async function showFileLog() {
@@ -35,7 +38,9 @@ export async function showFileLog() {
 		}
 	}
 
-	exec(`fork log -- "${Util.getCurrentFile().fsPath}"`, { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+	await exec(`fork log -- "${Util.getCurrentFile().fsPath}"`, { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+
+	Telemetry.logUsage('fork:show-file-log')
 }
 
 async function getForkWindowCount() {
@@ -48,5 +53,7 @@ export async function commit() {
 		return
 	}
 
-	exec('fork commit', { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+	await exec('fork commit', { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+
+	Telemetry.logUsage('fork:commit')
 }

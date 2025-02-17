@@ -4,7 +4,7 @@ import open from 'open'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -37,18 +37,18 @@ export default async function () {
 
 	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor!)
 
-	const pickList: Array<vscode.QuickPickItem & { url: string }> = []
+	const items: Array<vscode.QuickPickItem & { url: string }> = []
 
 	const commitHash = await Git.getPushedCommitHash(workspace.uri)
 	if (commitHash) {
 		if (filePath) {
-			pickList.push({
+			items.push({
 				label: commitHash,
 				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath) + lineHash,
 			})
 
 		} else {
-			pickList.push({
+			items.push({
 				label: commitHash,
 				url: webOrigin + `/commit/${commitHash}`,
 			})
@@ -57,19 +57,19 @@ export default async function () {
 
 	const headBranchName = await Git.getRemoteHeadBranchName(workspace.uri)
 	if (filePath) {
-		pickList.push({
+		items.push({
 			label: headBranchName,
 			url: webOrigin + '/blob/' + headBranchName + '/' + normalizeWebLocation(filePath) + lineHash,
 		})
 
 	} else if (workspacePath === repositoryPath) {
-		pickList.push({
+		items.push({
 			label: headBranchName,
 			url: webOrigin,
 		})
 
 	} else {
-		pickList.push({
+		items.push({
 			label: headBranchName,
 			url: webOrigin + '/tree/' + headBranchName + '/' + normalizeWebLocation(workspacePath),
 		})
@@ -78,37 +78,39 @@ export default async function () {
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
 	if (status.local && status.local !== 'master' && status.remote) {
 		if (filePath) {
-			pickList.push({
+			items.push({
 				label: status.remote,
 				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath) + lineHash,
 			})
 
 		} else if (workspacePath === repositoryPath) {
-			pickList.push({
+			items.push({
 				label: status.remote,
 				url: webOrigin + `/tree/${status.local}`,
 			})
 
 		} else {
-			pickList.push({
+			items.push({
 				label: status.remote,
 				url: webOrigin + `/tree/${status.local}/` + normalizeWebLocation(workspacePath),
 			})
 		}
 	}
 
-	if (pickList.length === 0) {
+	if (items.length === 0) {
 		return
 	}
 
-	if (pickList.length === 1) {
-		open(pickList[0].url)
+	if (items.length === 1) {
+		open(items[0].url)
+
+		Telemetry.logUsage('open-web', { webOrigin })
 
 		return
 	}
 
 	const select = await vscode.window.showQuickPick(
-		pickList.map(pick => ({
+		items.map(pick => ({
 			...pick,
 			description: workspace.name,
 		})),
@@ -118,7 +120,7 @@ export default async function () {
 	if (select) {
 		open(select.url)
 
-		track('open-web', { kind: String(select.kind) })
+		Telemetry.logUsage('open-web', { webOrigin })
 	}
 }
 

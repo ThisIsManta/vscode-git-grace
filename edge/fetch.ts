@@ -7,13 +7,14 @@ import sortBy from 'lodash/sortBy'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import push from './push'
-import { track } from './Telemetry'
+import { pushInternal } from './push'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
-export default async function (options?: { token: vscode.CancellationToken }) {
-	track('fetch')
-
+export default async function (options?: {
+	silence?: boolean
+	token?: vscode.CancellationToken
+}) {
 	const updated = await fetchInternal(options?.token)
 
 	const workspace = await Util.getCurrentWorkspace()
@@ -22,14 +23,18 @@ export default async function (options?: { token: vscode.CancellationToken }) {
 		trySyncRemoteBranch(workspace)
 	}
 
-	if (updated) {
-		vscode.window.setStatusBarMessage('Fetching completed', 10000)
-
-	} else {
-		vscode.window.setStatusBarMessage('No updates', 10000)
-	}
-
 	vscode.commands.executeCommand('git.refresh')
+
+	if (!options?.silence) {
+		if (updated) {
+			vscode.window.setStatusBarMessage('Fetching completed', 10000)
+
+		} else {
+			vscode.window.setStatusBarMessage('No updates', 10000)
+		}
+
+		Telemetry.logUsage('fetch')
+	}
 }
 
 export async function fetchInternal(token?: vscode.CancellationToken): Promise<boolean> {
@@ -113,7 +118,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 			return false
 		}
 
-		track('fetch:fast-forward')
+		Telemetry.logUsage('fetch:fast-forward')
 
 		await abortIfStatusHasChanged()
 
@@ -145,11 +150,18 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 			return false
 		}
 
-		track('fetch:push-now')
-
 		await abortIfStatusHasChanged()
 
-		return await push({ location: vscode.ProgressLocation.Notification })
+		return await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Notification,
+			title: 'Pushing...',
+		}, async () => {
+			const { updated } = await pushInternal(workspace)
+
+			Telemetry.logUsage('fetch:push-now')
+
+			return updated
+		})
 
 	} else if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
 		const groups = await Git.getBranchTopology(workspace.uri, status.local, status.remote)
@@ -203,7 +215,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 			vscode.window.setStatusBarMessage('Resetting completed', 10000)
 
 		} else if (select === 'Rebase Now') {
-			track('fetch:rebase-now')
+			Telemetry.logUsage('fetch:rebase-now')
 
 			await vscode.window.withProgress({
 				location: vscode.ProgressLocation.Notification,
@@ -219,7 +231,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 				} catch (error) {
 					Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-					if (error instanceof Git.GitError && error.message.includes('CONFLICT')) {
+					if (error instanceof Git.GitCommandLineError && error.message.includes('CONFLICT')) {
 						await Git.run(workspace.uri, 'rebase', '--abort')
 
 						vscode.window.showErrorMessage('Rebasing was cancelled due to conflicts. Please do it manually.', { modal: true })
@@ -231,7 +243,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 			})
 
 		} else {
-			track('fetch:merge-now')
+			Telemetry.logUsage('fetch:merge-now')
 
 			await vscode.window.withProgress({
 				location: vscode.ProgressLocation.Notification,
@@ -247,7 +259,7 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 				} catch (error) {
 					Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-					if (error instanceof Git.GitError && error.message.includes('CONFLICT')) {
+					if (error instanceof Git.GitCommandLineError && error.message.includes('CONFLICT')) {
 						await Git.run(workspace.uri, 'merge', '--abort')
 
 						vscode.window.showErrorMessage('Merging was cancelled due to conflicts. Please do it manually.', { modal: true })

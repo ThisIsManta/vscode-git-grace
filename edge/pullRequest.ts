@@ -2,8 +2,8 @@ import open from 'open'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
-import push from './push'
-import { track } from './Telemetry'
+import { pushInternal } from './push'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
@@ -11,6 +11,8 @@ export default async function () {
 	if (!workspace) {
 		return
 	}
+
+	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
 	const headBranchName = await Git.getRemoteHeadBranchName(workspace.uri)
 
@@ -40,12 +42,16 @@ export default async function () {
 	}
 
 	if (status.remote === '' || status.sync !== Git.SyncStatus.LocalIsInSyncWithRemote) {
-		await push()
+		await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Window,
+			title: 'Pushing...',
+		}, async () => {
+			await pushInternal(workspace)
+		})
 	}
 
-	track('pull-request')
-
 	const webOrigin = await Git.getWebOrigin(workspace)
-
 	open(webOrigin + '/compare/' + headBranchName + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+
+	Telemetry.logUsage('pull-request', { webOrigin })
 }

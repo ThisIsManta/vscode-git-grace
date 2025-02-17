@@ -1,10 +1,10 @@
 import * as cp from 'child_process'
 import compact from 'lodash/compact'
-import once from 'lodash/once'
 import * as vscode from 'vscode'
 
 import * as Git from './Git'
 import Log from './Log'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 // Slightly modified from https://github.com/mbinic/vscode-tgit/blob/master/src/TGit.ts
@@ -14,14 +14,20 @@ export default class TortoiseGit {
 	}
 
 	public showLog() {
+		Telemetry.logUsage('tortoise:show-log')
+
 		return this.run('log')
 	}
 
 	public showFileLog() {
+		Telemetry.logUsage('tortoise:show-file-log')
+
 		return this.run('log', true)
 	}
 
 	public commit() {
+		Telemetry.logUsage('tortoise:commit')
+
 		return this.run('commit')
 	}
 
@@ -54,6 +60,8 @@ export default class TortoiseGit {
 		if (vscode.window.activeTextEditor) {
 			line = vscode.window.activeTextEditor.selection.active.line + 1
 		}
+
+		Telemetry.logUsage('tortoise:blame')
 
 		return this.run('blame', true, `/line:${line}`)
 	}

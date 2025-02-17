@@ -2,18 +2,16 @@ import * as vscode from 'vscode'
 
 import { getMergedBranchNames } from './deleteMergedBranches'
 import * as Git from './Git'
-import { track } from './Telemetry'
+import Telemetry from './Telemetry'
 import * as Util from './Utility'
 
 export default async function () {
-	track('sync')
-
 	const errorCount = await vscode.window.withProgress({
-		location: vscode.ProgressLocation.Notification,
+		location: vscode.ProgressLocation.Window,
 		title: 'Syncing...',
 		cancellable: true,
 	}, async (progress, token) => {
-		const workspaceList = await Util.getWorkspaceListWithGitEnabled()
+		const workspaceList = Util.getWorkspaceListWithGitEnabled()
 		if (workspaceList.length === 0) {
 			return null
 		}
@@ -149,7 +147,12 @@ export default async function () {
 		return errorCount
 	})
 
+	Telemetry.logUsage('sync')
+
 	if (typeof errorCount === 'number') {
-		vscode.window.setStatusBarMessage('Syncing completed' + (errorCount === 0 ? 'successfully' : `with ${errorCount} failure${errorCount === 1 ? '' : 's'}`), 10000)
+		vscode.window.setStatusBarMessage(
+			'Syncing completed' + (errorCount === 0 ? '' : ` with ${errorCount} failure${errorCount === 1 ? '' : 's'}`),
+			10000,
+		)
 	}
 }
