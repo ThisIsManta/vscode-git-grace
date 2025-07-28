@@ -23,46 +23,31 @@ export async function showFileLog() {
 		return
 	}
 
-	const folderPath = await Util.getCurrentWorkspace()
-	if (!folderPath) {
+	const workspace = await Util.getCurrentWorkspace()
+	if (!workspace) {
 		return
 	}
 
+	const cwd = Git.getRepositoryLink(workspace.uri)?.fsPath
+
 	// Fix the issue where Fork does not open the file history when cold start
 	// See https://github.com/fork-dev/Tracker/issues/2023
-	if ((await getForkWindowCount()) === 0) {
-		await exec('fork', { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+	await exec('fork log', { cwd })
+	await setTimeout(500)
 
-		while ((await getForkWindowCount()) === 0) {
-			await setTimeout(100)
-		}
-	}
-
-	await exec(`fork log -- "${Util.getCurrentFile().fsPath}"`, {
-		cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath,
-	})
+	await exec(`fork log -- "${Util.getCurrentFile().fsPath}"`, { cwd })
 
 	Telemetry.logUsage('fork:show-file-log')
 }
 
-async function getForkWindowCount() {
-	return Number(
-		(
-			await exec(
-				'osascript -e \'tell application "System Events" to count windows of process "Fork"\'',
-			)
-		).stdout,
-	)
-}
-
 export async function commit() {
-	const folderPath = await Util.getCurrentWorkspace()
-	if (!folderPath) {
+	const workspace = await Util.getCurrentWorkspace()
+	if (!workspace) {
 		return
 	}
 
 	await exec('fork commit', {
-		cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath,
+		cwd: Git.getRepositoryLink(workspace.uri)?.fsPath,
 	})
 
 	Telemetry.logUsage('fork:commit')
