@@ -297,11 +297,12 @@
 		"postinstall": "node ./edge/postinstall.mjs && code --install-extension connor4312.esbuild-problem-matchers",
 		"build": "rm -rf dist/* && esbuild edge/extension.ts --bundle --platform=node --outfile=dist/extension.js --external:vscode --format=cjs",
 		"watch": "npm run build -- --watch --sourcemap",
-		"lint": "tsc && high-standard edge",
+		"lint": "tsc && biome check --max-diagnostics=50",
 		"vscode:prepublish": "npm run build -- --minify",
 		"version": "npx @vscode/vsce publish --allow-star-activation --skip-license --pat $VSCE_PUBLISH_TOKEN"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.1.2",
 		"@thisismanta/semantic-version": "^9.1.2",
 		"@types/git-diff-parser": "^1.0.4",
 		"@types/lodash": "^4.17.20",
@@ -309,7 +310,6 @@
 		"@types/vscode": "1.102.0",
 		"esbuild": "^0.25.8",
 		"git-diff-parser": "^1.0.0",
-		"high-standard": "^6.0.0",
 		"lefthook": "^1.12.2",
 		"lodash": "^4.17.21",
 		"open": "8.4.2",

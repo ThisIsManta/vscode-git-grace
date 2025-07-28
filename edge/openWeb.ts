@@ -44,9 +44,12 @@ export default async function () {
 		if (filePath) {
 			items.push({
 				label: commitHash,
-				url: webOrigin + `/blob/${commitHash}/` + normalizeWebLocation(filePath) + lineHash,
+				url:
+					webOrigin +
+					`/blob/${commitHash}/` +
+					normalizeWebLocation(filePath) +
+					lineHash,
 			})
-
 		} else {
 			items.push({
 				label: commitHash,
@@ -59,19 +62,28 @@ export default async function () {
 	if (filePath) {
 		items.push({
 			label: headBranchName,
-			url: webOrigin + '/blob/' + headBranchName + '/' + normalizeWebLocation(filePath) + lineHash,
+			url:
+				webOrigin +
+				'/blob/' +
+				headBranchName +
+				'/' +
+				normalizeWebLocation(filePath) +
+				lineHash,
 		})
-
 	} else if (workspacePath === repositoryPath) {
 		items.push({
 			label: headBranchName,
 			url: webOrigin,
 		})
-
 	} else {
 		items.push({
 			label: headBranchName,
-			url: webOrigin + '/tree/' + headBranchName + '/' + normalizeWebLocation(workspacePath),
+			url:
+				webOrigin +
+				'/tree/' +
+				headBranchName +
+				'/' +
+				normalizeWebLocation(workspacePath),
 		})
 	}
 
@@ -80,19 +92,24 @@ export default async function () {
 		if (filePath) {
 			items.push({
 				label: status.remote,
-				url: webOrigin + `/blob/${status.local}/` + normalizeWebLocation(filePath) + lineHash,
+				url:
+					webOrigin +
+					`/blob/${status.local}/` +
+					normalizeWebLocation(filePath) +
+					lineHash,
 			})
-
 		} else if (workspacePath === repositoryPath) {
 			items.push({
 				label: status.remote,
 				url: webOrigin + `/tree/${status.local}`,
 			})
-
 		} else {
 			items.push({
 				label: status.remote,
-				url: webOrigin + `/tree/${status.local}/` + normalizeWebLocation(workspacePath),
+				url:
+					webOrigin +
+					`/tree/${status.local}/` +
+					normalizeWebLocation(workspacePath),
 			})
 		}
 	}
@@ -110,7 +127,7 @@ export default async function () {
 	}
 
 	const select = await vscode.window.showQuickPick(
-		items.map(pick => ({
+		items.map((pick) => ({
 			...pick,
 			description: workspace.name,
 		})),
@@ -124,14 +141,20 @@ export default async function () {
 	}
 }
 
-export async function getLineHashForGitHub(editor: vscode.TextEditor): Promise<string> {
+export async function getLineHashForGitHub(
+	editor: vscode.TextEditor,
+): Promise<string> {
 	if (await Git.getFileStatus(editor.document.uri)) {
 		return ''
 	}
 
-	return '#' + uniq([
-		editor.selections.at(0)!.start.line,
-		editor.selections.at(-1)!.end.line,
-	]).map(no => 'L' + (no + 1))
-		.join('-')
+	return (
+		'#' +
+		uniq([
+			editor.selections.at(0)!.start.line,
+			editor.selections.at(-1)!.end.line,
+		])
+			.map((no) => 'L' + (no + 1))
+			.join('-')
+	)
 }

@@ -17,11 +17,14 @@ export default async function () {
 	const workspaceLink = workspace.uri
 
 	const status = await Git.getCurrentBranchStatus(workspaceLink)
-	if (status.dirty && await tryAbortBecauseOfDirtyFiles(workspaceLink)) {
+	if (status.dirty && (await tryAbortBecauseOfDirtyFiles(workspaceLink))) {
 		return
 	}
 
-	if (status.local === '' && await tryAbortBecauseOfDanglingCommits(workspaceLink, 'another branch')) {
+	if (
+		status.local === '' &&
+		(await tryAbortBecauseOfDanglingCommits(workspaceLink, 'another branch'))
+	) {
 		return
 	}
 
@@ -38,7 +41,10 @@ export default async function () {
 		}
 	}
 
-	function getPickerItems({ localBranches, remoteBranches }: {
+	function getPickerItems({
+		localBranches,
+		remoteBranches,
+	}: {
 		localBranches: Array<{
 			commitHash: string
 			name: string
@@ -53,41 +59,50 @@ export default async function () {
 	}): Array<vscode.QuickPickItem> {
 		const remoteBranchIcon = new vscode.ThemeIcon('cloud')
 
-		const remoteBranchToCommitHash = new Map(remoteBranches.map(branch => [branch.name, branch.commitHash]))
+		const remoteBranchToCommitHash = new Map(
+			remoteBranches.map((branch) => [branch.name, branch.commitHash]),
+		)
 
 		return [
-			...sortBy(localBranches, branch => -branch.date.valueOf())
-				.filter(branch => {
+			...sortBy(localBranches, (branch) => -branch.date.valueOf())
+				.filter((branch) => {
 					if (!branch.upstreamName) {
 						return true
 					}
 
 					// Reduce noise by hiding local branches that point to the same commit as its upstream
-					if (branch.upstreamName === ('origin/' + branch.name) && remoteBranchToCommitHash.get(branch.upstreamName) === branch.commitHash) {
+					if (
+						branch.upstreamName === 'origin/' + branch.name &&
+						remoteBranchToCommitHash.get(branch.upstreamName) ===
+							branch.commitHash
+					) {
 						return false
 					}
 
 					return true
 				})
-				.map(branch => ({
+				.map((branch) => ({
 					label: branch.name,
 					// Show upstream branch name if it is not conventional
-					detail: (branch.upstreamName && branch.upstreamName !== ('origin/' + branch.name)) ? ('$(' + remoteBranchIcon.id + ') ' + branch.upstreamName) : undefined,
+					detail:
+						branch.upstreamName &&
+						branch.upstreamName !== 'origin/' + branch.name
+							? '$(' + remoteBranchIcon.id + ') ' + branch.upstreamName
+							: undefined,
 				})),
 			{
 				label: 'Remote',
 				kind: vscode.QuickPickItemKind.Separator,
 			},
-			...remoteBranches
-				.map(branch => ({
-					iconPath: remoteBranchIcon,
-					label: branch.name,
-				})),
+			...remoteBranches.map((branch) => ({
+				iconPath: remoteBranchIcon,
+				label: branch.name,
+			})),
 		]
 	}
 
 	function getSelectPickerItem(items: ReadonlyArray<vscode.QuickPickItem>) {
-		return compact([items.find(item => item.label === status.local)])
+		return compact([items.find((item) => item.label === status.local)])
 	}
 
 	let branches = await getBranches()
@@ -101,7 +116,7 @@ export default async function () {
 	picker.show()
 
 	// Do lazy fetching
-	const fetchPromise = fetchInternal().then(async updated => {
+	const fetchPromise = fetchInternal().then(async (updated) => {
 		if (updated) {
 			branches = await getBranches()
 			picker.items = getPickerItems(branches)
@@ -132,14 +147,34 @@ export default async function () {
 				await fetchPromise
 
 				const { localBranches, remoteBranches } = branches
-				const selectRemoteBranch = remoteBranches.find(branch => branch.name.localeCompare(input, undefined, { sensitivity: 'base' }) === 0)
+				const selectRemoteBranch = remoteBranches.find(
+					(branch) =>
+						branch.name.localeCompare(input, undefined, {
+							sensitivity: 'base',
+						}) === 0,
+				)
 				if (selectRemoteBranch) {
 					const branchName = selectRemoteBranch.name.replace(/^origin\//, '')
-					if (localBranches.some(branch => branch.name.localeCompare(branchName, undefined, { sensitivity: 'base' }) === 0)) {
-						const groups = await Git.getBranchTopology(workspaceLink, branchName, selectRemoteBranch.name)
+					if (
+						localBranches.some(
+							(branch) =>
+								branch.name.localeCompare(branchName, undefined, {
+									sensitivity: 'base',
+								}) === 0,
+						)
+					) {
+						const groups = await Git.getBranchTopology(
+							workspaceLink,
+							branchName,
+							selectRemoteBranch.name,
+						)
 						if (groups.length === 1 && groups[0][0].direction === '>') {
 							// Fast forward
-							await checkoutInternal(workspaceLink, branchName, selectRemoteBranch.name)
+							await checkoutInternal(
+								workspaceLink,
+								branchName,
+								selectRemoteBranch.name,
+							)
 							resolve()
 
 							return
@@ -152,7 +187,11 @@ export default async function () {
 						return
 					}
 
-					await checkoutInternal(workspaceLink, branchName, selectRemoteBranch.name)
+					await checkoutInternal(
+						workspaceLink,
+						branchName,
+						selectRemoteBranch.name,
+					)
 					resolve()
 
 					return
@@ -160,7 +199,6 @@ export default async function () {
 
 				await checkoutInternal(workspaceLink, input)
 				resolve()
-
 			} catch (error) {
 				reject(error)
 			}
@@ -170,11 +208,21 @@ export default async function () {
 	Telemetry.logUsage('checkout')
 }
 
-async function checkoutInternal(link: vscode.Uri, localBranchName: string, remoteBranchName?: string) {
+async function checkoutInternal(
+	link: vscode.Uri,
+	localBranchName: string,
+	remoteBranchName?: string,
+) {
 	let output: string
 	if (remoteBranchName) {
-		output = await Git.run(link, 'checkout', '-B', localBranchName, '--track', remoteBranchName)
-
+		output = await Git.run(
+			link,
+			'checkout',
+			'-B',
+			localBranchName,
+			'--track',
+			remoteBranchName,
+		)
 	} else {
 		// Note that this is a short hand to `git checkout -b <branch> --track origin/<branch>`
 		// Note that the input can be a commit hash, which git-checkout will proceed in detached mode
@@ -189,7 +237,9 @@ async function checkoutInternal(link: vscode.Uri, localBranchName: string, remot
 	await vscode.commands.executeCommand('git.refresh')
 }
 
-export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boolean> {
+export async function tryAbortBecauseOfDirtyFiles(
+	link: vscode.Uri,
+): Promise<boolean> {
 	const select = await vscode.window.showWarningMessage(
 		'There are some uncommitted files.',
 		{ modal: true },
@@ -203,11 +253,9 @@ export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boo
 
 	if (select === 'Stash Now') {
 		await stashPush()
-
 	} else if (select === 'Discard All Files') {
 		try {
 			await Git.run(link, 'reset', '--hard')
-
 		} catch (error) {
 			throw new Error('Cleaning up files failed.')
 		}
@@ -216,15 +264,29 @@ export async function tryAbortBecauseOfDirtyFiles(link: vscode.Uri): Promise<boo
 	return false
 }
 
-export async function tryAbortBecauseOfDanglingCommits(link: vscode.Uri, branchName: string): Promise<boolean> {
+export async function tryAbortBecauseOfDanglingCommits(
+	link: vscode.Uri,
+	branchName: string,
+): Promise<boolean> {
 	const commitHash = await Git.getCurrentCommitHash(link)
 
-	const containingLocalBranches = await Git.run(link, 'branch', '--contains', commitHash)
+	const containingLocalBranches = await Git.run(
+		link,
+		'branch',
+		'--contains',
+		commitHash,
+	)
 	if (/^\*\s/.test(containingLocalBranches.trim()) === false) {
 		return false
 	}
 
-	const containingRemoteBranches = await Git.run(link, 'branch', '--remote', '--contains', commitHash)
+	const containingRemoteBranches = await Git.run(
+		link,
+		'branch',
+		'--remote',
+		'--contains',
+		commitHash,
+	)
 	if (containingRemoteBranches.trim().length > 0) {
 		return false
 	}

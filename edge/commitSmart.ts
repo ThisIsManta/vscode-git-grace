@@ -21,17 +21,23 @@ export default async function (): Promise<void> {
 		vscode.commands.executeCommand('git.refresh'),
 	])
 
-	const repositoryList = Git.getGitBuiltInExtension().exports.getAPI(1).repositories
-	const sourceControlPanel = repositoryList.find(repository => repository.rootUri.fsPath === workspace.uri.fsPath)
+	const repositoryList =
+		Git.getGitBuiltInExtension().exports.getAPI(1).repositories
+	const sourceControlPanel = repositoryList.find(
+		(repository) => repository.rootUri.fsPath === workspace.uri.fsPath,
+	)
 	if (!sourceControlPanel) {
 		return
 	}
 
 	if (
 		sourceControlPanel.state.indexChanges.length +
-		sourceControlPanel.state.workingTreeChanges.length === 0
+			sourceControlPanel.state.workingTreeChanges.length ===
+		0
 	) {
-		vscode.window.showErrorMessage('There are no files to be committed.', { modal: true })
+		vscode.window.showErrorMessage('There are no files to be committed.', {
+			modal: true,
+		})
 
 		return
 	}
@@ -45,7 +51,7 @@ export default async function (): Promise<void> {
 	picker.busy = true
 
 	getHistoricalMessages(workspace)
-		.then(messages => {
+		.then((messages) => {
 			picker.items = messages
 		})
 		.finally(() => {
@@ -54,7 +60,10 @@ export default async function (): Promise<void> {
 
 	await new Promise<void>((resolve, reject) => {
 		picker.onDidAccept(() => {
-			sourceControlPanel.inputBox.value = picker.activeItems.length > 0 ? picker.activeItems[0].label : picker.value
+			sourceControlPanel.inputBox.value =
+				picker.activeItems.length > 0
+					? picker.activeItems[0].label
+					: picker.value
 
 			resolve()
 
@@ -71,15 +80,27 @@ export default async function (): Promise<void> {
 	Telemetry.logUsage('commit-smart')
 }
 
-async function getHistoricalMessages(workspace: vscode.WorkspaceFolder): Promise<Array<vscode.QuickPickItem>> {
+async function getHistoricalMessages(
+	workspace: vscode.WorkspaceFolder,
+): Promise<Array<vscode.QuickPickItem>> {
 	const email = (await Git.run(workspace.uri, 'config', 'user.email')).trim()
 
-	const messages = await Git.run(workspace.uri, 'log', '--max-count=500', '--no-merges', '--format=%s', '--author=' + email)
+	const messages = await Git.run(
+		workspace.uri,
+		'log',
+		'--max-count=500',
+		'--no-merges',
+		'--format=%s',
+		'--author=' + email,
+	)
 
-	return compact(uniq(messages
-		.trim()
-		.split('\n')
-		.filter(message => !versionMatcher.test(message))
-		.map(message => message.replace(endWithParenthesisMatcher, ''))))
-		.map(message => ({ label: message }))
+	return compact(
+		uniq(
+			messages
+				.trim()
+				.split('\n')
+				.filter((message) => !versionMatcher.test(message))
+				.map((message) => message.replace(endWithParenthesisMatcher, '')),
+		),
+	).map((message) => ({ label: message }))
 }

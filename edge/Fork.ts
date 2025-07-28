@@ -38,13 +38,21 @@ export async function showFileLog() {
 		}
 	}
 
-	await exec(`fork log -- "${Util.getCurrentFile().fsPath}"`, { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+	await exec(`fork log -- "${Util.getCurrentFile().fsPath}"`, {
+		cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath,
+	})
 
 	Telemetry.logUsage('fork:show-file-log')
 }
 
 async function getForkWindowCount() {
-	return Number((await exec('osascript -e \'tell application "System Events" to count windows of process "Fork"\'')).stdout)
+	return Number(
+		(
+			await exec(
+				'osascript -e \'tell application "System Events" to count windows of process "Fork"\'',
+			)
+		).stdout,
+	)
 }
 
 export async function commit() {
@@ -53,7 +61,9 @@ export async function commit() {
 		return
 	}
 
-	await exec('fork commit', { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
+	await exec('fork commit', {
+		cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath,
+	})
 
 	Telemetry.logUsage('fork:commit')
 }

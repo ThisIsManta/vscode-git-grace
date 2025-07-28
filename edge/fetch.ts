@@ -28,7 +28,6 @@ export default async function (options?: {
 	if (!options?.silence) {
 		if (updated) {
 			vscode.window.setStatusBarMessage('Fetching completed', 10000)
-
 		} else {
 			vscode.window.setStatusBarMessage('No updates', 10000)
 		}
@@ -37,63 +36,78 @@ export default async function (options?: {
 	}
 }
 
-export async function fetchInternal(token?: vscode.CancellationToken): Promise<boolean> {
+export async function fetchInternal(
+	token?: vscode.CancellationToken,
+): Promise<boolean> {
 	const workspaceList = Util.getWorkspaceListWithGitEnabled()
 	if (workspaceList.length === 0) {
 		return false
 	}
 
-	return await vscode.window.withProgress({
-		location: vscode.ProgressLocation.Window,
-		title: 'Fetching...',
-	}, async progress => {
-		let updated: boolean = false
-		for (const workspace of workspaceList) {
-			if (workspaceList.length > 1) {
-				progress.report({ message: `Fetching "${workspace.name}"...` })
-			}
-
-			try {
-				const result = await Git.run(workspace.uri, 'fetch', '--prune', 'origin', {
-					token,
-					retry: 2,
-				})
-
-				if (token && token.isCancellationRequested) {
-					throw new vscode.CancellationError()
-				}
-
-				if (result.trim().length > 0) {
-					updated = true
-				}
-
-			} catch (error) {
-				Util.setWorkspaceAsFirstTryNextTime(workspace)
-
+	return await vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Window,
+			title: 'Fetching...',
+		},
+		async (progress) => {
+			let updated: boolean = false
+			for (const workspace of workspaceList) {
 				if (workspaceList.length > 1) {
-					throw new Error(`Fetching "${workspace.name}" failed.`)
+					progress.report({ message: `Fetching "${workspace.name}"...` })
+				}
 
-				} else {
-					throw new Error('Fetching failed.')
+				try {
+					const result = await Git.run(
+						workspace.uri,
+						'fetch',
+						'--prune',
+						'origin',
+						{
+							token,
+							retry: 2,
+						},
+					)
+
+					if (token && token.isCancellationRequested) {
+						throw new vscode.CancellationError()
+					}
+
+					if (result.trim().length > 0) {
+						updated = true
+					}
+				} catch (error) {
+					Util.setWorkspaceAsFirstTryNextTime(workspace)
+
+					if (workspaceList.length > 1) {
+						throw new Error(`Fetching "${workspace.name}" failed.`)
+					} else {
+						throw new Error('Fetching failed.')
+					}
 				}
 			}
-		}
 
-		if (token && token.isCancellationRequested) {
-			throw new vscode.CancellationError()
-		}
+			if (token && token.isCancellationRequested) {
+				throw new vscode.CancellationError()
+			}
 
-		return updated
-	})
+			return updated
+		},
+	)
 }
 
-export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Promise<boolean> {
+export async function trySyncRemoteBranch(
+	workspace: vscode.WorkspaceFolder,
+): Promise<boolean> {
 	if (!workspace) {
 		return false
 	}
 
 	const status = await Git.getCurrentBranchStatus(workspace.uri)
-	if (status.local === '' || status.remote === '' || status.sync === Git.SyncStatus.LocalIsInSyncWithRemote) {
+	if (
+		status.local === '' ||
+		status.remote === '' ||
+		status.sync === Git.SyncStatus.LocalIsInSyncWithRemote
+	) {
 		return false
 	}
 
@@ -102,7 +116,10 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 		delete newStatus.distance
 
 		if (isMatch(status, newStatus) === false) {
-			vscode.window.showErrorMessage('The fetch operation was cancelled because the branch status has changed.', { modal: true })
+			vscode.window.showErrorMessage(
+				'The fetch operation was cancelled because the branch status has changed.',
+				{ modal: true },
+			)
 
 			throw new vscode.CancellationError()
 		}
@@ -122,24 +139,27 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 
 		await abortIfStatusHasChanged()
 
-		await vscode.window.withProgress({
-			location: vscode.ProgressLocation.Notification,
-			title: 'Fast Forwarding...',
-		}, async () => {
-			try {
-				await Git.run(workspace.uri, 'rebase', '--autostash', status.remote)
+		await vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Notification,
+				title: 'Fast Forwarding...',
+			},
+			async () => {
+				try {
+					await Git.run(workspace.uri, 'rebase', '--autostash', status.remote)
 
-				await vscode.commands.executeCommand('git.refresh')
+					await vscode.commands.executeCommand('git.refresh')
 
-				vscode.window.setStatusBarMessage('Fast forwarding completed', 10000)
+					vscode.window.setStatusBarMessage('Fast forwarding completed', 10000)
+				} catch (error) {
+					Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-			} catch (error) {
-				Util.setWorkspaceAsFirstTryNextTime(workspace)
-
-				vscode.window.showErrorMessage('Fast forwarding failed.', { modal: true })
-			}
-		})
-
+					vscode.window.showErrorMessage('Fast forwarding failed.', {
+						modal: true,
+					})
+				}
+			},
+		)
 	} else if (status.sync === Git.SyncStatus.LocalIsAheadOfRemote) {
 		const select = await vscode.window.showWarningMessage(
 			`The local branch "${status.local}" can be safely pushed ${status.distance} commit${status.distance === 1 ? '' : 's'} to its remote branch.`,
@@ -152,44 +172,52 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 
 		await abortIfStatusHasChanged()
 
-		return await vscode.window.withProgress({
-			location: vscode.ProgressLocation.Notification,
-			title: 'Pushing...',
-		}, async () => {
-			const { updated } = await pushInternal(workspace)
+		return await vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Notification,
+				title: 'Pushing...',
+			},
+			async () => {
+				const { updated } = await pushInternal(workspace)
 
-			Telemetry.logUsage('fetch:push-now')
+				Telemetry.logUsage('fetch:push-now')
 
-			return updated
-		})
-
+				return updated
+			},
+		)
 	} else if (status.sync === Git.SyncStatus.LocalIsNotInSyncWithRemote) {
-		const groups = await Git.getBranchTopology(workspace.uri, status.local, status.remote)
+		const groups = await Git.getBranchTopology(
+			workspace.uri,
+			status.local,
+			status.remote,
+		)
 
 		// Put local commits first
 		const localCommitFirstGroups = sortBy(
-			groups.filter(commits => commits.length > 0),
-			commits => (commits[0].direction === '<' ? 0 : 1),
+			groups.filter((commits) => commits.length > 0),
+			(commits) => (commits[0].direction === '<' ? 0 : 1),
 		)
 
 		// Put older commits first
-		const [localCommits, remoteCommits] = localCommitFirstGroups.map(commits => sortBy(commits, commit => commit.date))
+		const [localCommits, remoteCommits] = localCommitFirstGroups.map(
+			(commits) => sortBy(commits, (commit) => commit.date),
+		)
 
 		let select: 'Rebase Now' | 'Merge Now' | 'Reset Branch' | undefined
 		if (
-			localCommits && remoteCommits &&
-			await checkIfRemoteContainsLocalChanges(
+			localCommits &&
+			remoteCommits &&
+			(await checkIfRemoteContainsLocalChanges(
 				workspace.uri,
 				localCommits.at(0)!.parentHash,
 				localCommits.at(-1)!.commitHash,
 				remoteCommits.at(-1)!.commitHash,
-			)
+			))
 		) {
 			select = await vscode.window.showWarningMessage(
 				`The local branch "${status.local}" can be safely reset to the tip of its remote branch.`,
 				'Reset Branch',
 			)
-
 		} else {
 			select = await vscode.window.showWarningMessage(
 				`The local branch "${status.local}" is out of sync with its remote branch by ${status.distance} commit${status.distance === 1 ? '' : 's'}.`,
@@ -208,67 +236,90 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 		if (select === 'Reset Branch') {
 			await abortIfStatusHasChanged()
 
-			await Git.run(workspace.uri, 'reset', '--hard', remoteCommits.at(-1)!.commitHash)
+			await Git.run(
+				workspace.uri,
+				'reset',
+				'--hard',
+				remoteCommits.at(-1)!.commitHash,
+			)
 
 			await vscode.commands.executeCommand('git.refresh')
 
 			vscode.window.setStatusBarMessage('Resetting completed', 10000)
-
 		} else if (select === 'Rebase Now') {
 			Telemetry.logUsage('fetch:rebase-now')
 
-			await vscode.window.withProgress({
-				location: vscode.ProgressLocation.Notification,
-				title: 'Rebasing...',
-			}, async () => {
-				try {
-					await Git.run(workspace.uri, 'rebase', '--autostash', status.remote)
+			await vscode.window.withProgress(
+				{
+					location: vscode.ProgressLocation.Notification,
+					title: 'Rebasing...',
+				},
+				async () => {
+					try {
+						await Git.run(workspace.uri, 'rebase', '--autostash', status.remote)
 
-					await vscode.commands.executeCommand('git.refresh')
+						await vscode.commands.executeCommand('git.refresh')
 
-					vscode.window.setStatusBarMessage('Rebasing completed', 10000)
+						vscode.window.setStatusBarMessage('Rebasing completed', 10000)
+					} catch (error) {
+						Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-				} catch (error) {
-					Util.setWorkspaceAsFirstTryNextTime(workspace)
+						if (
+							error instanceof Git.GitCommandLineError &&
+							error.message.includes('CONFLICT')
+						) {
+							await Git.run(workspace.uri, 'rebase', '--abort')
 
-					if (error instanceof Git.GitCommandLineError && error.message.includes('CONFLICT')) {
-						await Git.run(workspace.uri, 'rebase', '--abort')
-
-						vscode.window.showErrorMessage('Rebasing was cancelled due to conflicts. Please do it manually.', { modal: true })
-
-					} else {
-						vscode.window.showErrorMessage('Rebasing was cancelled due to an unknown error. Please do it manually.', { modal: true })
+							vscode.window.showErrorMessage(
+								'Rebasing was cancelled due to conflicts. Please do it manually.',
+								{ modal: true },
+							)
+						} else {
+							vscode.window.showErrorMessage(
+								'Rebasing was cancelled due to an unknown error. Please do it manually.',
+								{ modal: true },
+							)
+						}
 					}
-				}
-			})
-
+				},
+			)
 		} else {
 			Telemetry.logUsage('fetch:merge-now')
 
-			await vscode.window.withProgress({
-				location: vscode.ProgressLocation.Notification,
-				title: 'Merging...',
-			}, async () => {
-				try {
-					await Git.run(workspace.uri, 'merge', status.remote)
+			await vscode.window.withProgress(
+				{
+					location: vscode.ProgressLocation.Notification,
+					title: 'Merging...',
+				},
+				async () => {
+					try {
+						await Git.run(workspace.uri, 'merge', status.remote)
 
-					await vscode.commands.executeCommand('git.refresh')
+						await vscode.commands.executeCommand('git.refresh')
 
-					vscode.window.setStatusBarMessage('Merging completed', 10000)
+						vscode.window.setStatusBarMessage('Merging completed', 10000)
+					} catch (error) {
+						Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-				} catch (error) {
-					Util.setWorkspaceAsFirstTryNextTime(workspace)
+						if (
+							error instanceof Git.GitCommandLineError &&
+							error.message.includes('CONFLICT')
+						) {
+							await Git.run(workspace.uri, 'merge', '--abort')
 
-					if (error instanceof Git.GitCommandLineError && error.message.includes('CONFLICT')) {
-						await Git.run(workspace.uri, 'merge', '--abort')
-
-						vscode.window.showErrorMessage('Merging was cancelled due to conflicts. Please do it manually.', { modal: true })
-
-					} else {
-						vscode.window.showErrorMessage('Merging was cancelled due to an unknown error. Please do it manually.', { modal: true })
+							vscode.window.showErrorMessage(
+								'Merging was cancelled due to conflicts. Please do it manually.',
+								{ modal: true },
+							)
+						} else {
+							vscode.window.showErrorMessage(
+								'Merging was cancelled due to an unknown error. Please do it manually.',
+								{ modal: true },
+							)
+						}
 					}
-				}
-			})
+				},
+			)
 		}
 	}
 
@@ -278,11 +329,20 @@ export async function trySyncRemoteBranch(workspace: vscode.WorkspaceFolder): Pr
 /**
  * Returns true if and only if the secondCommitHash contains all the change in firstCommitHash.
  */
-async function checkIfRemoteContainsLocalChanges(link: vscode.Uri, baseCommitHash: string, localCommitHash: string, remoteCommitHash: string) {
-	const a = parseDiff(await Git.run(link, 'diff', baseCommitHash, localCommitHash)).commits[0].files
-	const b = parseDiff(await Git.run(link, 'diff', baseCommitHash, remoteCommitHash)).commits[0].files
+async function checkIfRemoteContainsLocalChanges(
+	link: vscode.Uri,
+	baseCommitHash: string,
+	localCommitHash: string,
+	remoteCommitHash: string,
+) {
+	const a = parseDiff(
+		await Git.run(link, 'diff', baseCommitHash, localCommitHash),
+	).commits[0].files
+	const b = parseDiff(
+		await Git.run(link, 'diff', baseCommitHash, remoteCommitHash),
+	).commits[0].files
 	for (const fa of a) {
-		const fb = b.find(f => f.name === fa.name)
+		const fb = b.find((f) => f.name === fa.name)
 		if (fb === undefined) {
 			return false
 		}
@@ -299,8 +359,12 @@ async function checkIfRemoteContainsLocalChanges(link: vscode.Uri, baseCommitHas
 			return false
 		}
 
-		const la = fa.lines.filter(f => f.type !== 'normal').map(l => omit(l, 'ln2'))
-		const lb = fb.lines.filter(f => f.type !== 'normal').map(l => omit(l, 'ln2'))
+		const la = fa.lines
+			.filter((f) => f.type !== 'normal')
+			.map((l) => omit(l, 'ln2'))
+		const lb = fb.lines
+			.filter((f) => f.type !== 'normal')
+			.map((l) => omit(l, 'ln2'))
 		if (differenceWith(la, lb, isEqual).length > 0) {
 			return false
 		}

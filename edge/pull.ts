@@ -10,32 +10,36 @@ export default async function () {
 		return
 	}
 
-	await vscode.window.withProgress({
-		location: vscode.ProgressLocation.Window,
-		title: 'Pulling...',
-	}, async () => {
-		for (const workspace of workspaceList) {
-			try {
-				await Git.run(workspace.uri, 'fetch', '--prune', 'origin', { retry: 2 })
+	await vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Window,
+			title: 'Pulling...',
+		},
+		async () => {
+			for (const workspace of workspaceList) {
+				try {
+					await Git.run(workspace.uri, 'fetch', '--prune', 'origin', {
+						retry: 2,
+					})
 
-				const status = await Git.getCurrentBranchStatus(workspace.uri)
-				if (status.local === '' || status.remote === '') {
-					continue
+					const status = await Git.getCurrentBranchStatus(workspace.uri)
+					if (status.local === '' || status.remote === '') {
+						continue
+					}
+
+					await Git.run(workspace.uri, 'rebase', '--no-stat')
+				} catch (error) {
+					if (error instanceof Error) {
+						Telemetry.logError(error)
+					}
+
+					Util.setWorkspaceAsFirstTryNextTime(workspace)
+
+					throw new Error('Pulling failed.')
 				}
-
-				await Git.run(workspace.uri, 'rebase', '--no-stat')
-
-			} catch (error) {
-				if (error instanceof Error) {
-					Telemetry.logError(error)
-				}
-
-				Util.setWorkspaceAsFirstTryNextTime(workspace)
-
-				throw new Error('Pulling failed.')
 			}
-		}
-	})
+		},
+	)
 
 	Telemetry.logUsage('pull')
 

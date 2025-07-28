@@ -22,7 +22,12 @@ export default async function () {
 		return
 	}
 
-	const relativeFilePath = trim((renamedFile || currentFile).fsPath.substring(repositoryLink.fsPath.length).replace(/\\/g, '/'), '/')
+	const relativeFilePath = trim(
+		(renamedFile || currentFile).fsPath
+			.substring(repositoryLink.fsPath.length)
+			.replace(/\\/g, '/'),
+		'/',
+	)
 
 	const commitHash = await Git.getPushedCommitHash(workspace.uri)
 	const lineHash = await getLineHashForGitHub(vscode.window.activeTextEditor!)

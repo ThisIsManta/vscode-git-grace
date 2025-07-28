@@ -10,48 +10,70 @@ export default async function () {
 		return
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.SourceControl }, async () => {
-		const status = await Git.getCurrentBranchStatus(workspace.uri)
-		if (status.local === '' || status.local === 'master') {
-			await tryCreateNewBranch(workspace.uri)
-
-		} else {
-			const options: Array<vscode.MessageItem> = [
-				{ title: 'Create New Branch' },
-				{ title: 'Rename Current Branch' },
-			]
-			const select = await vscode.window.showWarningMessage(
-				`You are on the local branch "${status.local}".`,
-				{ modal: true },
-				...options,
-			)
-
-			if (select === options[0]) {
+	await vscode.window.withProgress(
+		{ location: vscode.ProgressLocation.SourceControl },
+		async () => {
+			const status = await Git.getCurrentBranchStatus(workspace.uri)
+			if (status.local === '' || status.local === 'master') {
 				await tryCreateNewBranch(workspace.uri)
+			} else {
+				const options: Array<vscode.MessageItem> = [
+					{ title: 'Create New Branch' },
+					{ title: 'Rename Current Branch' },
+				]
+				const select = await vscode.window.showWarningMessage(
+					`You are on the local branch "${status.local}".`,
+					{ modal: true },
+					...options,
+				)
 
-				Telemetry.logUsage('branch:new')
+				if (select === options[0]) {
+					await tryCreateNewBranch(workspace.uri)
 
-			} else if (select === options[1]) {
-				await vscode.commands.executeCommand('git.renameBranch')
+					Telemetry.logUsage('branch:new')
+				} else if (select === options[1]) {
+					await vscode.commands.executeCommand('git.renameBranch')
 
-				Telemetry.logUsage('branch:rename')
+					Telemetry.logUsage('branch:rename')
 
-				const oldStatus = status
-				if (oldStatus.remote) {
-					const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
-					await Git.run(workspace.uri, 'branch', '--unset-upstream', newStatus.local)
+					const oldStatus = status
+					if (oldStatus.remote) {
+						const newStatus = await Git.getCurrentBranchStatus(workspace.uri)
+						await Git.run(
+							workspace.uri,
+							'branch',
+							'--unset-upstream',
+							newStatus.local,
+						)
 
-					await vscode.window.withProgress({
-						location: vscode.ProgressLocation.Window,
-						title: 'Syncing Remote Branch...',
-					}, async () => {
-						await Git.run(workspace.uri, 'push', '--delete', 'origin', oldStatus.local, { retry: 1 })
-						await Git.run(workspace.uri, 'push', 'origin', newStatus.local, { retry: 1 })
-					})
+						await vscode.window.withProgress(
+							{
+								location: vscode.ProgressLocation.Window,
+								title: 'Syncing Remote Branch...',
+							},
+							async () => {
+								await Git.run(
+									workspace.uri,
+									'push',
+									'--delete',
+									'origin',
+									oldStatus.local,
+									{ retry: 1 },
+								)
+								await Git.run(
+									workspace.uri,
+									'push',
+									'origin',
+									newStatus.local,
+									{ retry: 1 },
+								)
+							},
+						)
+					}
 				}
 			}
-		}
-	})
+		},
+	)
 }
 
 async function tryCreateNewBranch(link: vscode.Uri) {
@@ -74,7 +96,6 @@ async function tryCreateNewBranch(link: vscode.Uri) {
 				await Git.run(link, 'check-ref-format', '--branch', value)
 
 				return null
-
 			} catch (error) {
 				return 'The given branch name is not valid.'
 			}

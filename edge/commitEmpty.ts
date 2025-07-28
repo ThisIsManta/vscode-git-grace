@@ -20,16 +20,23 @@ export default async function () {
 		throw new vscode.CancellationError()
 	}
 
-	await vscode.window.withProgress({ location: vscode.ProgressLocation.SourceControl }, async () => {
-		try {
-			await Git.run(workspace.uri, 'commit', '--allow-empty', '--message=(empty commit)')
+	await vscode.window.withProgress(
+		{ location: vscode.ProgressLocation.SourceControl },
+		async () => {
+			try {
+				await Git.run(
+					workspace.uri,
+					'commit',
+					'--allow-empty',
+					'--message=(empty commit)',
+				)
+			} catch (error) {
+				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-		} catch (error) {
-			Util.setWorkspaceAsFirstTryNextTime(workspace)
-
-			throw new Error('Committing failed.')
-		}
-	})
+				throw new Error('Committing failed.')
+			}
+		},
+	)
 
 	Telemetry.logUsage('commit-empty')
 

@@ -15,15 +15,21 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 	return async (options: object = {}): Promise<void> => {
 		try {
 			// Do not enqueue the same operation
-			if (isEqual(pendingActionList[0], {
-				action,
-				options,
-			})) {
+			if (
+				isEqual(pendingActionList[0], {
+					action,
+					options,
+				})
+			) {
 				return
 			}
 
 			// Cancel the active operation if the new pending operation requests cancellation
-			if (pendingActionList.length > 0 && cancellableActionList && cancellableActionList.includes(pendingActionList.at(-1)!.action)) {
+			if (
+				pendingActionList.length > 0 &&
+				cancellableActionList &&
+				cancellableActionList.includes(pendingActionList.at(-1)!.action)
+			) {
 				if (cancellationService) {
 					cancellationService.cancel()
 					cancellationService = null
@@ -31,7 +37,10 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 
 				pendingActionList.pop()
 
-				while (pendingActionList.length > 0 && cancellableActionList.includes(pendingActionList.at(-1)!.action)) {
+				while (
+					pendingActionList.length > 0 &&
+					cancellableActionList.includes(pendingActionList.at(-1)!.action)
+				) {
 					pendingActionList.pop()
 				}
 			}
@@ -62,7 +71,6 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 
 				cancellationService = null
 			}
-
 		} catch (error) {
 			clear()
 
@@ -75,21 +83,33 @@ export function put(action: Action, cancellableActionList?: Array<Action>) {
 					return error.message
 				}
 
-				if (typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+				if (
+					typeof error === 'object' &&
+					'message' in error &&
+					typeof error.message === 'string'
+				) {
 					return error.message
 				}
 
 				return String(error)
 			})()
 
-			if (await vscode.window.showErrorMessage(message, { modal: true }, 'Show Log') === 'Show Log') {
+			if (
+				(await vscode.window.showErrorMessage(
+					message,
+					{ modal: true },
+					'Show Log',
+				)) === 'Show Log'
+			) {
 				Log.show()
 			}
 		}
 	}
 }
 
-export function run(action: (options?: { token: vscode.CancellationToken }) => Promise<any>) {
+export function run(
+	action: (options?: { token: vscode.CancellationToken }) => Promise<any>,
+) {
 	return put(action)()
 }
 

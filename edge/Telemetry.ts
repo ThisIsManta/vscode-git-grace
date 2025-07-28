@@ -2,10 +2,9 @@ import { PostHog } from 'posthog-node'
 import * as vscode from 'vscode'
 
 // See https://us.posthog.com/project/129085/activity/explore
-const postHog = new PostHog(
-	'phc_4Fdzy3zpEEdGN2W5OuqCRssCUuKFU2mtl7czyWyWIzD',
-	{ host: 'https://us.i.posthog.com' },
-)
+const postHog = new PostHog('phc_4Fdzy3zpEEdGN2W5OuqCRssCUuKFU2mtl7czyWyWIzD', {
+	host: 'https://us.i.posthog.com',
+})
 
 export default vscode.env.createTelemetryLogger({
 	sendEventData: (event, data) => {
@@ -22,11 +21,7 @@ export default vscode.env.createTelemetryLogger({
 	},
 
 	sendErrorData(error, data) {
-		postHog.captureException(
-			error,
-			vscode.env.machineId,
-			data,
-		)
+		postHog.captureException(error, vscode.env.machineId, data)
 	},
 
 	flush: async () => {

@@ -96,14 +96,22 @@ export default class TortoiseGit {
 
 	private executablePath = ''
 
-	private async run(command: string, withFilePath: boolean = false, additionalParams: string | null = null) {
+	private async run(
+		command: string,
+		withFilePath: boolean = false,
+		additionalParams: string | null = null,
+	) {
 		if (!this.executablePath) {
 			try {
-				this.executablePath = cp.execSync('where TortoiseGitProc.exe').toString().trim()
-
+				this.executablePath = cp
+					.execSync('where TortoiseGitProc.exe')
+					.toString()
+					.trim()
 			} catch (error) {
 				Log.appendLine(String(error))
-				vscode.window.showErrorMessage('TortoiseGit is not found. Please make sure it is installed and added to PATH.')
+				vscode.window.showErrorMessage(
+					'TortoiseGit is not found. Please make sure it is installed and added to PATH.',
+				)
 
 				return
 			}
@@ -118,14 +126,16 @@ export default class TortoiseGit {
 			return
 		}
 
-		cp.exec(compact([
-			`"${this.executablePath}"`,
-			`/command:${command}`,
-			withFilePath && `/path:"${Util.getCurrentFile().fsPath}"`,
-			additionalParams,
-		]).join(' '), { cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath })
-			.on('error', error => {
-				Log.appendLine(String(error))
-			})
+		cp.exec(
+			compact([
+				`"${this.executablePath}"`,
+				`/command:${command}`,
+				withFilePath && `/path:"${Util.getCurrentFile().fsPath}"`,
+				additionalParams,
+			]).join(' '),
+			{ cwd: Git.getRepositoryLink(folderPath.uri)?.fsPath },
+		).on('error', (error) => {
+			Log.appendLine(String(error))
+		})
 	}
 }

@@ -41,17 +41,29 @@ export default async function () {
 		}
 	}
 
-	if (status.remote === '' || status.sync !== Git.SyncStatus.LocalIsInSyncWithRemote) {
-		await vscode.window.withProgress({
-			location: vscode.ProgressLocation.Window,
-			title: 'Pushing...',
-		}, async () => {
-			await pushInternal(workspace)
-		})
+	if (
+		status.remote === '' ||
+		status.sync !== Git.SyncStatus.LocalIsInSyncWithRemote
+	) {
+		await vscode.window.withProgress(
+			{
+				location: vscode.ProgressLocation.Window,
+				title: 'Pushing...',
+			},
+			async () => {
+				await pushInternal(workspace)
+			},
+		)
 	}
 
 	const webOrigin = await Git.getWebOrigin(workspace)
-	open(webOrigin + '/compare/' + headBranchName + '...' + (status.remote.replace(/^origin\//, '') || status.local))
+	open(
+		webOrigin +
+			'/compare/' +
+			headBranchName +
+			'...' +
+			(status.remote.replace(/^origin\//, '') || status.local),
+	)
 
 	Telemetry.logUsage('pull-request', { webOrigin })
 }

@@ -23,13 +23,20 @@ export async function stashPush() {
 		if (
 			!(
 				// Staged files
-				await Git.run(workspace.uri, 'diff', '--name-only', '--cached')
+				(await Git.run(workspace.uri, 'diff', '--name-only', '--cached'))
 			) ||
 			!(
 				// Unstaged files
-				await Git.run(workspace.uri, 'diff', '--name-only') ||
-				// Untracked files
-				await Git.run(workspace.uri, 'ls-files', '--others', '--exclude-standard')
+				(
+					(await Git.run(workspace.uri, 'diff', '--name-only')) ||
+					// Untracked files
+					(await Git.run(
+						workspace.uri,
+						'ls-files',
+						'--others',
+						'--exclude-standard',
+					))
+				)
 			)
 		) {
 			return undefined
@@ -49,19 +56,26 @@ export async function stashPush() {
 		return select === 'Staged Files Only'
 	})()
 
-	await vscode.window.withProgress({
-		location: vscode.ProgressLocation.Window,
-		title: 'Pushing Stash...',
-	}, async () => {
-		try {
-			await Git.run(workspace.uri, 'stash', 'push', stagedFilesOnly ? '--staged' : '--include-untracked')
+	await vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Window,
+			title: 'Pushing Stash...',
+		},
+		async () => {
+			try {
+				await Git.run(
+					workspace.uri,
+					'stash',
+					'push',
+					stagedFilesOnly ? '--staged' : '--include-untracked',
+				)
+			} catch (error) {
+				Util.setWorkspaceAsFirstTryNextTime(workspace)
 
-		} catch (error) {
-			Util.setWorkspaceAsFirstTryNextTime(workspace)
-
-			throw new Error('Pushing stash failed.')
-		}
-	})
+				throw new Error('Pushing stash failed.')
+			}
+		},
+	)
 
 	vscode.commands.executeCommand('git.refresh')
 
@@ -78,25 +92,27 @@ export async function stashPopLatest() {
 
 	await Util.saveAllFilesOnlyIfAutoSaveIsOn()
 
-	await vscode.window.withProgress({
-		location: vscode.ProgressLocation.Window,
-		title: 'Popping Stash...',
-	}, async () => {
-		try {
-			await Git.run(workspace.uri, 'stash', 'pop')
+	await vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Window,
+			title: 'Popping Stash...',
+		},
+		async () => {
+			try {
+				await Git.run(workspace.uri, 'stash', 'pop')
 
-			Telemetry.logUsage('stash-pop-latest')
+				Telemetry.logUsage('stash-pop-latest')
+			} catch (error) {
+				if (error instanceof Error) {
+					Telemetry.logError(error)
+				}
 
-		} catch (error) {
-			if (error instanceof Error) {
-				Telemetry.logError(error)
+				Util.setWorkspaceAsFirstTryNextTime(workspace)
+
+				throw new Error('Popping stash failed.')
 			}
-
-			Util.setWorkspaceAsFirstTryNextTime(workspace)
-
-			throw new Error('Popping stash failed.')
-		}
-	})
+		},
+	)
 
 	vscode.commands.executeCommand('git.refresh')
 
@@ -132,7 +148,10 @@ export async function updateStashCountBar() {
 		const stashList = compact(result.split('\n'))
 		if (stashList.length > 0) {
 			if (!stashCountBar) {
-				stashCountBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 5)
+				stashCountBar = vscode.window.createStatusBarItem(
+					vscode.StatusBarAlignment.Left,
+					5,
+				)
 			}
 
 			stashCountBar.text = `${stashList.length} Stash${stashList.length > 1 ? 'es' : ''}`
